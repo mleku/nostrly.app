@@ -114,7 +114,7 @@ export const fetchFeedEvents = async (limit = 50): Promise<NDKEvent[]> => {
         }
 
         const filter: NDKFilter = {
-            kinds: [NDKKind.Text],
+            kinds: [1, 1111, 6, 30023, 9802, 1068, 1222, 1244, 20, 21, 22] as unknown as NDKKind[],
             limit,
             since: Math.floor((Date.now() - 24 * 60 * 60 * 1000) / 1000) // Last 24 hours
         }
@@ -134,7 +134,7 @@ export const subscribeToFeed = (
 ) => {
     try {
         const defaultFilters: NDKFilter[] = filters || [{
-            kinds: [NDKKind.Text],
+            kinds: [1, 1111, 6, 30023, 9802, 1068, 1222, 1244, 20, 21, 22] as unknown as NDKKind[],
             since: Math.floor(Date.now() / 1000)
         }]
 
@@ -186,6 +186,13 @@ export const loginWithExtension = async (): Promise<LoggedInUser | null> => {
             console.warn('Profile fetch skipped/failed:', e)
         }
 
+        // Attempt to switch to user's relay list (NIP-65 / kind 10002) if available
+        try {
+            await withTimeout(applyUserRelays(user.pubkey), 6000, 'Apply user relays')
+        } catch (e) {
+            console.warn('Using default relays; user relay application failed or timed out:', e)
+        }
+
         return {
             pubkey: user.pubkey,
             npub: user.npub,
@@ -202,7 +209,60 @@ export const logout = () => {
     // Clear signer reference
     // @ts-ignore
     ndk.signer = undefined
+    // Switch back to default relays asynchronously
+    switchRelays(DEFAULT_RELAYS).catch(() => {})
 }
 
 // Initialize NDK when module loads
 initializeNDK()
+
+// --- User relay list handling (NIP-65 kind 10002) ---
+export const fetchUserRelays = async (pubkey: string, timeoutMs = 5000): Promise<string[]> => {
+    try {
+        const filter: NDKFilter = { kinds: [NDKKind.RelayList], authors: [pubkey], limit: 1 }
+        const set = await withTimeout(ndk.fetchEvents(filter), timeoutMs, 'fetch relay list')
+        const latest = Array.from(set).sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0]
+        if (!latest) return []
+        const urls = latest.tags
+            .filter(t => t[0] === 'r' && typeof t[1] === 'string')
+            .map(t => (t[1] as string).trim())
+            .filter(u => u.startsWith('ws'))
+        return Array.from(new Set(urls))
+    } catch (e) {
+        console.warn('fetchUserRelays failed:', e)
+        return []
+    }
+}
+
+export const switchRelays = async (urls: string[], timeoutMs = 7000): Promise<boolean> => {
+    try {
+        if (!urls || urls.length === 0) return false
+        try {
+            const relays: any[] = Array.from((ndk.pool as any)?.relays?.values?.() || [])
+            for (const r of relays) {
+                try { await r.disconnect?.() } catch {}
+            }
+        } catch {}
+        ;(ndk as any).explicitRelayUrls = urls
+        isConnected = false
+        await initializeNDK(timeoutMs)
+        return true
+    } catch (e) {
+        console.warn('switchRelays failed:', e)
+        return false
+    }
+}
+
+export const applyUserRelays = async (pubkey: string): Promise<boolean> => {
+    try {
+        const urls = await fetchUserRelays(pubkey)
+        if (!urls.length) return false
+        const ok = await switchRelays(urls)
+        if (ok) {
+            console.log('Applied user relays:', urls)
+        }
+        return ok
+    } catch {
+        return false
+    }
+}

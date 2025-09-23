@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
-import { loginWithExtension, logout, LoggedInUser } from '@/lib/ndk'
+import { loginWithExtension, logout, LoggedInUser, applyUserRelays } from '@/lib/ndk'
 import orlyImg from '../../docs/orly.png'
 
 function RootLayout() {
@@ -12,7 +12,14 @@ function RootLayout() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('nostrUser')
-      if (saved) setUser(JSON.parse(saved))
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        setUser(parsed)
+        // Attempt to apply user relays on app load
+        if (parsed?.pubkey) {
+          applyUserRelays(parsed.pubkey).catch(() => {})
+        }
+      }
     } catch {}
   }, [])
 
@@ -45,10 +52,10 @@ function RootLayout() {
     <>
       <div className="min-h-screen flex flex-col bg-[#162a2f] text-[#cccccc]">
         <header className="sticky top-0 z-50 w-full bg-black">
-          <div className="max-w-[1200px] mx-auto px-8 py-4 flex items-center justify-between gap-4">
+          <div className="w-full px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
             <Link to="/" className="no-underline flex items-center gap-3">
               <img src={orlyImg} alt="nostrly owl" style={{ width: '3em', height: '3em', objectFit: 'contain' }} />
-              <h1 className="text-[#00d4aa] text-2xl font-bold">nostrly</h1>
+              <h1 className="text-[#fff3b0] text-2xl font-bold">nostrly</h1>
             </Link>
             <div>
               {user ? (
@@ -69,7 +76,7 @@ function RootLayout() {
             </div>
           </div>
         </header>
-        <main className="flex-1 w-full max-w-[1200px] mx-auto p-8">
+        <main className="flex-1 w-full pt-4">
           <Outlet />
         </main>
       </div>
@@ -78,7 +85,7 @@ function RootLayout() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000]" onClick={() => !isLoggingIn && setIsLoginOpen(false)}>
           <div className="w-[90%] max-w-[480px] bg-[#263238] rounded-xl p-5 shadow-modal" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 pb-2">
-              <h3 className="text-white text-xl">Login with Nostr Extension</h3>
+              <h3 className="text-[#fff3b0] text-xl">Login with Nostr Extension</h3>
             </div>
             <p className="mb-4">
               Connect using a NIP-07 compatible browser extension (e.g., Nos2x, Alby, Unisat, etc.).
@@ -106,16 +113,16 @@ export const Route = createRootRoute({
   component: RootLayout,
   errorComponent: ({ error }) => (
     <div className="flex-1 w-full max-w-[1200px] mx-auto p-8">
-      <h2 className="text-[#00d4aa] mb-4 text-2xl">Something went wrong</h2>
+      <h2 className="text-[#fff3b0] mb-4 text-2xl">Something went wrong</h2>
       <pre className="whitespace-pre-wrap">{String(error)}</pre>
     </div>
   ),
   notFoundComponent: () => (
     <div className="flex-1 w-full max-w-[1200px] mx-auto p-8">
-      <h2 className="text-[#00d4aa] mb-2 text-2xl">Page not found</h2>
+      <h2 className="text-[#fff3b0] mb-2 text-2xl">Page not found</h2>
       <p className="mb-2">The page you are looking for does not exist.</p>
       <p>
-        Go back to <Link to="/" className="text-[#00d4aa] underline">Home</Link>
+        Go back to <Link to="/" className="text-[#fff3b0] underline">Home</Link>
       </p>
     </div>
   ),
