@@ -47,7 +47,7 @@ function RootLayout() {
         <header className="header">
           <div className="nav">
             <Link to="/" className="nav-link">
-              <h1>Orly.dev</h1>
+              <h1>nostrly</h1>
             </Link>
             <nav>
               <Link to="/" className="nav-link">Home</Link>

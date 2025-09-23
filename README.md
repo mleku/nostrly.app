@@ -1,4 +1,4 @@
-# client.orly.dev
+# nostrly.app
 
 A simple nostr client focused on performance and user configurability.
 

@@ -17,7 +17,7 @@ function Home() {
 
   return (
     <div className="home-page">
-      <h2>Welcome to Orly.dev Nostr Client</h2>
+      <h2>Welcome to nostrly</h2>
       <p>A simple nostr client focused on performance and user configurability</p>
       
       <div className="status-section">
@@ -28,20 +28,19 @@ function Home() {
           <div>
             <p>Connected: {relayStatus?.connected ? 'Yes' : 'No'}</p>
             <p>Active Relays: {relayStatus?.activeRelays || 0}</p>
+            {Array.isArray(relayStatus?.relays) && relayStatus.relays.length > 0 ? (
+              <ul>
+                {relayStatus.relays.map((r: any) => (
+                  <li key={r.url}>
+                    {r.connected ? '✅' : '❌'} {r.url}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No relays configured</p>
+            )}
           </div>
         )}
-      </div>
-
-      <div className="features-section">
-        <h3>Features</h3>
-        <ul>
-          <li>✅ React + TypeScript</li>
-          <li>✅ TanStack Router for routing</li>
-          <li>✅ React Query for state management</li>
-          <li>🔄 NDK for Nostr protocol integration</li>
-          <li>🔄 Real-time feed updates</li>
-          <li>🔄 Profile management</li>
-        </ul>
       </div>
     </div>
   )

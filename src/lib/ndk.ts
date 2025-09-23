@@ -48,11 +48,17 @@ export const initializeNDK = async (timeoutMs = 7000): Promise<boolean> => {
 
 // Get connection status
 export const getConnectionStatus = () => {
+    const entries: Array<[string, any]> = Array.from(ndk.pool?.relays?.entries() || []) as any
+    const relayStatuses = entries.map(([url, relay]) => ({
+        url,
+        connected: relay?.connectivity?.status === 'connected'
+    }))
+
     return {
         connected: isConnected,
-        relays: Array.from(ndk.pool?.relays?.keys() || []),
-        activeRelays: Array.from(ndk.pool?.relays?.values() || [])
-            .filter((relay: any) => relay?.connectivity?.status === 'connected').length
+        // Change relays to be detailed status objects to support UI listing
+        relays: relayStatuses,
+        activeRelays: relayStatuses.filter(r => r.connected).length
     }
 }
 
