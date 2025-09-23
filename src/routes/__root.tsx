@@ -34,6 +34,7 @@ function RootLayout() {
       }
       setUser(logged)
       localStorage.setItem('nostrUser', JSON.stringify(logged))
+      try { window.dispatchEvent(new CustomEvent('nostr-user-changed', { detail: logged })) } catch {}
       setIsLoginOpen(false)
     } catch (e: any) {
       setError(e?.message || 'Login failed')
@@ -46,13 +47,14 @@ function RootLayout() {
     try { logout() } catch {}
     setUser(null)
     localStorage.removeItem('nostrUser')
+    try { window.dispatchEvent(new CustomEvent('nostr-user-changed', { detail: null })) } catch {}
   }
 
   return (
     <>
       <div className="min-h-screen flex flex-col bg-[#162a2f] text-[#cccccc]">
         <header className="sticky top-0 z-50 w-full bg-black">
-          <div className="w-full px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+          <div className="w-full px-2 sm:px-3 py-2 flex items-center justify-between gap-4">
             <Link to="/" className="no-underline flex items-center gap-3">
               <img src={orlyImg} alt="nostrly owl" style={{ width: '3em', height: '3em', objectFit: 'contain' }} />
               <h1 className="text-[#fff3b0] text-2xl font-bold">nostrly</h1>
