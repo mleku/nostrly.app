@@ -121,4 +121,5 @@ pkg/database/testrealy
 /.idea/.name
 /ctxproxy.config.yml
 cmd/benchmark/external/**
+/node_modules/
 /.idea/client.orly.dev.iml

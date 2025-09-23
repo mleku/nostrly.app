@@ -103,3 +103,5 @@ always use typescript for web apps
 always use tanstack/router with web apps
 
 always use react query with web apps
+
+always use bun for running scripts and building things
