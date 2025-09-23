@@ -8,6 +8,7 @@ function RootLayout() {
   const [user, setUser] = useState<LoggedInUser | null>(null)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [activeView, setActiveView] = useState<string | null>(null)
 
   useEffect(() => {
     try {
@@ -21,6 +22,17 @@ function RootLayout() {
         }
       }
     } catch {}
+  }, [])
+
+  // Listen for active view change events from the feed page
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<{ label?: string }>
+      const label = (ce as any).detail?.label as string | undefined
+      setActiveView(label || null)
+    }
+    window.addEventListener('nostr-active-view', handler as any)
+    return () => window.removeEventListener('nostr-active-view', handler as any)
   }, [])
 
   const handleLogin = async () => {
@@ -46,6 +58,7 @@ function RootLayout() {
   const handleLogout = () => {
     try { logout() } catch {}
     setUser(null)
+    setActiveView(null)
     localStorage.removeItem('nostrUser')
     try { window.dispatchEvent(new CustomEvent('nostr-user-changed', { detail: null })) } catch {}
   }
@@ -54,38 +67,47 @@ function RootLayout() {
     <>
       <div className="min-h-screen flex flex-col bg-[#162a2f] text-[#cccccc]">
         <header className="sticky top-0 z-50 w-full bg-black">
-          <div className="w-full px-2 sm:px-3 py-2 flex items-center justify-between gap-4">
-            <Link to="/" className="no-underline flex items-center gap-3">
+          <div className="w-full sm:pl-3 pr-0 py-0 flex items-center justify-between">
+            <Link to="/" className="no-underline flex items-center">
               <img src={orlyImg} alt="nostrly owl" style={{ width: '3em', height: '3em', objectFit: 'contain' }} />
-              <h1 className="text-[#fff3b0] text-2xl font-bold">nostrly</h1>
+              <h1 className="text-[#fff3b0] text-2xl font-bold">{user ? (activeView || 'nostrly') : 'nostrly'}</h1>
             </Link>
-            <div>
+            <div className="flex items-stretch">
               {user ? (
-                <div className="flex items-center gap-3">
-                  {user.picture ? (
-                    <img src={user.picture} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
-                  ) : null}
-                  <span className="text-[#cccccc]">{user.name || user.npub.slice(0, 8) + '…'}</span>
-                  <button onClick={handleLogout} className="bg-[#162a2f] text-[#cccccc] px-4 py-2 rounded hover:bg-[#1b3a40] disabled:bg-[#162a2f] disabled:text-[#666666]">
-                    Logout
+                <div className="flex items-stretch">
+                  <button
+                    type="button"
+                    onClick={() => { try { window.dispatchEvent(new CustomEvent('nostr-open-me')) } catch {} }}
+                    className={`${activeView === 'Me' ? 'bg-[#162a2f]' : 'bg-transparent'} flex items-center gap-2 h-full p-2`}
+                    title="Open your profile"
+                    aria-label="Open your profile"
+                    aria-current={activeView === 'Me' ? 'page' : undefined}
+                  >
+                    {user.picture ? (
+                      <img src={user.picture} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                    ) : null}
+                    <span className="text-[#cccccc] whitespace-nowrap">{user.name || user.npub.slice(0, 8) + '…'}</span>
+                  </button>
+                  <button onClick={handleLogout} aria-label="Logout" title="Logout" className="w-12 h-full bg-red-600 text-white flex items-center justify-center rounded-none hover:bg-red-700 disabled:opacity-60">
+                    <ExitIcon className="w-full h-full p-2" />
                   </button>
                 </div>
               ) : (
-                <button onClick={() => setIsLoginOpen(true)} className="bg-[#162a2f] text-[#cccccc] px-4 py-2 rounded hover:bg-[#1b3a40] disabled:bg-[#162a2f] disabled:text-[#666666]">
-                  Login
+                <button onClick={() => setIsLoginOpen(true)} aria-label="Login" title="Login" className="w-12 h-full bg-green-600 text-white flex items-center justify-center rounded-none hover:bg-green-700 disabled:opacity-60">
+                  <EnterIcon className="w-full h-full p-2" />
                 </button>
               )}
             </div>
           </div>
         </header>
-        <main className="flex-1 w-full pt-4">
+        <main className="flex w-full py-2">
           <Outlet />
         </main>
       </div>
 
       {isLoginOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000]" onClick={() => !isLoggingIn && setIsLoginOpen(false)}>
-          <div className="w-[90%] max-w-[480px] bg-[#263238] rounded-xl p-5 shadow-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="w-[90%] max-w-[480px] bg-[#162a2f] rounded-xl p-5 shadow-modal" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 pb-2">
               <h3 className="text-[#fff3b0] text-xl">Login with Nostr Extension</h3>
             </div>
@@ -108,6 +130,36 @@ function RootLayout() {
       )}
 
     </>
+  )
+}
+
+function ExitIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      {/* Door frame */}
+      <rect x="3" y="3" width="8" height="18" rx="1" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M7 12h1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Running figure */}
+      <circle cx="15.5" cy="7" r="1.5" fill="currentColor" />
+      <path d="M14 12l2-2m-2 2-1.5 2.5M16 10l2 1.5M12.5 16.5l2.5.5M12 9.5l2 .5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Exit arrow */}
+      <path d="M13 12h7m0 0-2-2m2 2-2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function EnterIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      {/* Door frame on the right */}
+      <rect x="13" y="3" width="8" height="18" rx="1" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M17 12h1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Running figure approaching the door */}
+      <circle cx="8.5" cy="7" r="1.5" fill="currentColor" />
+      <path d="M10 12l-2-2m2 2 1.5 2.5M8 10l-2 1.5M11.5 16.5l-2.5.5M12 9.5l-2 .5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Enter arrow toward the door */}
+      <path d="M11 12h-7m0 0 2-2m-2 2 2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 
