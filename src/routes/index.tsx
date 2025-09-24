@@ -9,7 +9,7 @@ export const Route = createFileRoute('/')({
   component: Home,
 })
 
-type FeedMode = 'global' | 'user' | 'follows' | 'profile'
+type FeedMode = 'global' | 'user' | 'follows' | 'profile' | 'note'
 
 // Event kinds to include in feeds (global and user)
 const FEED_KINDS: number[] = [1, 1111, 6, 30023, 9802, 1068, 1222, 1244, 20, 21, 22]
@@ -160,7 +160,7 @@ function renderContent(text: string, openMedia: (g: MediaGallery) => void, openP
 }
 
 // Inline component to render a referenced nevent as its own note row
-function InlineNeventNote({ bech, openMedia, openProfile }: { bech: string; openMedia: (g: MediaGallery) => void; openProfile?: (bech: string) => void }) {
+function InlineNeventNote({ bech, openMedia, openProfile, onOpenNote }: { bech: string; openMedia: (g: MediaGallery) => void; openProfile?: (bech: string) => void; onOpenNote?: (id: string) => void }) {
   const decoded = useMemo(() => {
     try {
       const val = nip19.decode(bech.startsWith('nostr:') ? bech.slice(6) : bech)
@@ -199,7 +199,7 @@ function InlineNeventNote({ bech, openMedia, openProfile }: { bech: string; open
             <header className="mb-2 flex items-center gap-2 text-sm text-[#cccccc]">
               <AuthorLabel pubkey={evQuery.data.pubkey || ''} />
               <span className="opacity-50">·</span>
-              <time className="opacity-70">{formatTime(evQuery.data.created_at)}</time>
+              <time className="opacity-70 hover:underline cursor-pointer" onClick={(e) => { e.preventDefault(); if (evQuery.data?.id) onOpenNote?.(evQuery.data.id) }} title="Open note tab">{formatTime(evQuery.data.created_at)}</time>
             </header>
             {evQuery.data.kind === 6 ? (
               <RepostNote ev={evQuery.data} openMedia={openMedia} openProfile={openProfile} openProfileByPubkey={undefined as any} />
@@ -215,6 +215,55 @@ function InlineNeventNote({ bech, openMedia, openProfile }: { bech: string; open
   )
 }
 
+function SingleNoteView({ id, openMedia, openProfileByBech, openProfileByPubkey, onReply, onRepost, onQuote, onOpenNote, actionMessage }: { id: string; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenNote: (e: NDKEvent) => void; actionMessage?: string }) {
+  const { data: ev, isLoading } = useQuery<NDKEvent | null>({
+    queryKey: ['single-note', id],
+    queryFn: async () => {
+      try {
+        const set = await withTimeout(ndk.fetchEvents({ ids: [id] } as any), 8000, 'fetch single note')
+        return Array.from(set)[0] || null
+      } catch { return null }
+    },
+    staleTime: 1000 * 60 * 5,
+  })
+  if (isLoading) return <div className="p-6">Loading note…</div>
+  if (!ev) return <div className="p-6">Note not found.</div>
+  return (
+    <article className="p-3">
+      <div className="flex gap-3">
+        <div className="flex-1 min-w-0">
+          <header className="mb-1 flex items-center gap-2 text-sm text-[#cccccc]">
+            <AuthorLabel pubkey={ev.pubkey || ''} onOpen={(pk) => openProfileByPubkey(pk)} />
+            <span className="opacity-50">·</span>
+            <time className="opacity-70 hover:underline cursor-pointer" onClick={() => onOpenNote(ev)} title="Open note tab">{formatTime(ev.created_at)}</time>
+          </header>
+          <div className="whitespace-pre-wrap break-words text-[#cccccc]">
+            {ev.kind === 6 ? (
+              <RepostNote ev={ev} openMedia={openMedia} openProfile={openProfileByBech} openProfileByPubkey={openProfileByPubkey} />
+            ) : (
+              <div className="contents">{renderContent(ev.content, openMedia, openProfileByBech)}</div>
+            )}
+          </div>
+          {actionMessage && (
+            <div className="mt-3 bg-black/60 text-white border border-black rounded p-2 text-sm" role="status" aria-live="polite">{actionMessage}</div>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-2 flex-shrink-0 self-start">
+          <button type="button" onClick={() => onQuote(ev)} className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2" title="Quote">
+            <QuoteIcon className="w-8 h-8" />
+          </button>
+          <button type="button" onClick={() => onRepost(ev)} className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2" title="Repost">
+            <RepostEllipsisBubbleIcon className="w-8 h-8" />
+          </button>
+          <button type="button" onClick={() => onReply(ev)} className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2" title="Reply">
+            <ReplyBubbleIcon className="w-8 h-8" />
+          </button>
+        </div>
+      </div>
+    </article>
+  )
+}
+
 function Home() {
   // Thread modal state (narrow) and side panel state (wide)
   const [threadRootId, setThreadRootId] = useState<string | null>(null)
@@ -224,7 +273,10 @@ function Home() {
   const [profilePubkey, setProfilePubkey] = useState<string | null>(null)
   type OpenedProfile = { pubkey: string; npub: string; name?: string; picture?: string; about?: string }
   const [openedProfiles, setOpenedProfiles] = useState<OpenedProfile[]>([])
-  const [prevView, setPrevView] = useState<{ mode: FeedMode; profilePubkey: string | null } | null>(null)
+  type OpenedNote = { id: string }
+  const [openedNotes, setOpenedNotes] = useState<OpenedNote[]>([])
+  const [currentNoteId, setCurrentNoteId] = useState<string | null>(null)
+  const [prevView, setPrevView] = useState<{ mode: FeedMode; profilePubkey: string | null; noteId?: string | null } | null>(null)
   // Infinite feed query using NDK. When a signer is present, NDK auto-connects
   // to user relays; otherwise it uses default relays configured in ndk.ts.
   const PAGE_SIZE = 4
@@ -265,6 +317,14 @@ function Home() {
     } catch {}
   }, [])
 
+  // Hydrate previously opened notes from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('openedNotes')
+      if (saved) setOpenedNotes(JSON.parse(saved))
+    } catch {}
+  }, [])
+
   // Ensure unavailable tabs are not active when logged out; also prune self profile tab on login
   useEffect(() => {
     if (!user && (mode === 'user' || mode === 'follows')) {
@@ -280,27 +340,51 @@ function Home() {
   useEffect(() => {
     try { localStorage.setItem('openedProfiles', JSON.stringify(openedProfiles)) } catch {}
   }, [openedProfiles])
+  // Persist opened notes
+  useEffect(() => {
+    try { localStorage.setItem('openedNotes', JSON.stringify(openedNotes)) } catch {}
+  }, [openedNotes])
+
+  // Action message state: per-event label to show in-note
+  const [actionMessages, setActionMessages] = useState<Record<string, string | undefined>>({})
+  const showActionMessage = (ev: NDKEvent, label: string) => {
+    const id = ev.id || ''
+    if (!id) return
+    setActionMessages(prev => ({ ...prev, [id]: label }))
+    // Auto-clear after 3 seconds
+    setTimeout(() => {
+      setActionMessages(prev => {
+        const copy = { ...prev }
+        if (copy[id] === label) delete copy[id]
+        return copy
+      })
+    }, 3000)
+  }
 
   // Action handlers (stubs/minimal)
   const onReply = (ev: NDKEvent) => {
-    try { console.log('Reply to', ev.id) } catch {}
-    // Also open thread view for the note
-    openThreadFor(ev)
+    showActionMessage(ev, 'Reply')
   }
   const onRepost = (ev: NDKEvent) => {
-    try { console.log('Repost', ev.id) } catch {}
-    // Also open thread view for the note
-    openThreadFor(ev)
+    showActionMessage(ev, 'Repost')
   }
   const onQuote = (ev: NDKEvent) => {
-    try {
-      const bech = (() => { try { return nip19.neventEncode({ id: ev.id! }) } catch { return '' } })()
-      navigator.clipboard?.writeText(`nostr:${bech}`).catch(() => {})
-      console.log('Quote copied to clipboard', bech)
-    } catch {}
-    // Also open thread view for the note
-    openThreadFor(ev)
+    showActionMessage(ev, 'Quote')
   }
+
+  const openNoteById = (id?: string | null) => {
+    const noteId = id || ''
+    if (!noteId) return
+    // Add to opened list if not present
+    setOpenedNotes(prev => (prev.some(n => n.id === noteId) ? prev : [{ id: noteId }, ...prev].slice(0, 20)))
+    // Save previous view if switching
+    setPrevView({ mode, profilePubkey, noteId: currentNoteId })
+    setCurrentNoteId(noteId)
+    setMode('note')
+    // Inform header
+    try { window.dispatchEvent(new CustomEvent('nostr-active-view', { detail: { label: 'Note' } })) } catch {}
+  }
+  const openNoteForEvent = (ev: NDKEvent) => openNoteById(ev.id)
 
   const getThreadRootId = (ev: NDKEvent): string => {
     const eTags = (ev.tags || []).filter(t => t[0] === 'e')
@@ -881,13 +965,87 @@ function Home() {
     }
   }
 
+  // Close the current note and restore previous view
+  const closeCurrentNoteAndRestore = () => {
+    const current = currentNoteId
+    if (!current) return
+    const restore = prevView
+    const after = openedNotes.filter(n => n.id !== current)
+    setOpenedNotes(after)
+
+    if (restore) {
+      if (restore.mode === 'note' && restore.noteId && after.some(n => n.id === restore.noteId)) {
+        setCurrentNoteId(restore.noteId)
+        setMode('note')
+      } else {
+        setCurrentNoteId(null)
+        if (restore.mode === 'profile' && restore.profilePubkey) {
+          setProfilePubkey(restore.profilePubkey)
+        }
+        setMode(restore.mode)
+      }
+      setPrevView(null)
+      return
+    }
+
+    if (after.length > 0) {
+      setCurrentNoteId(after[0].id)
+      setMode('note')
+    } else {
+      setCurrentNoteId(null)
+      setMode('global')
+    }
+  }
+
+  // Remove a specific note tab (if it's the active one, use the full close-and-restore flow)
+  const removeNoteTab = (id: string) => {
+    if (id === currentNoteId) {
+      closeCurrentNoteAndRestore()
+      return
+    }
+    setOpenedNotes(prev => prev.filter(n => n.id !== id))
+  }
+
+  // Remove a specific profile tab (if it's the active one, use the full close-and-restore flow)
+  const removeProfileTab = (pub: string) => {
+    if (pub === profilePubkey) {
+      closeCurrentProfileAndRestore()
+      return
+    }
+    setOpenedProfiles(prev => prev.filter(p => p.pubkey !== pub))
+  }
+
   return (
     <>
       {/* Left sidebar with feed mode buttons */}
       <div className="fixed left-0 top-12 z-40 flex flex-col gap-2 p-0 bg-black h-full">
+        {/* Opened note tabs */}
+        {openedNotes.map((n) => (
+          <div key={n.id} className="relative inline-block group">
+            <button
+              aria-label={`Note ${n.id}`}
+              onClick={() => { if (!(mode === 'note' && currentNoteId === n.id)) { setPrevView({ mode, profilePubkey, noteId: currentNoteId }) }; setCurrentNoteId(n.id); setMode('note') }}
+              className={`w-12 xl:w-32 h-12 ${mode === 'note' && currentNoteId === n.id ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center xl:justify-start xl:px-3`}
+              title={`Open note ${n.id}`}
+            >
+              <ThreadReelIcon className="w-6 h-6 text-[#cccccc]" />
+              <span className="hidden xl:inline ml-2 text-[#cccccc] select-none truncate">Note {n.id.slice(0, 8)}…</span>
+            </button>
+            {/* Hover close button (wide mode) */}
+            <button
+              type="button"
+              aria-label="Close note tab"
+              className="hidden xl:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-black/60 text-white hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeNoteTab(n.id) }}
+              title="Close tab"
+            >
+              ×
+            </button>
+          </div>
+        ))}
         {/* Opened profile tabs */}
         {openedProfiles.filter(p => !(user && p.pubkey === user.pubkey)).map((p) => (
-          <div key={p.pubkey} className="relative inline-block">
+          <div key={p.pubkey} className="relative inline-block group">
             <button
               aria-label={`Profile ${p.name || p.npub || p.pubkey}`}
               onClick={() => { if (!(mode === 'profile' && profilePubkey === p.pubkey)) { setPrevView({ mode, profilePubkey }) }; setProfilePubkey(p.pubkey); setMode('profile') }}
@@ -900,6 +1058,16 @@ function Home() {
                 <UserIcon className="w-8 h-8 text-[#cccccc]" />
               )}
               <span className="hidden xl:inline ml-2 text-[#cccccc] select-none truncate">{p.name || (p.npub ? p.npub.slice(0, 10) + '…' : shorten(p.pubkey))}</span>
+            </button>
+            {/* Hover close button (wide mode) */}
+            <button
+              type="button"
+              aria-label="Close profile tab"
+              className="hidden xl:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-black/60 text-white hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeProfileTab(p.pubkey) }}
+              title="Close tab"
+            >
+              ×
             </button>
           </div>
         ))}
@@ -981,23 +1149,61 @@ function Home() {
                   </div>
                 </div>
               )}
-              {/* Pull-to-refresh area (appears when pulling or fetching newer) */}
-              <div
-                className="w-full bg-black text-white flex items-center justify-center overflow-hidden transition-[height] duration-200 ease-out"
-                style={{ height: (isFetchingNewer ? 64 : Math.max(0, Math.min(120, pullDistance))) + 'px' }}
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                {(pullDistance > 0 || isFetchingNewer) && (
-                  <div className="flex items-center gap-2 py-2">
-                    <Spinner />
-                    <span className="text-sm">{isFetchingNewer ? 'Refreshing…' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}</span>
+
+              {mode === 'note' && (
+                <div className="relative w-full bg-[#1a2529]">
+                  <div className="relative p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3 text-xl text-[#f0f0f0]">
+                      <ThreadReelIcon className="w-6 h-6" />
+                      <div className="font-semibold">Note</div>
+                    </div>
+                    <div className="ml-2">
+                      <button
+                        type="button"
+                        aria-label="Close note view"
+                        onClick={closeCurrentNoteAndRestore}
+                        className="bg-[#162a2f] text-[#cccccc] hover:bg-[#1b3a40] px-3 py-1 rounded"
+                        title="Close note"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
-              {/* Top sentinel for fetching newer events */}
-              <div ref={topSentinelRef} />
-              {events.length === 0 && feedQuery.isLoading ? (
+                </div>
+              )}
+              {mode !== 'note' && (
+                <>
+                  {/* Pull-to-refresh area (appears when pulling or fetching newer) */}
+                  <div
+                    className="w-full bg-black text-white flex items-center justify-center overflow-hidden transition-[height] duration-200 ease-out"
+                    style={{ height: (isFetchingNewer ? 64 : Math.max(0, Math.min(120, pullDistance))) + 'px' }}
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    {(pullDistance > 0 || isFetchingNewer) && (
+                      <div className="flex items-center gap-2 py-2">
+                        <Spinner />
+                        <span className="text-sm">{isFetchingNewer ? 'Refreshing…' : pullDistance >= PULL_THRESHOLD ? 'Release to refresh' : 'Pull to refresh'}</span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Top sentinel for fetching newer events */}
+                  <div ref={topSentinelRef} />
+                </>
+              )}
+              {mode === 'note' && currentNoteId ? (
+                <SingleNoteView
+                  id={currentNoteId}
+                  openMedia={setMediaToShow}
+                  openProfileByBech={openProfileByBech}
+                  openProfileByPubkey={openProfileByPubkey}
+                  onReply={onReply}
+                  onRepost={onRepost}
+                  onQuote={onQuote}
+                  onOpenNote={openNoteForEvent}
+                  actionMessage={actionMessages[currentNoteId]}
+                />
+              ) : events.length === 0 && feedQuery.isLoading ? (
                 <div className="p-6">Loading feed…</div>
               ) : (
                 events.map((ev) => (
@@ -1008,34 +1214,40 @@ function Home() {
                     onRepost={onRepost}
                     onQuote={onQuote}
                     onOpenThread={openThreadFor}
+                    onOpenNote={openNoteForEvent}
                     openMedia={setMediaToShow}
                     openProfileByBech={openProfileByBech}
                     openProfileByPubkey={openProfileByPubkey}
                     activeThreadRootId={sideThreadRootId || threadRootId}
+                    actionMessages={actionMessages}
                   />
                 ))
               )}
-              {!feedQuery.hasNextPage && events.length > 0 && (
+              {mode !== 'note' && !feedQuery.hasNextPage && events.length > 0 && (
                 <div className="p-4 text-sm opacity-60">No more results.</div>
               )}
 
-              {/* Bottom pull-to-load area (appears when pulling up or fetching next) */}
-              <div
-                className="w-full bg-black text-white flex items-center justify-center overflow-hidden transition-[height] duration-200 ease-out"
-                style={{ height: ((feedQuery.isFetchingNextPage ? 64 : Math.max(0, Math.min(120, bottomPullDistance)))) + 'px' }}
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                {(bottomPullDistance > 0 || feedQuery.isFetchingNextPage) && (
-                  <div className="flex items-center gap-2 py-2">
-                    <Spinner />
-                    <span className="text-sm">{feedQuery.isFetchingNextPage ? 'Loading more…' : bottomPullDistance >= BOTTOM_PULL_THRESHOLD ? 'Release to load more' : 'Pull up to load more'}</span>
+              {mode !== 'note' && (
+                <>
+                  {/* Bottom pull-to-load area (appears when pulling up or fetching next) */}
+                  <div
+                    className="w-full bg-black text-white flex items-center justify-center overflow-hidden transition-[height] duration-200 ease-out"
+                    style={{ height: ((feedQuery.isFetchingNextPage ? 64 : Math.max(0, Math.min(120, bottomPullDistance)))) + 'px' }}
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    {(bottomPullDistance > 0 || feedQuery.isFetchingNextPage) && (
+                      <div className="flex items-center gap-2 py-2">
+                        <Spinner />
+                        <span className="text-sm">{feedQuery.isFetchingNextPage ? 'Loading more…' : bottomPullDistance >= BOTTOM_PULL_THRESHOLD ? 'Release to load more' : 'Pull up to load more'}</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {/* Bottom sentinel for infinite scroll */}
-              <div ref={bottomSentinelRef} />
+                  {/* Bottom sentinel for infinite scroll */}
+                  <div ref={bottomSentinelRef} />
+                </>
+              )}
 
               {threadRootId && (
                 <ThreadModal
@@ -1048,6 +1260,8 @@ function Home() {
                   onReply={onReply}
                   onRepost={onRepost}
                   onQuote={onQuote}
+                  onOpenNote={openNoteForEvent}
+                  actionMessages={actionMessages}
                 />
               )}
             </div>
@@ -1055,7 +1269,7 @@ function Home() {
         </div>
         <div className="hidden xl:block fixed top-12 right-0 bottom-0 w-full max-w-2xl z-[60] overflow-auto pr-2">
           <div className="px-2 pt-2 pb-4">
-            {sideThreadRootId ? (
+          {sideThreadRootId ? (
               <ThreadPanel
                 rootId={sideThreadRootId}
                 seedId={threadOpenSeed || undefined}
@@ -1066,6 +1280,8 @@ function Home() {
                 onReply={onReply}
                 onRepost={onRepost}
                 onQuote={onQuote}
+                onOpenNote={openNoteForEvent}
+                actionMessages={actionMessages}
               />
             ) : (
               <div className="bg-[#162a2f] rounded-xl p-6 text-sm opacity-60">Select a thread…</div>
@@ -1153,7 +1369,7 @@ async function fetchThreadEventsRecursive(
   }
 }
 
-function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileByBech, openProfileByPubkey, onReply, onRepost, onQuote }: { rootId: string; seedId?: string; onClose: () => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void }) {
+function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileByBech, openProfileByPubkey, onReply, onRepost, onQuote, onOpenNote, actionMessages }: { rootId: string; seedId?: string; onClose: () => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenNote: (e: NDKEvent) => void; actionMessages?: Record<string, string | undefined> }) {
   // Fetch root event
   const { data: root } = useQuery<NDKEvent | null>({
     queryKey: ['thread-root', rootId],
@@ -1177,22 +1393,40 @@ function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
     },
   })
 
+  // Ensure the seed event (the one whose button opened the thread) is included
+  const { data: seed } = useQuery<NDKEvent | null>({
+    queryKey: ['thread-seed', _seedId],
+    enabled: !!_seedId && _seedId !== rootId,
+    staleTime: 1000 * 60 * 5,
+    queryFn: async () => {
+      try {
+        const set = await withTimeout(ndk.fetchEvents({ ids: [_seedId!] } as any), 8000, 'fetch thread seed')
+        return Array.from(set)[0] || null
+      } catch {
+        return null
+      }
+    },
+  })
+
   const all = useMemo(() => {
     const arr: NDKEvent[] = []
     if (root) arr.push(root)
+    if (seed) arr.push(seed)
     for (const c of (children || [])) arr.push(c)
     // Ensure unique by id
     const map = new Map<string, NDKEvent>()
     for (const ev of arr) { if (ev.id) map.set(ev.id, ev) }
     return Array.from(map.values())
-  }, [root, children])
+  }, [root, seed, children])
 
   // Build parent-child relationships using tags
   const { tree, order, truncated } = useMemo(() => {
+    // Exclude repost events (kind 6) from the thread tree; we'll summarize them separately
+    const nonReposts = all.filter(ev => ev.kind !== 6)
     const byId = new Map<string, NDKEvent>()
-    for (const ev of all) if (ev.id) byId.set(ev.id, ev)
+    for (const ev of nonReposts) if (ev.id) byId.set(ev.id, ev)
     const parentOf = new Map<string, string | null>()
-    for (const ev of all) {
+    for (const ev of nonReposts) {
       const eTags = (ev.tags || []).filter(t => t[0] === 'e')
       let parent: string | null = null
       const reply = eTags.find(t => t[3] === 'reply')?.[1] as string | undefined
@@ -1246,6 +1480,15 @@ function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
     }
     return { tree: { byId, childrenMap, parentOf }, order, truncated }
   }, [all, rootId])
+
+  // Collect reposters to show as a compact row at the bottom
+  const reposters = useMemo(() => {
+    const set = new Set<string>()
+    for (const ev of all) {
+      if ((ev as any).kind === 6 && ev.pubkey) set.add(ev.pubkey)
+    }
+    return Array.from(set)
+  }, [all])
 
   const onBackdrop = (e: any) => { e.stopPropagation(); onClose() }
 
@@ -1319,7 +1562,7 @@ function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
   )
 }
 
-function NoteCard({ ev, onReply, onRepost, onQuote, onOpenThread, openMedia, openProfileByBech, openProfileByPubkey, activeThreadRootId }: { ev: NDKEvent; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenThread: (e: NDKEvent) => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; activeThreadRootId?: string | null }) {
+function NoteCard({ ev, onReply, onRepost, onQuote, onOpenThread, onOpenNote, openMedia, openProfileByBech, openProfileByPubkey, activeThreadRootId, actionMessages }: { ev: NDKEvent; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenThread: (e: NDKEvent) => void; onOpenNote: (e: NDKEvent) => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; activeThreadRootId?: string | null; actionMessages?: Record<string, string | undefined> }) {
   const getThreadRootIdLocal = (ev: NDKEvent): string => {
     const eTags = (ev.tags || []).filter(t => t[0] === 'e')
     const root = eTags.find(t => (t[3] === 'root'))?.[1] as string | undefined
@@ -1397,7 +1640,7 @@ function NoteCard({ ev, onReply, onRepost, onQuote, onOpenThread, openMedia, ope
           <header className="mb-1 flex items-center gap-2 text-sm text-[#cccccc]">
             <AuthorLabel pubkey={ev.pubkey || ''} onOpen={(pk) => openProfileByPubkey(pk)} />
             <span className="opacity-50">·</span>
-            <time className="opacity-70">{formatTime(ev.created_at)}</time>
+            <time className="opacity-70 hover:underline cursor-pointer" onClick={() => onOpenNote(ev)} title="Open note tab">{formatTime(ev.created_at)}</time>
           </header>
 
           {/* Collapsible content wrapper capped at 50vh when not expanded */}
@@ -1430,6 +1673,13 @@ function NoteCard({ ev, onReply, onRepost, onQuote, onOpenThread, openMedia, ope
               >
                 Show more
               </button>
+            </div>
+          )}
+
+          {/* Action message box at bottom of note content */}
+          {actionMessages?.[ev.id || ''] && (
+            <div className="mt-3 bg-black/60 text-white border border-black rounded p-2 text-sm" role="status" aria-live="polite">
+              {actionMessages[ev.id || '']}
             </div>
           )}
         </div>
@@ -1677,6 +1927,40 @@ function AuthorLabel({ pubkey, onOpen }: { pubkey: string, onOpen?: (pubkey: str
   )
 }
 
+// Small avatar bubble for displaying reposters
+function ReposterAvatar({ pubkey, onOpen }: { pubkey: string; onOpen?: (pubkey: string) => void }) {
+  const { data } = useQuery({
+    queryKey: ['profile-picture', pubkey],
+    enabled: !!pubkey,
+    staleTime: 1000 * 60 * 10,
+    queryFn: async () => {
+      try {
+        const user = ndk.getUser({ pubkey })
+        try { await withTimeout(user.fetchProfile(), 4000, 'profile pic fetch') } catch {}
+        const prof: any = user.profile || {}
+        const picture: string | undefined = prof.picture || undefined
+        return { picture }
+      } catch {
+        return { picture: undefined as string | undefined }
+      }
+    },
+  })
+  const pic = data?.picture
+  const body = (
+    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/40 overflow-hidden">
+      {pic ? <img src={pic} alt="avatar" className="w-6 h-6 object-cover" /> : <UserIcon className="w-4 h-4 opacity-60" />}
+    </span>
+  )
+  if (onOpen) {
+    return (
+      <button type="button" onClick={() => onOpen(pubkey)} className="focus:outline-none" title={shorten(pubkey, 12)}>
+        {body}
+      </button>
+    )
+  }
+  return body
+}
+
 function GlobeIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1757,7 +2041,7 @@ function RepostEllipsisBubbleIcon({ className = '' }: { className?: string }) {
 }
 
 
-function ThreadPanel({ rootId, seedId: _seedId, onClose, openMedia, openProfileByBech, openProfileByPubkey, onReply, onRepost, onQuote }: { rootId: string; seedId?: string; onClose: () => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void }) {
+function ThreadPanel({ rootId, seedId: _seedId, onClose, openMedia, openProfileByBech, openProfileByPubkey, onReply, onRepost, onQuote, onOpenNote }: { rootId: string; seedId?: string; onClose: () => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenNote: (e: NDKEvent) => void }) {
   const { data: root } = useQuery<NDKEvent | null>({
     queryKey: ['thread-root', rootId],
     staleTime: 1000 * 60 * 5,
@@ -1777,19 +2061,36 @@ function ThreadPanel({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
       return await fetchThreadEventsRecursive(rootId)
     },
   })
+  // Ensure the seed event (the one whose button opened the thread) is included
+  const { data: seed } = useQuery<NDKEvent | null>({
+    queryKey: ['thread-seed', _seedId],
+    enabled: !!_seedId && _seedId !== rootId,
+    staleTime: 1000 * 60 * 5,
+    queryFn: async () => {
+      try {
+        const set = await withTimeout(ndk.fetchEvents({ ids: [_seedId!] } as any), 8000, 'fetch thread seed')
+        return Array.from(set)[0] || null
+      } catch {
+        return null
+      }
+    },
+  })
   const all = useMemo(() => {
     const arr: NDKEvent[] = []
     if (root) arr.push(root)
+    if (seed) arr.push(seed)
     for (const c of (children || [])) arr.push(c)
     const map = new Map<string, NDKEvent>()
     for (const ev of arr) { if (ev.id) map.set(ev.id, ev) }
     return Array.from(map.values())
-  }, [root, children])
+  }, [root, seed, children])
   const { tree, order, truncated } = useMemo(() => {
+    // Exclude reposts (kind 6) from the thread tree; we will summarize them at the bottom
+    const nonReposts = all.filter(ev => ev.kind !== 6)
     const byId = new Map<string, NDKEvent>()
-    for (const ev of all) if (ev.id) byId.set(ev.id, ev)
+    for (const ev of nonReposts) if (ev.id) byId.set(ev.id, ev)
     const parentOf = new Map<string, string | null>()
-    for (const ev of all) {
+    for (const ev of nonReposts) {
       const eTags = (ev.tags || []).filter(t => t[0] === 'e')
       let parent: string | null = null
       const reply = eTags.find(t => t[3] === 'reply')?.[1] as string | undefined
@@ -1837,6 +2138,14 @@ function ThreadPanel({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
     }
     return { tree: { byId, childrenMap, parentOf }, order, truncated }
   }, [all, rootId])
+  // Collect reposters to show at the bottom
+  const reposters = useMemo(() => {
+    const set = new Set<string>()
+    for (const ev of all) {
+      if ((ev as any).kind === 6 && ev.pubkey) set.add(ev.pubkey)
+    }
+    return Array.from(set)
+  }, [all])
   return (
     <div className="bg-[#0f1a1d] rounded-lg shadow-xl overflow-hidden">
       <div className="flex items-center justify-between px-3 py-2 border-b border-black/50">
