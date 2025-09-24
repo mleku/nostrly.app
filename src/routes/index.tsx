@@ -28,6 +28,64 @@ function classifyMedia(url: string): MediaItem | null {
   return { url, type: isVideo ? 'video' : 'image' }
 }
 
+function renderMarkdownInline(text: string, keyPrefix: string) {
+  // Simple, safe inline Markdown: **bold**, *italic* or _italic_, `code`, ~~strike~~, [label](url)
+  // We avoid HTML injection by building React nodes.
+  const nodes: any[] = []
+  let rest = text
+  let k = 0
+  const pushText = (t: string) => { if (t) nodes.push(<span key={`${keyPrefix}-t-${k++}`}>{t}</span>) }
+  while (rest.length > 0) {
+    const linkM = rest.match(/\[([^\]]+)\]\((https?:[^\s)]+)\)/)
+    const codeM = rest.match(/`([^`]+)`/)
+    const strongM = rest.match(/\*\*([^*]+)\*\*/)
+    const emM1 = rest.match(/\*([^*]+)\*/)
+    const emM2 = rest.match(/_([^_]+)_/)
+    const strikeM = rest.match(/~~([^~]+)~~/)
+    // choose earliest match start among found
+    const candidates = [linkM, codeM, strongM, emM1, emM2, strikeM].filter(Boolean) as RegExpMatchArray[]
+    if (candidates.length === 0) { pushText(rest); break }
+    const starts = candidates.map(m => m.index ?? 0)
+    const minIdx = Math.min(...starts)
+    const m = candidates[starts.indexOf(minIdx)]
+    // push preceding text
+    pushText(rest.slice(0, minIdx))
+    if (m === linkM) {
+      const [all, label, url] = m
+      nodes.push(
+        <a key={`${keyPrefix}-a-${k++}`} href={url} target="_blank" rel="noopener noreferrer" className="underline text-[#9ecfff] hover:text-white">{label}</a>
+      )
+      rest = rest.slice((m.index ?? 0) + all.length)
+      continue
+    }
+    if (m === codeM) {
+      const [all, code] = m
+      nodes.push(<code key={`${keyPrefix}-c-${k++}`} className="bg-black/40 px-1 rounded font-mono">{code}</code>)
+      rest = rest.slice((m.index ?? 0) + all.length)
+      continue
+    }
+    if (m === strongM) {
+      const [all, inner] = m
+      nodes.push(<strong key={`${keyPrefix}-b-${k++}`}>{inner}</strong>)
+      rest = rest.slice((m.index ?? 0) + all.length)
+      continue
+    }
+    if (m === emM1 || m === emM2) {
+      const [all, inner] = m as RegExpMatchArray
+      nodes.push(<em key={`${keyPrefix}-i-${k++}`}>{inner}</em>)
+      rest = rest.slice((m.index ?? 0) + all.length)
+      continue
+    }
+    if (m === strikeM) {
+      const [all, inner] = m
+      nodes.push(<s key={`${keyPrefix}-s-${k++}`}>{inner}</s>)
+      rest = rest.slice((m.index ?? 0) + all.length)
+      continue
+    }
+  }
+  return nodes
+}
+
 function renderContent(text: string, openMedia: (g: MediaGallery) => void, openProfile?: (bech: string) => void) {
   if (!text) return null
   // Pre-extract all media items in the content to build a gallery for navigation
@@ -68,7 +126,7 @@ function renderContent(text: string, openMedia: (g: MediaGallery) => void, openP
     }
     // Process nostr: profile references and nevent references inside plain text segments
     const subparts = part.split(NOSTR_REF_REGEX)
-    if (subparts.length === 1) return <span key={idx}>{part}</span>
+    if (subparts.length === 1) return <span key={idx}>{renderMarkdownInline(part, `${idx}`)}</span>
     const nodes: any[] = []
     for (let i = 0; i < subparts.length; i++) {
       const seg = subparts[i]
@@ -94,7 +152,8 @@ function renderContent(text: string, openMedia: (g: MediaGallery) => void, openP
           continue
         }
       }
-      nodes.push(<span key={`${idx}-t-${i}`}>{seg}</span>)
+      // regular text segment -> markdown inline
+      nodes.push(<span key={`${idx}-t-${i}`}>{renderMarkdownInline(seg, `${idx}-${i}`)}</span>)
     }
     return nodes
   })
@@ -832,13 +891,13 @@ function Home() {
             <button
               aria-label={`Profile ${p.name || p.npub || p.pubkey}`}
               onClick={() => { if (!(mode === 'profile' && profilePubkey === p.pubkey)) { setPrevView({ mode, profilePubkey }) }; setProfilePubkey(p.pubkey); setMode('profile') }}
-              className={`w-12 xl:w-32 h-12 ${mode === 'profile' && profilePubkey === p.pubkey ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center xl:justify-start xl:px-3`}
+              className={`w-12 xl:w-32 h-16 ${mode === 'profile' && profilePubkey === p.pubkey ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center xl:justify-start xl:px-3`}
               title={`Open ${p.name || p.npub || 'profile'}`}
             >
               {p.picture ? (
-                <img src={p.picture} alt="avatar" className="w-7 h-7 rounded-full object-cover" />
+                <img src={p.picture} alt="avatar" className="w-9 h-9 rounded-full object-cover" />
               ) : (
-                <UserIcon className="w-6 h-6 text-[#cccccc]" />
+                <UserIcon className="w-8 h-8 text-[#cccccc]" />
               )}
               <span className="hidden xl:inline ml-2 text-[#cccccc] select-none truncate">{p.name || (p.npub ? p.npub.slice(0, 10) + '…' : shorten(p.pubkey))}</span>
             </button>
@@ -888,10 +947,10 @@ function Home() {
                   {profileMeta.data?.banner && <div className="absolute inset-0 bg-black/30" aria-hidden="true" />}
                   <div className="relative p-4 flex items-start gap-4">
                     {profileMeta.data?.picture ? (
-                      <img src={profileMeta.data.picture} alt="avatar" className="w-16 h-16 rounded-full object-cover ring-2 ring-black/40" />
+                      <img src={profileMeta.data.picture} alt="avatar" className="w-20 h-20 rounded-full object-cover ring-2 ring-black/40" />
                     ) : (
-                      <div className="w-16 h-16 rounded-full bg-black/50 flex items-center justify-center text-[#cccccc] ring-2 ring-black/40">
-                        <UserIcon className="w-8 h-8" />
+                      <div className="w-20 h-20 rounded-full bg-black/50 flex items-center justify-center text-[#cccccc] ring-2 ring-black/40">
+                        <UserIcon className="w-10 h-10" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
@@ -986,6 +1045,9 @@ function Home() {
                   openMedia={setMediaToShow}
                   openProfileByBech={openProfileByBech}
                   openProfileByPubkey={openProfileByPubkey}
+                  onReply={onReply}
+                  onRepost={onRepost}
+                  onQuote={onQuote}
                 />
               )}
             </div>
@@ -1001,6 +1063,9 @@ function Home() {
                 openMedia={setMediaToShow}
                 openProfileByBech={openProfileByBech}
                 openProfileByPubkey={openProfileByPubkey}
+                onReply={onReply}
+                onRepost={onRepost}
+                onQuote={onQuote}
               />
             ) : (
               <div className="bg-[#162a2f] rounded-xl p-6 text-sm opacity-60">Select a thread…</div>
@@ -1053,7 +1118,42 @@ function formatTime(ts?: number) {
   }
 }
 
-function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileByBech, openProfileByPubkey }: { rootId: string; seedId?: string; onClose: () => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void }) {
+// Fetch full thread by crawling immediate replies recursively.
+// This ensures we include notes that only reference their immediate parent (and may omit the root tag).
+async function fetchThreadEventsRecursive(
+  rootId: string,
+  kinds: number[] = [1, 6, 1111, 30023, 9802, 1068, 1222, 1244, 20, 21, 22],
+  maxDepth = 4,
+  maxTotal = 1200
+): Promise<NDKEvent[]> {
+  try {
+    const results = new Map<string, NDKEvent>()
+    let frontier = new Set<string>([rootId])
+    let depth = 0
+
+    while (frontier.size > 0 && depth < maxDepth && results.size < maxTotal) {
+      const eValues = Array.from(frontier)
+      frontier = new Set()
+      const filter: NDKFilter = { kinds: kinds as any, '#e': eValues as any, limit: 1000 }
+      const set = await withTimeout(ndk.fetchEvents(filter as any), 10000, 'fetch thread layer')
+      for (const ev of Array.from(set)) {
+        if (!ev?.id) continue
+        if (!results.has(ev.id)) {
+          results.set(ev.id, ev)
+          // add to next frontier to discover its children in the next pass
+          if (results.size < maxTotal) frontier.add(ev.id)
+        }
+      }
+      depth++
+    }
+
+    return Array.from(results.values()).sort((a, b) => (a.created_at || 0) - (b.created_at || 0))
+  } catch {
+    return []
+  }
+}
+
+function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileByBech, openProfileByPubkey, onReply, onRepost, onQuote }: { rootId: string; seedId?: string; onClose: () => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void }) {
   // Fetch root event
   const { data: root } = useQuery<NDKEvent | null>({
     queryKey: ['thread-root', rootId],
@@ -1068,19 +1168,12 @@ function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
     },
   })
 
-  // Fetch thread events referencing the root via e-tag
+  // Fetch full thread by crawling replies recursively
   const { data: children } = useQuery<NDKEvent[]>({
     queryKey: ['thread-children', rootId],
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      try {
-        const filter: NDKFilter = { kinds: [1, 6, 1111, 30023, 9802, 1068, 1222, 1244, 20, 21, 22], '#e': [rootId] as any, limit: 500 }
-        const set = await withTimeout(ndk.fetchEvents(filter as any), 10000, 'fetch thread')
-        const list = Array.from(set)
-        return list.sort((a, b) => (a.created_at || 0) - (b.created_at || 0))
-      } catch {
-        return []
-      }
+      return await fetchThreadEventsRecursive(rootId)
     },
   })
 
@@ -1108,6 +1201,8 @@ function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
       else if (rootTag && rootTag !== ev.id) parent = rootTag
       else if (eTags.length > 0) parent = (eTags[eTags.length - 1][1] as string)
       else parent = null
+      // Guard against self-parenting which can cause infinite loops/duplication
+      if (parent === ev.id) parent = (ev.id === rootId ? null : rootId)
       if (parent && !byId.has(parent)) {
         // If parent is outside current set, attach to root
         parent = rootId
@@ -1131,21 +1226,25 @@ function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
     try {
       if (byId.has(rootId)) {
         const stack: string[] = [rootId]
+        const visited = new Set<string>()
         while (stack.length > 0) {
           const id = stack.pop() as string
+          if (visited.has(id)) continue
+          visited.add(id)
           order.push(id)
           if (order.length >= MAX_VISIT) { truncated = true; break }
           const kids = childrenMap.get(id) || []
           // push in reverse so that earlier-created children appear first in order
           for (let i = kids.length - 1; i >= 0; i--) {
-            stack.push(kids[i])
+            const kid = kids[i]
+            if (!visited.has(kid)) stack.push(kid)
           }
         }
       }
     } catch {
       truncated = true
     }
-    return { tree: { byId, childrenMap }, order, truncated }
+    return { tree: { byId, childrenMap, parentOf }, order, truncated }
   }, [all, rootId])
 
   const onBackdrop = (e: any) => { e.stopPropagation(); onClose() }
@@ -1162,37 +1261,49 @@ function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
               {order.map((id) => {
                 const ev = tree.byId.get(id) as NDKEvent
                 if (!ev) return null
-                // Compute depth by walking up parents
+                // Compute depth by walking up parents using the built parentOf map
                 let depth = 0
-                while (true) {
-                  const p = (() => {
-                    const eTags = (ev.tags || []).filter(t => t[0] === 'e')
-                    const reply = eTags.find(t => t[3] === 'reply')?.[1] as string | undefined
-                    const rootTag = eTags.find(t => t[3] === 'root')?.[1] as string | undefined
-                    if (reply) return reply
-                    if (rootTag && rootTag !== ev.id) return rootTag
-                    if (eTags.length > 0) return eTags[eTags.length - 1][1] as string
-                    return null
-                  })()
-                  if (!p || p === rootId) break
-                  depth++
-                  break
+                {
+                  let cur = id as string
+                  let safety = 0
+                  while (true) {
+                    const p = tree.parentOf.get(cur) || null
+                    if (!p || p === rootId) break
+                    depth++
+                    cur = p
+                    if (++safety > 64) break
+                  }
                 }
                 return (
                   <div key={id} className="border border-black rounded bg-[#10181b]" style={{ marginLeft: Math.min(24, depth) * 16 }}>
                     <div className="p-3">
-                      <header className="mb-2 flex items-center gap-2 text-xs text-[#cccccc]">
-                        <AuthorLabel pubkey={ev.pubkey || ''} onOpen={(pk) => openProfileByPubkey(pk)} />
-                        <span className="opacity-50">·</span>
-                        <time className="opacity-70">{formatTime(ev.created_at)}</time>
-                      </header>
-                      {ev.kind === 6 ? (
-                        <RepostNote ev={ev} openMedia={openMedia} openProfile={openProfileByBech} openProfileByPubkey={openProfileByPubkey} />
-                      ) : (
-                        <div className="whitespace-pre-wrap break-words text-[#cccccc]">
-                          {renderContent(ev.content, openMedia, openProfileByBech)}
+                      <div className="flex gap-3">
+                        <div className="flex-1 min-w-0">
+                          <header className="mb-2 flex items-center gap-2 text-xs text-[#cccccc]">
+                            <AuthorLabel pubkey={ev.pubkey || ''} onOpen={(pk) => openProfileByPubkey(pk)} />
+                            <span className="opacity-50">·</span>
+                            <time className="opacity-70">{formatTime(ev.created_at)}</time>
+                          </header>
+                          {ev.kind === 6 ? (
+                            <RepostNote ev={ev} openMedia={openMedia} openProfile={openProfileByBech} openProfileByPubkey={openProfileByPubkey} />
+                          ) : (
+                            <div className="whitespace-pre-wrap break-words text-[#cccccc]">
+                              {renderContent(ev.content, openMedia, openProfileByBech)}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <div className="flex flex-col items-end gap-2 flex-shrink-0 self-start">
+                          <button type="button" onClick={() => onQuote(ev)} className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2" title="Quote">
+                            <QuoteIcon className="w-8 h-8" />
+                          </button>
+                          <button type="button" onClick={() => onRepost(ev)} className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2" title="Repost">
+                            <RepostEllipsisBubbleIcon className="w-8 h-8" />
+                          </button>
+                          <button type="button" onClick={() => onReply(ev)} className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2" title="Reply">
+                            <ReplyBubbleIcon className="w-8 h-8" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )
@@ -1223,6 +1334,42 @@ function NoteCard({ ev, onReply, onRepost, onQuote, onOpenThread, openMedia, ope
   const [isOverflowing, setIsOverflowing] = useState(false)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const innerRef = useRef<HTMLDivElement | null>(null)
+  const cardRef = useRef<HTMLElement | null>(null)
+  const [isVisible, setIsVisible] = useState(false)
+
+  // Observe when the card enters the viewport to trigger thread search lazily
+  useEffect(() => {
+    const el = cardRef.current
+    if (!el) return
+    const io = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (entry && entry.isIntersecting) {
+        setIsVisible(true)
+        try { io.disconnect() } catch {}
+      }
+    }, { root: null, rootMargin: '0px', threshold: 0.2 })
+    io.observe(el)
+    return () => {
+      try { io.disconnect() } catch {}
+    }
+  }, [])
+
+  // Probe for thread data once visible; we only show the thread button after this probe completes
+  const threadProbe = useQuery<number>({
+    queryKey: ['thread-probe', thisRootId],
+    enabled: isVisible && !!thisRootId,
+    staleTime: 1000 * 60 * 5,
+    queryFn: async () => {
+      try {
+        // Perform a lightweight crawl: 1 depth is enough to verify thread availability
+        const res = await fetchThreadEventsRecursive(thisRootId, undefined as any, 1, 50)
+        return (res || []).length
+      } catch {
+        return 0
+      }
+    },
+  })
+  const showThreadButton = threadProbe.isSuccess
 
   useEffect(() => {
     const calc = () => {
@@ -1244,7 +1391,7 @@ function NoteCard({ ev, onReply, onRepost, onQuote, onOpenThread, openMedia, ope
   }, [])
 
   return (
-    <article className="p-3 relative">
+    <article className="p-3 relative" ref={cardRef}>
       <div className="flex gap-3">
         <div className="flex-1 min-w-0">
           <header className="mb-1 flex items-center gap-2 text-sm text-[#cccccc]">
@@ -1287,9 +1434,11 @@ function NoteCard({ ev, onReply, onRepost, onQuote, onOpenThread, openMedia, ope
           )}
         </div>
         <div className="flex flex-col items-end gap-2 flex-shrink-0 self-start">
-          <button type="button" onClick={() => onOpenThread(ev)} className={`${isActiveThread ? 'bg-[#fff3b0] text-black' : 'bg-black/60 text-white hover:bg-black/80'} text-xs px-2 py-1 rounded-full flex items-center gap-2`} title="Open thread">
-            <ThreadReelIcon className="w-8 h-8" />
-          </button>
+          {showThreadButton ? (
+            <button type="button" onClick={() => onOpenThread(ev)} className={`${isActiveThread ? 'bg-[#fff3b0] text-black' : 'bg-black/60 text-white hover:bg-black/80'} text-xs px-2 py-1 rounded-full flex items-center gap-2`} title="Open thread">
+              <ThreadReelIcon className="w-8 h-8" />
+            </button>
+          ) : null}
           <button type="button" onClick={() => onQuote(ev)} className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2" title="Quote">
             <QuoteIcon className="w-8 h-8" />
           </button>
@@ -1466,8 +1615,8 @@ function InlineProfile({ bech, onOpen }: { bech: string; onOpen: (bech: string) 
       className="inline-flex items-center gap-1 align-middle rounded-full bg-black/30 px-2 py-0.5 hover:bg-black/50 text-[#9ecfff] focus:outline-none"
       title={bech}
     >
-      {pic ? <img src={pic} alt="avatar" className="w-4 h-4 rounded-full object-cover" /> : <UserIcon className="w-4 h-4" />}
-      <span className="text-sm">{label}</span>
+      {pic ? <img src={pic} alt="avatar" className="w-6 h-6 rounded-full object-cover" /> : <UserIcon className="w-6 h-6" />}
+      <span className="text-[1.33em]">{label}</span>
     </button>
   )
 }
@@ -1512,18 +1661,18 @@ function AuthorLabel({ pubkey, onOpen }: { pubkey: string, onOpen?: (pubkey: str
         title={name}
       >
         {pic ? (
-          <img src={pic} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
+          <img src={pic} alt="avatar" className="w-8 h-8 rounded-full object-cover" />
         ) : null}
-        <span className="opacity-90">{name}</span>
+        <span className="opacity-90 text-[1.33em]">{name}</span>
       </button>
     )
   }
   return (
     <>
       {pic ? (
-        <img src={pic} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
+        <img src={pic} alt="avatar" className="w-8 h-8 rounded-full object-cover" />
       ) : null}
-      <span className="opacity-90">{name}</span>
+      <span className="opacity-90 text-[1.33em]">{name}</span>
     </>
   )
 }
@@ -1608,7 +1757,7 @@ function RepostEllipsisBubbleIcon({ className = '' }: { className?: string }) {
 }
 
 
-function ThreadPanel({ rootId, seedId: _seedId, onClose, openMedia, openProfileByBech, openProfileByPubkey }: { rootId: string; seedId?: string; onClose: () => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void }) {
+function ThreadPanel({ rootId, seedId: _seedId, onClose, openMedia, openProfileByBech, openProfileByPubkey, onReply, onRepost, onQuote }: { rootId: string; seedId?: string; onClose: () => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void }) {
   const { data: root } = useQuery<NDKEvent | null>({
     queryKey: ['thread-root', rootId],
     staleTime: 1000 * 60 * 5,
@@ -1625,14 +1774,7 @@ function ThreadPanel({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
     queryKey: ['thread-children', rootId],
     staleTime: 1000 * 60 * 5,
     queryFn: async () => {
-      try {
-        const filter: NDKFilter = { kinds: [1, 6, 1111, 30023, 9802, 1068, 1222, 1244, 20, 21, 22], '#e': [rootId] as any, limit: 500 }
-        const set = await withTimeout(ndk.fetchEvents(filter as any), 10000, 'fetch thread')
-        const list = Array.from(set)
-        return list.sort((a, b) => (a.created_at || 0) - (b.created_at || 0))
-      } catch {
-        return []
-      }
+      return await fetchThreadEventsRecursive(rootId)
     },
   })
   const all = useMemo(() => {
@@ -1656,6 +1798,8 @@ function ThreadPanel({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
       else if (rootTag && rootTag !== ev.id) parent = rootTag
       else if (eTags.length > 0) parent = (eTags[eTags.length - 1][1] as string)
       else parent = null
+      // Guard against self-parenting which can cause infinite loops/duplication
+      if (parent === ev.id) parent = (ev.id === rootId ? null : rootId)
       if (parent && !byId.has(parent)) parent = rootId
       parentOf.set(ev.id as string, parent)
     }
@@ -1674,20 +1818,24 @@ function ThreadPanel({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
     try {
       if (byId.has(rootId)) {
         const stack: string[] = [rootId]
+        const visited = new Set<string>()
         while (stack.length > 0) {
           const id = stack.pop() as string
+          if (visited.has(id)) continue
+          visited.add(id)
           order.push(id)
           if (order.length >= MAX_VISIT) { truncated = true; break }
           const kids = childrenMap.get(id) || []
           for (let i = kids.length - 1; i >= 0; i--) {
-            stack.push(kids[i])
+            const kid = kids[i]
+            if (!visited.has(kid)) stack.push(kid)
           }
         }
       }
     } catch {
       truncated = true
     }
-    return { tree: { byId, childrenMap }, order, truncated }
+    return { tree: { byId, childrenMap, parentOf }, order, truncated }
   }, [all, rootId])
   return (
     <div className="bg-[#0f1a1d] rounded-lg shadow-xl overflow-hidden">
@@ -1705,35 +1853,47 @@ function ThreadPanel({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
                 const ev = tree.byId.get(id) as NDKEvent
                 if (!ev) return null
                 let depth = 0
-                while (true) {
-                  const p = (() => {
-                    const eTags = (ev.tags || []).filter(t => t[0] === 'e')
-                    const reply = eTags.find(t => t[3] === 'reply')?.[1] as string | undefined
-                    const rootTag = eTags.find(t => t[3] === 'root')?.[1] as string | undefined
-                    if (reply) return reply
-                    if (rootTag && rootTag !== ev.id) return rootTag
-                    if (eTags.length > 0) return eTags[eTags.length - 1][1] as string
-                    return null
-                  })()
-                  if (!p || p === rootId) break
-                  depth++
-                  break
+                {
+                  let cur = id as string
+                  let safety = 0
+                  while (true) {
+                    const p = tree.parentOf.get(cur) || null
+                    if (!p || p === rootId) break
+                    depth++
+                    cur = p
+                    if (++safety > 64) break
+                  }
                 }
                 return (
                   <div key={id} className="border border-black rounded bg-[#10181b]" style={{ marginLeft: Math.min(24, depth) * 16 }}>
                     <div className="p-3">
-                      <header className="mb-2 flex items-center gap-2 text-xs text-[#cccccc]">
-                        <AuthorLabel pubkey={ev.pubkey || ''} onOpen={(pk) => openProfileByPubkey(pk)} />
-                        <span className="opacity-50">·</span>
-                        <time className="opacity-70">{formatTime(ev.created_at)}</time>
-                      </header>
-                      {ev.kind === 6 ? (
-                        <RepostNote ev={ev} openMedia={openMedia} openProfile={openProfileByBech} openProfileByPubkey={openProfileByPubkey} />
-                      ) : (
-                        <div className="whitespace-pre-wrap break-words text-[#cccccc]">
-                          {renderContent(ev.content, openMedia, openProfileByBech)}
+                      <div className="flex gap-3">
+                        <div className="flex-1 min-w-0">
+                          <header className="mb-2 flex items-center gap-2 text-xs text-[#cccccc]">
+                            <AuthorLabel pubkey={ev.pubkey || ''} onOpen={(pk) => openProfileByPubkey(pk)} />
+                            <span className="opacity-50">·</span>
+                            <time className="opacity-70">{formatTime(ev.created_at)}</time>
+                          </header>
+                          {ev.kind === 6 ? (
+                            <RepostNote ev={ev} openMedia={openMedia} openProfile={openProfileByBech} openProfileByPubkey={openProfileByPubkey} />
+                          ) : (
+                            <div className="whitespace-pre-wrap break-words text-[#cccccc]">
+                              {renderContent(ev.content, openMedia, openProfileByBech)}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <div className="flex flex-col items-end gap-2 flex-shrink-0 self-start">
+                          <button type="button" onClick={() => onQuote(ev)} className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2" title="Quote">
+                            <QuoteIcon className="w-8 h-8" />
+                          </button>
+                          <button type="button" onClick={() => onRepost(ev)} className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2" title="Repost">
+                            <RepostEllipsisBubbleIcon className="w-8 h-8" />
+                          </button>
+                          <button type="button" onClick={() => onReply(ev)} className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2" title="Reply">
+                            <ReplyBubbleIcon className="w-8 h-8" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )
