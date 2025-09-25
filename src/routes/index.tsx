@@ -2499,6 +2499,7 @@ function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread, onOpe
 
   const [expanded, setExpanded] = useState(false)
   const [isOverflowing, setIsOverflowing] = useState(false)
+  const [jsonViewerOpen, setJsonViewerOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const innerRef = useRef<HTMLDivElement | null>(null)
   const cardRef = useRef<HTMLElement | null>(null)
@@ -2565,7 +2566,37 @@ function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread, onOpe
             <AuthorLabel pubkey={ev.pubkey || ''} onOpen={(pk) => openProfileByPubkey(pk)} />
             <span className="opacity-50">·</span>
             <time className="opacity-70 hover:underline cursor-pointer" onClick={() => onOpenNote(ev)} title="Open note tab">{formatTime(ev.created_at)}</time>
+            <button
+              type="button"
+              onClick={() => setJsonViewerOpen(!jsonViewerOpen)}
+              className="opacity-70 hover:opacity-100 text-xs px-1 py-0.5 rounded hover:bg-black/20 transition-all"
+              title="Toggle JSON viewer"
+            >
+              &lt;/&gt;
+            </button>
           </header>
+
+          {/* JSON Viewer */}
+          {jsonViewerOpen && (
+            <div className="mb-3 bg-black/40 border border-[#37474f] rounded-lg overflow-hidden">
+              <div className="bg-[#1a2529] px-3 py-2 border-b border-[#37474f] text-xs text-[#cccccc] font-medium">
+                Event JSON
+              </div>
+              <div className="max-h-96 overflow-auto">
+                <pre className="p-3 text-xs text-[#cccccc] whitespace-pre-wrap break-all font-mono leading-relaxed">
+                  {JSON.stringify({
+                    id: ev.id,
+                    pubkey: ev.pubkey,
+                    created_at: ev.created_at,
+                    kind: ev.kind,
+                    tags: ev.tags,
+                    content: ev.content,
+                    sig: ev.sig
+                  }, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
 
           {/* Collapsible content wrapper capped at 50vh when not expanded */}
           <div
