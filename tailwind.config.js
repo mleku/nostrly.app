@@ -16,7 +16,7 @@ export default {
         bg: {
           app: '#162a2f',
           panel: '#162a2f',
-          hover: '#1b3a40',
+          hover: '#32434a',
           header: '#000000',
         },
         border: {

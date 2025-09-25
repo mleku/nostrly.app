@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
 import { loginWithExtension, logout, LoggedInUser, applyUserRelays } from '@/lib/ndk'
 import orlyImg from '../../docs/orly.png'
@@ -9,6 +9,11 @@ function RootLayout() {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeView, setActiveView] = useState<string | null>(null)
+  // Hashtag search UI state
+  const [isHashtagSearchOpen, setIsHashtagSearchOpen] = useState(false)
+  const [hashtagCache, setHashtagCache] = useState<string[]>([])
+  const [searchText, setSearchText] = useState('')
+  const inputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     try {
@@ -31,8 +36,19 @@ function RootLayout() {
       const label = (ce as any).detail?.label as string | undefined
       setActiveView(label || null)
     }
+    const onTags = (e: Event) => {
+      try {
+        const ce = e as CustomEvent<{ tags?: string[] }>
+        const list = (ce as any).detail?.tags as string[] | undefined
+        if (Array.isArray(list)) setHashtagCache(list)
+      } catch {}
+    }
     window.addEventListener('nostr-active-view', handler as any)
-    return () => window.removeEventListener('nostr-active-view', handler as any)
+    window.addEventListener('nostr-hashtags-cache', onTags as any)
+    return () => {
+      window.removeEventListener('nostr-active-view', handler as any)
+      window.removeEventListener('nostr-hashtags-cache', onTags as any)
+    }
   }, [])
 
   const handleLogin = async () => {
@@ -63,16 +79,85 @@ function RootLayout() {
     try { window.dispatchEvent(new CustomEvent('nostr-user-changed', { detail: null })) } catch {}
   }
 
+  // Filtered suggestions based on searchText
+  const suggestions = useMemo(() => {
+    const q = searchText.trim().replace(/^#/, '').toLowerCase()
+    if (!q) return hashtagCache
+    return hashtagCache.filter(t => t.includes(q))
+  }, [searchText, hashtagCache])
+
+  useEffect(() => {
+    if (isHashtagSearchOpen) {
+      setTimeout(() => { try { inputRef.current?.focus() } catch {} }, 0)
+    }
+  }, [isHashtagSearchOpen])
+
+  const submitHashtag = (raw: string) => {
+    const clean = (raw || '').trim().replace(/^#/, '')
+    if (!clean) return
+    try { window.dispatchEvent(new CustomEvent('nostr-open-hashtag', { detail: { tag: '#' + clean } })) } catch {}
+    setIsHashtagSearchOpen(false)
+    setSearchText('')
+  }
+
   return (
     <>
       <div className="min-h-screen flex flex-col bg-[#162a2f] text-[#cccccc]">
         <header className="sticky top-0 z-50 w-full bg-black">
-          <div className="w-full sm:pl-3 pr-0 py-0 flex items-center justify-between">
+          <div className="w-full sm:pl-3 pr-0 py-0 flex items-center">
             <Link to="/" className="no-underline flex items-center">
               <img src={orlyImg} alt="nostrly owl" style={{ width: '3em', height: '3em', objectFit: 'contain' }} />
               <h1 className="text-[#fff3b0] text-2xl font-bold">{user ? (activeView || 'nostrly') : 'nostrly'}</h1>
             </Link>
-            <div className="flex items-stretch">
+            <div className="flex-1 px-2">
+              {!isHashtagSearchOpen ? (
+                <div />
+              ) : (
+                <div className="relative">
+                  <div className="flex items-center gap-2 h-10 px-3 rounded bg-[#162a2f] text-[#cccccc]">
+                    <SearchIcon className="w-5 h-5 text-[#cccccc]" />
+                    <input
+                      ref={inputRef}
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); submitHashtag(searchText) }
+                        if (e.key === 'Escape') { setIsHashtagSearchOpen(false); setSearchText('') }
+                      }}
+                      placeholder="Search…"
+                      className="flex-1 bg-transparent outline-none placeholder-[#9aa0a6]"
+                    />
+                  </div>
+                  {suggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 mt-1 max-h-64 overflow-auto bg-black border border-black rounded shadow-modal z-50">
+                      {suggestions.map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => submitHashtag(t)}
+                          className="w-full text-left px-3 py-2 hover:bg-[#1b3a40]"
+                          title={`Open #${t}`}
+                        >
+                          #{t}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex items-stretch gap-2 pr-2">
+              {!isHashtagSearchOpen && (
+                <button
+                  type="button"
+                  onClick={() => setIsHashtagSearchOpen(true)}
+                  className="w-12 h-full bg-transparent text-[#cccccc] hover:bg-transparent flex items-center justify-center"
+                  title="Search hashtags"
+                  aria-label="Search"
+                >
+                  <SearchIcon className="w-full h-full p-2" />
+                </button>
+              )}
               {user ? (
                 <div className="flex items-stretch">
                   <button
@@ -104,6 +189,15 @@ function RootLayout() {
           <Outlet />
         </main>
       </div>
+
+      {isHashtagSearchOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40"
+          onClick={() => { setIsHashtagSearchOpen(false); setSearchText('') }}
+          aria-label="Close hashtag search"
+          aria-hidden={!isHashtagSearchOpen}
+        />
+      )}
 
       {isLoginOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[1000]" onClick={() => !isLoggingIn && setIsLoginOpen(false)}>
@@ -159,6 +253,15 @@ function EnterIcon({ className = '' }: { className?: string }) {
       <path d="M10 12l-2-2m2 2 1.5 2.5M8 10l-2 1.5M11.5 16.5l-2.5.5M12 9.5l-2 .5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       {/* Enter arrow toward the door */}
       <path d="M11 12h-7m0 0 2-2m-2 2 2 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function SearchIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M20 20l-4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   )
 }
