@@ -4,6 +4,7 @@ import { ndk, withTimeout, type LoggedInUser } from '@/lib/ndk'
 import { type NDKEvent, type NDKFilter } from '@nostr-dev-kit/ndk'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { nip19 } from 'nostr-tools'
+import { initializeNDK, getConnectionStatus } from '@/lib/ndk'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -342,6 +343,23 @@ function InlineNeventNote({ bech, openMedia, openProfile, onOpenNote, openHashta
               ) : (
                 <div className="whitespace-pre-wrap break-words text-[#cccccc]">
                   {renderContent(evQuery.data.content, openMedia, openProfile, openHashtag, extractHashtagTags((evQuery.data as any)?.tags), userFollows?.includes(evQuery.data.pubkey), onOpenNote, onReply, onRepost, onQuote, onOpenThread, scopeId, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, userFollows)}
+                  
+                  {/* Hashtag list for 't' tag hashtags */}
+                  {extractHashtagTags((evQuery.data as any)?.tags).length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {extractHashtagTags((evQuery.data as any)?.tags).map((tag, idx) => (
+                        <button
+                          key={`hashtag-${idx}-${tag}`}
+                          type="button"
+                          onClick={() => openHashtag?.(`#${tag}`)}
+                          className="text-[#9ecfff] hover:text-white text-sm"
+                          title={`Open #${tag}`}
+                        >
+                          #{tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {actionMessages?.[evQuery.data.id || ''] && (
@@ -384,6 +402,7 @@ function InlineNeventNote({ bech, openMedia, openProfile, onOpenNote, openHashta
 }
 
 function SingleNoteView({ id, scopeId, openMedia, openProfileByBech, openProfileByPubkey, onReply, onRepost, onQuote, onOpenNote, actionMessage, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, openHashtag }: { id: string; scopeId: string; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenNote: (e: NDKEvent) => void; actionMessage?: string; replyOpen?: Record<string, boolean>; replyBuffers?: Record<string, string>; onChangeReplyText?: (id: string, v: string) => void; onCloseReply?: (id: string) => void; onSendReply?: (targetId: string) => void; openHashtag?: (tag: string) => void }) {
+  const queryClient = useQueryClient()
   const { data: ev, isLoading } = useQuery<NDKEvent | null>({
     queryKey: ['single-note', id],
     queryFn: async () => {
@@ -394,7 +413,28 @@ function SingleNoteView({ id, scopeId, openMedia, openProfileByBech, openProfile
     },
     staleTime: 1000 * 60 * 5,
   })
-  if (isLoading) return <div className="p-6">Loading note…</div>
+  const forceReload = () => {
+    try {
+      queryClient.invalidateQueries({ queryKey: ['single-note', id] })
+      queryClient.refetchQueries({ queryKey: ['single-note', id] })
+    } catch {}
+  }
+  if (isLoading) return (
+    <div className="p-3">
+      <div className="w-full bg-black text-white border border-black rounded-md px-3 py-2 flex items-center justify-between" role="status" aria-live="polite">
+        <span className="text-sm">Loading note…</span>
+        <button
+          type="button"
+          onClick={forceReload}
+          title="Reload note"
+          aria-label="Reload note"
+          className="w-8 h-8 rounded-full border border-white/30 flex items-center justify-center hover:bg-white/10 focus:outline-none"
+        >
+          <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  )
   if (!ev) return <div className="p-6">Note not found.</div>
   return (
     <article className="p-3">
@@ -427,6 +467,23 @@ function SingleNoteView({ id, scopeId, openMedia, openProfileByBech, openProfile
               />
             ) : (
               <div className="contents">{renderContent(ev.content, openMedia, openProfileByBech, openHashtag, extractHashtagTags((ev as any)?.tags), false, (id: string) => onOpenNote({id} as NDKEvent), onReply, onRepost, onQuote, undefined, scopeId, {[ev.id || '']: actionMessage}, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, undefined)}</div>
+            )}
+            
+            {/* Hashtag list for 't' tag hashtags */}
+            {ev.kind !== 6 && extractHashtagTags((ev as any)?.tags).length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {extractHashtagTags((ev as any)?.tags).map((tag, idx) => (
+                  <button
+                    key={`hashtag-${idx}-${tag}`}
+                    type="button"
+                    onClick={() => openHashtag?.(`#${tag}`)}
+                    className="text-[#9ecfff] hover:text-white text-sm"
+                    title={`Open #${tag}`}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
           {actionMessage && (
@@ -493,9 +550,15 @@ function Home() {
       if (saved) setUser(JSON.parse(saved))
     } catch {}
   }, [])
+  // Ensure NDK connection is initialized early to avoid stuck hashtag loads
+  useEffect(() => {
+    try { initializeNDK(5000) } catch {}
+  }, [])
   // Dynamic layout measurement: determine if main view and thread panel can fit side-by-side
   const layoutRef = useRef<HTMLDivElement | null>(null)
   const mainColRef = useRef<HTMLDivElement | null>(null)
+  const sidebarRef = useRef<HTMLDivElement | null>(null)
+  const [sidebarWidthPx, setSidebarWidthPx] = useState<number>(0)
   const [canFitBoth, setCanFitBoth] = useState<boolean>(false)
   // Sidebar fit detection - check if sidebar should be in drawer mode
   const [canFitSidebar, setCanFitSidebar] = useState<boolean>(true)
@@ -871,28 +934,21 @@ function Home() {
       if (prev.includes(tag)) return prev
       return [tag, ...prev].slice(0, 20)
     })
+    // Use setTimeout to ensure state updates complete before invalidating queries
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['hashtag-feed', tag] })
+      queryClient.refetchQueries({ queryKey: ['hashtag-feed', tag] })
+    }, 0)
   }
 
   const closeCurrentHashtagAndRestore = () => {
     const current = currentHashtag
     if (!current) return
-    const restore = prevView
     const after = openedHashtags.filter(t => t !== current)
     setOpenedHashtags(after)
     setCurrentHashtag(null)
 
-    if (restore) {
-      if (restore.mode === 'hashtag' && restore.noteId) {
-        // not used for hashtag
-      }
-      if (restore.mode === 'profile' && restore.profilePubkey) {
-        setProfilePubkey(restore.profilePubkey)
-      }
-      setMode(restore.mode)
-      setPrevView(null)
-      return
-    }
-
+    // Always activate the first (top) hashtag tab if any remain, else Global
     if (after.length > 0) {
       setCurrentHashtag(after[0])
       setMode('hashtag')
@@ -927,7 +983,7 @@ function Home() {
     return () => window.removeEventListener('nostr-user-changed', handler as any)
   }, [])
 
-  // Listen for header 'open me' action
+  // Listen for header 'open me' action and URL hash changes for hashtag navigation
   useEffect(() => {
     const openMe = () => {
       if (!user?.pubkey) return
@@ -945,11 +1001,27 @@ function Home() {
         openHashtag(raw)
       } catch {}
     }
+
+    const handleHashChange = () => {
+      try {
+        const h = window.location.hash || ''
+        // Accept #tag where tag is 1-64 of [a-z0-9_]
+        if (/^#[a-z0-9_]{1,64}$/i.test(h)) {
+          openHashtag(h)
+        }
+      } catch {}
+    }
+
+    // Initial check on mount
+    handleHashChange()
+
     window.addEventListener('nostr-open-me', openMe as any)
     window.addEventListener('nostr-open-hashtag', openHashtagFromHeader as any)
+    window.addEventListener('hashchange', handleHashChange)
     return () => {
       window.removeEventListener('nostr-open-me', openMe as any)
       window.removeEventListener('nostr-open-hashtag', openHashtagFromHeader as any)
+      window.removeEventListener('hashchange', handleHashChange)
     }
   }, [user?.pubkey, mode, profilePubkey])
 
@@ -1054,7 +1126,7 @@ function Home() {
       if (profilePubkey && user?.pubkey && profilePubkey === user.pubkey) label = 'Me'
       else label = (profileMeta.data?.name || (profilePubkey ? shorten(profilePubkey) : 'Profile'))
     } else if (mode === 'hashtag') {
-      label = currentHashtag ? `#${currentHashtag}` : '#tag'
+      label = currentHashtag ? `${currentHashtag}` : 'tag'
     }
     try { window.dispatchEvent(new CustomEvent('nostr-active-view', { detail: { label } })) } catch {}
   }, [mode, user?.pubkey, profilePubkey, profileMeta.data?.name, currentHashtag])
@@ -1068,8 +1140,9 @@ function Home() {
         : mode === 'profile'
         ? ['profile-feed', profilePubkey ?? 'none']
         : mode === 'hashtag'
-        ? ['hashtag-feed', currentHashtag ?? '']
+        ? ['hashtag-feed', currentHashtag || 'none']
         : ['follows-feed', user?.pubkey ?? 'anon', (followsQuery.data || []).length],
+    retry: (failureCount: number) => mode === 'hashtag' ? false : failureCount < 2,
     initialPageParam: null as number | null, // until cursor (unix seconds)
     queryFn: async ({ pageParam }) => {
       // Global, user, profile and hashtag modes use a single filter
@@ -1092,6 +1165,12 @@ function Home() {
         }
         const events = await withTimeout(ndk.fetchEvents(filter), 8000, 'fetch older events')
         const list = Array.from(events).sort((a, b) => (b.created_at || 0) - (a.created_at || 0))
+        // Log when hashtag query hits EOSE with no results
+        if (mode === 'hashtag' && currentHashtag && list.length === 0) {
+          try {
+            console.info(`[hashtag] EOSE: no events received for #${currentHashtag} (initial/older page, until=${pageParam ?? 'none'})`)
+          } catch {}
+        }
         return list
       }
 
@@ -1213,6 +1292,10 @@ function Home() {
               pageParams: [oldData.pageParams?.[0] ?? null, ...oldData.pageParams],
             }
           })
+        } else if (mode === 'hashtag' && currentHashtag) {
+          try {
+            console.info(`[hashtag] EOSE: no newer events for #${currentHashtag} (since=${newestTs > 0 ? newestTs + 1 : 'none'})`)
+          } catch {}
         }
       } else if (mode === 'follows') {
         const follows = (followsQuery.data || []) as string[]
@@ -1392,6 +1475,36 @@ function Home() {
     // Return in newest-first order
     return Array.from(map.values()).sort((a, b) => (b.created_at || 0) - (a.created_at || 0))
   }, [feedQuery.data])
+  
+  // Auto-refresh: periodically check connection and refresh feed content
+  useEffect(() => {
+    // Don't run auto-refresh if no feeds are enabled
+    if (!feedQuery.data) return
+    
+    // Check connection and fetch new content every 45 seconds
+    const refreshInterval = setInterval(async () => {
+      try {
+        // Check connection status
+        const connectionStatus = getConnectionStatus()
+        const activeRelays = connectionStatus.activeRelays
+        
+        // If we have less than 2 active relay connections, try reconnecting
+        if (activeRelays < 2) {
+          console.info('[auto-refresh] Connection weak or lost, attempting to reconnect...')
+          await initializeNDK(5000)
+        }
+        
+        // Fetch newer content regardless of connection status
+        // (it will use the reconnected relays if we just reconnected)
+        console.info('[auto-refresh] Auto-refreshing feed content...')
+        fetchNewer()
+      } catch (error) {
+        console.warn('[auto-refresh] Auto-refresh error:', error)
+      }
+    }, 45000) // 45 seconds interval
+    
+    return () => clearInterval(refreshInterval)
+  }, [feedQuery.data, fetchNewer])
 
   // Extract a unique set of hashtag tags from cached events and broadcast to header
   const cachedHashtags = useMemo(() => {
@@ -1409,28 +1522,15 @@ function Home() {
     try { window.dispatchEvent(new CustomEvent('nostr-hashtags-cache', { detail: { tags: cachedHashtags } })) } catch {}
   }, [cachedHashtags])
 
-  // Close the current profile and restore the previous view
+  // Close the current profile and activate the one at the top
   const closeCurrentProfileAndRestore = () => {
     const current = profilePubkey
     if (!current) return
-    const restore = prevView
     // remove current from opened list
     const after = openedProfiles.filter(p => p.pubkey !== current)
     setOpenedProfiles(after)
 
-    if (restore) {
-      if (restore.mode === 'profile' && restore.profilePubkey && after.some(p => p.pubkey === restore.profilePubkey)) {
-        setProfilePubkey(restore.profilePubkey)
-        setMode('profile')
-      } else {
-        setProfilePubkey(null)
-        setMode(restore.mode)
-      }
-      setPrevView(null)
-      return
-    }
-
-    // Fallback behavior: go to another opened profile if any, else Global
+    // Always activate the first (top) tab if any remain, else Global
     if (after.length > 0) {
       setProfilePubkey(after[0].pubkey)
       setMode('profile')
@@ -1501,17 +1601,16 @@ function Home() {
               <button
                 aria-label={`Note ${n.id}`}
                 onClick={() => { if (!(mode === 'note' && currentNoteId === n.id)) { setPrevView({ mode, profilePubkey, noteId: currentNoteId }) }; setCurrentNoteId(n.id); setMode('note') }}
-                className={`w-12 xl:w-32 h-12 ${mode === 'note' && currentNoteId === n.id ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center xl:justify-start xl:px-3`}
+                className={`w-32 h-12 ${mode === 'note' && currentNoteId === n.id ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-start px-3`}
                 title={`Open note ${n.id}`}
               >
                 <ThreadReelIcon className="w-6 h-6 text-[#cccccc]" />
-                <span className="hidden xl:inline ml-2 text-[#cccccc] select-none truncate">Note {n.id.slice(0, 8)}…</span>
+                <span className="ml-2 text-[#cccccc] select-none truncate">Note {n.id.slice(0, 8)}…</span>
               </button>
-              {/* Hover close button (wide mode) */}
               <button
                 type="button"
                 aria-label="Close note tab"
-                className="hidden xl:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-black/60 text-white hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-black/60 text-white hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeNoteTab(n.id) }}
                 title="Close tab"
               >
@@ -1525,7 +1624,7 @@ function Home() {
               <button
                 aria-label={`Profile ${p.name || p.npub || p.pubkey}`}
                 onClick={() => { if (!(mode === 'profile' && profilePubkey === p.pubkey)) { setPrevView({ mode, profilePubkey }) }; setProfilePubkey(p.pubkey); setMode('profile') }}
-                className={`w-12 xl:w-32 h-16 ${mode === 'profile' && profilePubkey === p.pubkey ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center xl:justify-start xl:px-3`}
+                className={`w-12 xl:w-32 h-16 ${mode === 'profile' && profilePubkey === p.pubkey ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-start xl:justify-start xl:px-3`}
                 title={`Open ${p.name || p.npub || 'profile'}`}
               >
                 {p.picture ? (
@@ -1535,6 +1634,9 @@ function Home() {
                 )}
                 <span className="hidden xl:inline ml-2 text-[#cccccc] select-none truncate">{p.name || (p.npub ? p.npub.slice(0, 10) + '…' : shorten(p.pubkey))}</span>
               </button>
+              <div className="absolute left-12 top-1/2 -translate-y-1/2 z-20 xl:hidden pointer-events-none pl-2 pr-8">
+                <span className="text-[#cccccc] select-none truncate">{p.name || (p.npub ? p.npub.slice(0, 10) + '…' : shorten(p.pubkey))}</span>
+              </div>
               {/* Hover close button (wide mode) */}
               <button
                 type="button"
@@ -1553,15 +1655,16 @@ function Home() {
               <button
                 aria-label={`Hashtag #${t}`}
                 onClick={() => { if (!(mode === 'hashtag' && currentHashtag === t)) { setPrevView({ mode, profilePubkey, noteId: currentNoteId }) }; setCurrentHashtag(t); setMode('hashtag') }}
-                className={`w-12 xl:w-32 h-12 ${mode === 'hashtag' && currentHashtag === t ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-end xl:justify-end xl:px-3`}
+                className={`w-12 xl:w-32 h-12 ${mode === 'hashtag' && currentHashtag === t ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-start px-3 relative overflow-hidden`}
                 title={`Open #${t}`}
               >
-                <span className="hidden xl:inline text-[#cccccc] select-none truncate">#{t}</span>
+                <span className="text-[#cccccc] select-none whitespace-nowrap">#{t}</span>
+                <div className={`absolute right-0 top-0 w-3 h-full bg-gradient-to-l ${mode === 'hashtag' && currentHashtag === t ? 'from-[#162a2f]' : 'from-black group-hover:from-[#1b3a40]'} to-transparent pointer-events-none`}></div>
               </button>
               <button
                 type="button"
                 aria-label="Close hashtag tab"
-                className="hidden xl:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-black/60 text-white hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-black/60 text-white hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeHashtagTab(t) }}
                 title="Close tab"
               >
@@ -1569,25 +1672,29 @@ function Home() {
               </button>
             </div>
           ))}
+          <div className="relative inline-block group">
+            <button
+              aria-label="Global feed"
+              onClick={() => setMode('global')}
+              className={`w-12 xl:w-32 h-12 ${mode === 'global' ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center xl:justify-start xl:px-3`}
+            >
+              <GlobeIcon className="w-6 h-6 text-[#cccccc]" />
+              <span className="hidden xl:inline ml-2 text-[#cccccc] select-none">Global</span>
+            </button>
+          </div>
           {user && (
-              <button
-                  aria-label="Follows feed"
-                  onClick={() => setMode('follows')}
-                  className={`w-12 xl:w-32 h-12 ${mode === 'follows' ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center xl:justify-start xl:px-3`}
-                  title={'Show posts from people you follow'}
-              >
-                <UsersIcon className="w-6 h-6 text-[#cccccc]" />
-                <span className="hidden xl:inline ml-2 text-[#cccccc] select-none">Follows</span>
-              </button>
+              <div className="relative inline-block group">
+                <button
+                    aria-label="Follows feed"
+                    onClick={() => setMode('follows')}
+                    className={`w-12 xl:w-32 h-12 ${mode === 'follows' ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center xl:justify-start xl:px-3`}
+                    title={'Show posts from people you follow'}
+                >
+                  <UsersIcon className="w-6 h-6 text-[#cccccc]" />
+                  <span className="hidden xl:inline ml-2 text-[#cccccc] select-none">Follows</span>
+                </button>
+              </div>
           )}
-          <button
-            aria-label="Global feed"
-            onClick={() => setMode('global')}
-            className={`w-12 xl:w-32 h-12 ${mode === 'global' ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center xl:justify-start xl:px-3`}
-          >
-            <GlobeIcon className="w-6 h-6 text-[#cccccc]" />
-            <span className="hidden xl:inline ml-2 text-[#cccccc] select-none">Global</span>
-          </button>
         </div>
       )}
 
@@ -2472,6 +2579,23 @@ function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread, onOpe
               ) : (
                 <div className="contents">{renderContent(ev.content, openMedia, openProfileByBech, openHashtag, extractHashtagTags((ev as any)?.tags), userFollows ? userFollows.includes(ev.pubkey || '') : false, (id: string) => onOpenNote({id} as NDKEvent), onReply, onRepost, onQuote, onOpenThread, scopeId, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, userFollows)}</div>
               )}
+              
+              {/* Hashtag list for 't' tag hashtags */}
+              {ev.kind !== 6 && extractHashtagTags((ev as any)?.tags).length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {extractHashtagTags((ev as any)?.tags).map((tag, idx) => (
+                    <button
+                      key={`hashtag-${idx}-${tag}`}
+                      type="button"
+                      onClick={() => openHashtag?.(`#${tag}`)}
+                      className="text-[#9ecfff] hover:text-white text-sm"
+                      title={`Open #${tag}`}
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {!expanded && isOverflowing && (
               <div className="absolute left-0 right-0 bottom-0 h-16 bg-gradient-to-t from-[#162a2f] to-transparent pointer-events-none" aria-hidden="true" />
@@ -2684,6 +2808,23 @@ function RepostNote({ ev, openMedia, openProfile, openProfileByPubkey, openHasht
             ) : (
               <div className="whitespace-pre-wrap break-words text-[#cccccc]">
                 {renderContent((target as any)?.content || '', openMedia, openProfile, openHashtag, extractHashtagTags((target as any)?.tags), userFollows?.includes(target.pubkey), onOpenNote ? (id: string) => onOpenNote(targetEvent) : undefined, onReply, onRepost, onQuote, onOpenThread, scopeId, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, userFollows)}
+                
+                {/* Hashtag list for 't' tag hashtags */}
+                {extractHashtagTags((target as any)?.tags).length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {extractHashtagTags((target as any)?.tags).map((tag, idx) => (
+                      <button
+                        key={`hashtag-${idx}-${tag}`}
+                        type="button"
+                        onClick={() => openHashtag?.(`#${tag}`)}
+                        className="text-[#9ecfff] hover:text-white text-sm"
+                        title={`Open #${tag}`}
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {actionMessages?.[targetEvent.id || ''] && (
