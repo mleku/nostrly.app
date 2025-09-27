@@ -105,3 +105,5 @@ always use tanstack/router with web apps
 always use react query with web apps
 
 always use bun for running scripts and building things
+
+always use port 4000 for server listener addresses so they don't conflict with the one running on default 3000
