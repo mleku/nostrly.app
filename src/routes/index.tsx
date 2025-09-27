@@ -7,6 +7,7 @@ import { nip19 } from 'nostr-tools'
 import { initializeNDK, getConnectionStatus } from '@/lib/ndk'
 import { getRootEventHexId } from '@/lib/event'
 import EmojiPicker, { type EmojiClickData, Theme } from 'emoji-picker-react'
+import { NoteCard } from './note'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -22,7 +23,7 @@ const FEED_KINDS_NO_REACTIONS: number[] = [1, 1111, 6, 30023, 9802, 1068, 1222, 
 type MediaType = 'image' | 'video'
 type MediaItem = { url: string; type: MediaType }
 // Gallery of media within a single note
-type MediaGallery = { items: MediaItem[]; index: number }
+export type MediaGallery = { items: MediaItem[]; index: number }
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g
 const NOSTR_REF_REGEX = /(nostr:(npub1[0-9a-z]+|nprofile1[0-9a-z]+|nevent1[0-9a-z]+|note1[0-9a-z]+|naddr1[0-9a-z]+))/gi
@@ -102,7 +103,7 @@ function renderMarkdownInline(text: string, keyPrefix: string) {
   return nodes
 }
 
-function renderContent(text: string, openMedia: (g: MediaGallery) => void, openProfile?: (bech: string) => void, openHashtag?: (tag: string) => void, allowedTags?: string[], isAuthorFollowed?: boolean, onOpenNote?: (id: string) => void, onReply?: (e: NDKEvent) => void, onRepost?: (e: NDKEvent) => void, onQuote?: (e: NDKEvent) => void, onOpenThread?: (e: NDKEvent) => void, scopeId?: string, actionMessages?: Record<string, string>, replyOpen?: Record<string, boolean>, replyBuffers?: Record<string, string>, onChangeReplyText?: (id: string, v: string) => void, onCloseReply?: (id: string) => void, onSendReply?: (targetId: string) => void, userFollows?: string[]) {
+export function renderContent(text: string, openMedia: (g: MediaGallery) => void, openProfile?: (bech: string) => void, openHashtag?: (tag: string) => void, allowedTags?: string[], isAuthorFollowed?: boolean, onOpenNote?: (id: string) => void, onReply?: (e: NDKEvent) => void, onRepost?: (e: NDKEvent) => void, onQuote?: (e: NDKEvent) => void, onOpenThread?: (e: NDKEvent) => void, scopeId?: string, actionMessages?: Record<string, string>, replyOpen?: Record<string, boolean>, replyBuffers?: Record<string, string>, onChangeReplyText?: (id: string, v: string) => void, onCloseReply?: (id: string) => void, onSendReply?: (targetId: string) => void, userFollows?: string[]) {
   if (!text) return null
   // Pre-extract all media items in the content to build a gallery for navigation
   const urls = (text.match(URL_REGEX) || []) as string[]
@@ -2718,7 +2719,7 @@ function shorten(s: string, n = 8) {
   return s.length <= n ? s : `${s.slice(0, n)}…`
 }
 
-function formatTime(ts?: number) {
+export function formatTime(ts?: number) {
   if (!ts) return ''
   try {
     const d = new Date(ts * 1000)
@@ -2729,7 +2730,7 @@ function formatTime(ts?: number) {
 }
 
 // Simple thread fetching following jumble's pattern - focus on direct replies
-async function fetchThreadEvents(
+export async function fetchThreadEvents(
   rootId: string,
   kinds: number[] = [1, 6, 1111, 30023, 9802, 1068, 1222, 1244, 20, 21, 22]
 ): Promise<NDKEvent[]> {
@@ -2944,7 +2945,7 @@ function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
                             <QuoteIcon className="w-8 h-8" />
                           </button>
                           {repostMode?.[ev.id || ''] ? (
-                            <div className="flex flex-col items-center gap-1">
+                            <div className="flex items-center gap-1">
                               <button type="button" onClick={() => onRepost(ev)} className="bg-[#fff3b0] text-black text-xs px-2 py-1 rounded-full hover:bg-[#ffed80] flex items-center gap-2" title="Repost (active)">
                                 <RepostEllipsisBubbleIcon className="w-8 h-8" />
                               </button>
@@ -2977,7 +2978,8 @@ function ThreadModal({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
   )
 }
 
-export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread, onOpenNote, openMedia, openProfileByBech, openProfileByPubkey, activeThreadRootId, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, openHashtag, userFollows, hideThread, userPubkey, showActionMessage, repostMode, onCancelRepost, quoteOpen, quoteBuffers, onChangeQuoteText, onCloseQuote, onSendQuote }: { ev: NDKEvent; scopeId: string; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenThread: (e: NDKEvent) => void; onOpenNote: (e: NDKEvent) => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; activeThreadRootId?: string | null; actionMessages?: Record<string, string | undefined>; replyOpen?: Record<string, boolean>; replyBuffers?: Record<string, string>; onChangeReplyText?: (id: string, v: string) => void; onCloseReply?: (id: string) => void; onSendReply?: (targetId: string) => void; openHashtag?: (tag: string) => void; userFollows?: string[]; hideThread?: boolean; userPubkey?: string; showActionMessage?: (e: NDKEvent, msg: string) => void; repostMode?: Record<string, boolean>; onCancelRepost?: (e: NDKEvent) => void; quoteOpen?: Record<string, boolean>; quoteBuffers?: Record<string, string>; onChangeQuoteText?: (id: string, v: string) => void; onCloseQuote?: (id: string) => void; onSendQuote?: (targetId: string) => void }) {
+/* NoteCard moved to note.tsx */
+function NoteCard_Legacy({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread, onOpenNote, openMedia, openProfileByBech, openProfileByPubkey, activeThreadRootId, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, openHashtag, userFollows, hideThread, userPubkey, showActionMessage, repostMode, onCancelRepost, quoteOpen, quoteBuffers, onChangeQuoteText, onCloseQuote, onSendQuote }: { ev: NDKEvent; scopeId: string; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenThread: (e: NDKEvent) => void; onOpenNote: (e: NDKEvent) => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; activeThreadRootId?: string | null; actionMessages?: Record<string, string | undefined>; replyOpen?: Record<string, boolean>; replyBuffers?: Record<string, string>; onChangeReplyText?: (id: string, v: string) => void; onCloseReply?: (id: string) => void; onSendReply?: (targetId: string) => void; openHashtag?: (tag: string) => void; userFollows?: string[]; hideThread?: boolean; userPubkey?: string; showActionMessage?: (e: NDKEvent, msg: string) => void; repostMode?: Record<string, boolean>; onCancelRepost?: (e: NDKEvent) => void; quoteOpen?: Record<string, boolean>; quoteBuffers?: Record<string, string>; onChangeQuoteText?: (id: string, v: string) => void; onCloseQuote?: (id: string) => void; onSendQuote?: (targetId: string) => void }) {
   
   // Handle reaction creation
   const handleReaction = async (targetEvent: NDKEvent, emoji: string) => {
@@ -3337,7 +3339,7 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
   )
 }
 
-function ReactionButtonRow({ eventId, onReact }: { eventId: string; onReact: (emoji: string) => void }) {
+export function ReactionButtonRow({ eventId, onReact, excludeEl }: { eventId: string; onReact: (emoji: string) => void; excludeEl?: HTMLElement | null }) {
   const [isEmojiModalOpen, setIsEmojiModalOpen] = useState(false)
   const [modalPosition, setModalPosition] = useState({ x: 0, y: 0 })
   const reactButtonRef = useRef<HTMLButtonElement>(null)
@@ -3372,16 +3374,27 @@ function ReactionButtonRow({ eventId, onReact }: { eventId: string; onReact: (em
     return counts
   }, [reactions])
 
-  const handleReactClick = () => {
+  const handleReactClick = async () => {
+    // Toggle behavior: if already open, close it
+    if (isEmojiModalOpen) {
+      setIsEmojiModalOpen(false)
+      return
+    }
+    const MODAL_WIDTH = 320
+    const MODAL_HEIGHT = 400
+    const MARGIN = 8 // ~0.5em
     if (reactButtonRef.current) {
       const rect = reactButtonRef.current.getBoundingClientRect()
-      const viewportHeight = window.innerHeight
-      const isButtonBelowHalfway = rect.top > viewportHeight / 2
-      
-      // Position above the button if it's below halfway down the viewport, otherwise below
-      const yPosition = isButtonBelowHalfway ? rect.top - 400 : rect.bottom // 400 is modal height
-      setModalPosition({ x: rect.left, y: yPosition })
+      // Position the modal directly below the React button
+      const top = rect.bottom + MARGIN
+      const maxLeft = Math.max(0, window.innerWidth - MODAL_WIDTH - MARGIN)
+      const left = Math.min(Math.max(MARGIN, rect.left), maxLeft)
+      setModalPosition({ x: left, y: top })
+      setIsEmojiModalOpen(true)
+      return
     }
+    // Fallback: open near bottom-left with margin
+    setModalPosition({ x: MARGIN, y: window.innerHeight - MARGIN - MODAL_HEIGHT })
     setIsEmojiModalOpen(true)
   }
 
@@ -3394,7 +3407,18 @@ function ReactionButtonRow({ eventId, onReact }: { eventId: string; onReact: (em
 
   return (
     <div className="mt-3 flex items-center gap-2 flex-wrap">
-      {/* Display existing reactions */}
+      {/* React button (opens emoji selector) */}
+      <button
+        ref={reactButtonRef}
+        type="button"
+        onClick={handleReactClick}
+        className={`${isEmojiModalOpen ? 'bg-[#fff3b0] text-black' : 'bg-[#1b3a40] hover:bg-[#215059] text-white'} text-sm px-3 py-1 rounded-full`}
+        title="React with emoji"
+      >
+        React
+      </button>
+      
+      {/* Display existing reactions to the right of the React button */}
       {Object.entries(reactionCounts).map(([emoji, data]) => (
         <button
           key={emoji}
@@ -3407,17 +3431,6 @@ function ReactionButtonRow({ eventId, onReact }: { eventId: string; onReact: (em
           <span className="text-xs">{data.count}</span>
         </button>
       ))}
-      
-      {/* React button (opens emoji selector) */}
-      <button
-        ref={reactButtonRef}
-        type="button"
-        onClick={handleReactClick}
-        className="bg-[#1b3a40] hover:bg-[#215059] text-white text-sm px-3 py-1 rounded-full"
-        title="React with emoji"
-      >
-        React
-      </button>
 
       {/* Emoji selector modal */}
       {isEmojiModalOpen && (
@@ -3425,46 +3438,27 @@ function ReactionButtonRow({ eventId, onReact }: { eventId: string; onReact: (em
           position={modalPosition}
           onSelect={handleEmojiSelect}
           onClose={() => setIsEmojiModalOpen(false)}
+          excludeEl={excludeEl}
+          anchorEl={reactButtonRef.current}
         />
       )}
     </div>
   )
 }
 
-function EmojiSelectorModal({ position, onSelect, onClose }: { 
+function EmojiSelectorModal({ position, onSelect, onClose, excludeEl, anchorEl }: { 
   position: { x: number; y: number }; 
   onSelect: (emoji: string) => void; 
-  onClose: () => void 
+  onClose: () => void;
+  excludeEl?: HTMLElement | null;
+  anchorEl?: HTMLElement | null;
 }) {
   const modalRef = useRef<HTMLDivElement>(null)
 
-  // Block scrolling when modal is open
+  // Keep page scrollable: remove body scroll locking
   useEffect(() => {
-    // Store the original overflow style
-    const originalOverflow = document.body.style.overflow
-    // Prevent scrolling
-    document.body.style.overflow = 'hidden'
-    
-    return () => {
-      // Restore original overflow when modal closes
-      document.body.style.overflow = originalOverflow
-    }
+    // no-op to keep scrolling enabled
   }, [])
-
-  // Click outside to close
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        onClose()
-      }
-    }
-
-    // Add event listener to the document
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [onClose])
 
   // Close on Escape key
   useEffect(() => {
@@ -3480,22 +3474,102 @@ function EmojiSelectorModal({ position, onSelect, onClose }: {
     }
   }, [onClose])
 
+  // Close when clicking in the scrim area (outside modal, outside react button, and outside the excluded note element)
+  useEffect(() => {
+    const handleDocClick = (event: MouseEvent) => {
+      const target = event.target as Node | null
+      if (!target) return
+      if (modalRef.current && modalRef.current.contains(target)) return
+      if (anchorEl && anchorEl.contains(target as Node)) return
+      if (excludeEl && excludeEl.contains(target as Node)) return
+      onClose()
+    }
+    // Use capture phase to intercept before underlying handlers
+    document.addEventListener('click', handleDocClick, true)
+    return () => {
+      document.removeEventListener('click', handleDocClick, true)
+    }
+  }, [onClose, anchorEl, excludeEl])
+
+  // Track anchor element position so modal stays under the button while scrolling/resizing
+  const [pos, setPos] = useState(position)
+  useEffect(() => {
+    const update = () => {
+      if (anchorEl) {
+        const rect = anchorEl.getBoundingClientRect()
+        const MARGIN = 8
+        const MODAL_WIDTH = 320
+        const maxLeft = Math.max(0, window.innerWidth - MODAL_WIDTH - MARGIN)
+        const left = Math.min(Math.max(MARGIN, rect.left), maxLeft)
+        const top = rect.bottom + MARGIN
+        setPos({ x: left, y: top })
+      } else {
+        setPos(position)
+      }
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [anchorEl, position])
+
+  // Compute exclusion rectangle (note card) if provided
+  const hole = excludeEl ? excludeEl.getBoundingClientRect() : null
+  const holeTop = hole ? Math.max(0, hole.top) : 0
+  const holeBottom = hole ? Math.max(holeTop, hole.bottom) : 0
+  const holeLeft = hole ? Math.max(0, hole.left) : 0
+  const holeRight = hole ? Math.max(holeLeft, hole.right) : 0
+  const holeHeight = hole ? Math.max(0, holeBottom - holeTop) : 0
+  const holeWidth = hole ? Math.max(0, holeRight - holeLeft) : 0
+
   return (
     <>
-      {/* Darkened background */}
-      <div 
-        className="fixed inset-0 bg-black/50 z-[1000]" 
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      
+      {/* Scrim segments that exclude the note area if provided; keep them non-blocking for scroll */}
+      {hole ? (
+        <>
+          {/* Top segment */}
+          <div
+            className="fixed left-0 right-0 top-0 bg-black/50 z-[1000] pointer-events-none"
+            style={{ height: `${holeTop}px` }}
+            aria-hidden="true"
+          />
+          {/* Bottom segment */}
+          <div
+            className="fixed left-0 right-0 bottom-0 bg-black/50 z-[1000] pointer-events-none"
+            style={{ top: `${holeBottom}px` }}
+            aria-hidden="true"
+          />
+          {/* Left segment */}
+          <div
+            className="fixed left-0 bg-black/50 z-[1000] pointer-events-none"
+            style={{ top: `${holeTop}px`, height: `${holeHeight}px`, width: `${holeLeft}px` }}
+            aria-hidden="true"
+          />
+          {/* Right segment */}
+          <div
+            className="fixed right-0 bg-black/50 z-[1000] pointer-events-none"
+            style={{ top: `${holeTop}px`, height: `${holeHeight}px`, width: `${Math.max(0, window.innerWidth - holeRight)}px` }}
+            aria-hidden="true"
+          />
+        </>
+      ) : (
+        // Fallback: full-screen scrim if no hole element provided
+        <div
+          className="fixed inset-0 bg-black/50 z-[1000] pointer-events-none"
+          aria-hidden="true"
+        />
+      )}
+
       {/* Emoji selector modal */}
       <div 
         ref={modalRef}
         className="fixed z-[1001] bg-[#0f1a1d] border border-[#37474f] rounded-lg shadow-xl"
         style={{ 
-          left: `${position.x}px`, 
-          top: `${position.y}px`
+          left: `${pos.x}px`, 
+          top: `${pos.y}px`
         }}
       >
         <EmojiPicker
@@ -3580,7 +3654,7 @@ function MediaModal({ gallery, onClose }: { gallery: MediaGallery; onClose: () =
   )
 }
 
-function RepostNote({ ev, openMedia, openProfile, openProfileByPubkey, openHashtag, onReply, onRepost, onQuote, onOpenThread, onOpenNote, scopeId, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, userFollows, repostMode, onCancelRepost }: { 
+export function RepostNote({ ev, openMedia, openProfile, openProfileByPubkey, openHashtag, onReply, onRepost, onQuote, onOpenThread, onOpenNote, scopeId, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, userFollows, repostMode, onCancelRepost }: { 
   ev: NDKEvent, 
   openMedia: (g: MediaGallery) => void, 
   openProfile: (bech: string) => void, 
@@ -3716,11 +3790,11 @@ function RepostNote({ ev, openMedia, openProfile, openProfileByPubkey, openHasht
                 <QuoteIcon className="w-8 h-8" />
               </button>
               {repostMode?.[targetEvent.id || ''] ? (
-                <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-1">
                   <button type="button" onClick={() => onRepost(targetEvent)} className="bg-[#fff3b0] text-black text-xs px-2 py-1 rounded-full hover:bg-[#ffed80] flex items-center gap-2" title="Repost (active)">
                     <RepostEllipsisBubbleIcon className="w-8 h-8" />
                   </button>
-                  <button type="button" onClick={() => onCancelRepost?.(targetEvent)} className="bg-red-600 text-white text-xs px-2 py-1 rounded-full hover:bg-red-700 flex items-center gap-2" title="Cancel repost">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); onCancelRepost?.(targetEvent) }} className="bg-red-600 text-white text-xs px-2 py-1 rounded-full hover:bg-red-700 flex items-center gap-2" title="Cancel repost">
                     ×
                   </button>
                 </div>
@@ -3785,7 +3859,7 @@ function Spinner() {
   )
 }
 
-function AuthorLabel({ pubkey, onOpen }: { pubkey: string, onOpen?: (pubkey: string) => void }) {
+export function AuthorLabel({ pubkey, onOpen }: { pubkey: string, onOpen?: (pubkey: string) => void }) {
   const { data } = useQuery({
     queryKey: ['profile', pubkey],
     enabled: !!pubkey,
@@ -3904,7 +3978,7 @@ function UpArrowIcon({ className = '' }: { className?: string }) {
   )
 }
 
-function ThreadReelIcon({ className = '' }: { className?: string }) {
+export function ThreadReelIcon({ className = '' }: { className?: string }) {
   // Simple spool/reel: two discs with thread lines
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -3914,7 +3988,7 @@ function ThreadReelIcon({ className = '' }: { className?: string }) {
   )
 }
 
-function ReplyBubbleIcon({ className = '' }: { className?: string }) {
+export function ReplyBubbleIcon({ className = '' }: { className?: string }) {
   // Speech bubble
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -3923,7 +3997,7 @@ function ReplyBubbleIcon({ className = '' }: { className?: string }) {
   )
 }
 
-function QuoteIcon({ className = '' }: { className?: string }) {
+export function QuoteIcon({ className = '' }: { className?: string }) {
   // Heavy quote marks
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -3933,7 +4007,7 @@ function QuoteIcon({ className = '' }: { className?: string }) {
   )
 }
 
-function RepostEllipsisBubbleIcon({ className = '' }: { className?: string }) {
+export function RepostEllipsisBubbleIcon({ className = '' }: { className?: string }) {
   // Speech bubble with three dots
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -4106,7 +4180,7 @@ function CompactReactionNote({ ev, openProfileByPubkey, userPubkey }: { ev: NDKE
   )
 }
 
-function ReplyComposer({ value, onChange, onClose, onSend, replyKey }: { value: string; onChange: (v: string) => void; onClose: () => void; onSend: () => void; replyKey?: string }) {
+export function ReplyComposer({ value, onChange, onClose, onSend, replyKey }: { value: string; onChange: (v: string) => void; onClose: () => void; onSend: () => void; replyKey?: string }) {
   return (
     <div className="mt-3 border border-black rounded bg-[#0f1a1d] text-[#cccccc]" data-reply-key={replyKey}>
       <div className="flex items-stretch gap-2 p-2">
@@ -4133,7 +4207,7 @@ function ReplyComposer({ value, onChange, onClose, onSend, replyKey }: { value: 
   )
 }
 
-function QuoteComposer({ value, onChange, onClose, onSend, quoteKey }: { value: string; onChange: (v: string) => void; onClose: () => void; onSend: () => void; quoteKey?: string }) {
+export function QuoteComposer({ value, onChange, onClose, onSend, quoteKey }: { value: string; onChange: (v: string) => void; onClose: () => void; onSend: () => void; quoteKey?: string }) {
   return (
     <div className="mt-3 border border-black rounded bg-[#0f1a1d] text-[#cccccc]" data-quote-key={quoteKey}>
       <div className="flex items-stretch gap-2 p-2">
@@ -4668,11 +4742,11 @@ function ThreadPanel({ rootId, seedId: _seedId, onClose, openMedia, openProfileB
                             <QuoteIcon className="w-8 h-8" />
                           </button>
                           {repostMode?.[ev.id || ''] ? (
-                            <div className="flex flex-col items-center gap-1">
+                            <div className="flex items-center gap-1">
                               <button type="button" onClick={() => onRepost(ev)} className="bg-[#fff3b0] text-black text-xs px-2 py-1 rounded-full hover:bg-[#ffed80] flex items-center gap-2" title="Repost (active)">
                                 <RepostEllipsisBubbleIcon className="w-8 h-8" />
                               </button>
-                              <button type="button" onClick={() => onCancelRepost?.(ev)} className="bg-red-600 text-white text-xs px-2 py-1 rounded-full hover:bg-red-700 flex items-center gap-2" title="Cancel repost">
+                              <button type="button" onClick={(e) => { e.stopPropagation(); onCancelRepost?.(ev) }} className="bg-red-600 text-white text-xs px-2 py-1 rounded-full hover:bg-red-700 flex items-center gap-2" title="Cancel repost">
                                 ×
                               </button>
                             </div>
