@@ -103,7 +103,7 @@ function RootLayout() {
   return (
     <>
       <div className="min-h-screen flex flex-col bg-[#162a2f] text-[#cccccc]">
-        <header className="sticky top-0 z-50 w-full bg-black">
+        <header className="sticky top-0 z-50 w-full bg-black h-12">
           <div className="w-full sm:pl-3 pr-0 py-0 flex items-center">
             <Link to="/" className="no-underline flex items-center">
               <img src={orlyImg} alt="nostrly owl" style={{ width: '3em', height: '3em', objectFit: 'contain' }} />
@@ -185,7 +185,7 @@ function RootLayout() {
             </div>
           </div>
         </header>
-        <main className="flex w-full py-2">
+        <main className="flex w-full pt-0 pb-2">
           <Outlet />
         </main>
       </div>

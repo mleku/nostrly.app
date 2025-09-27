@@ -146,11 +146,12 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
   }, [])
 
   return (
-    <article className="p-3 relative" ref={cardRef}>
+  <article className="p-3 relative" ref={cardRef} data-ev-id={ev.id} data-ts={ev.created_at}>
       <div className="flex flex-col">
         <div className="flex gap-3 mb-3">
           <div className="flex-1 min-w-0">
-            <header className="mb-1 flex items-center gap-2 text-sm text-[#cccccc]">
+            <div className={`relative ${expanded ? 'overflow-auto' : 'max-h-[50vh]'} `}>
+              <header className="sticky top-0 z-10 flex items-center text-sm text-[#cccccc]">
               <AuthorLabel pubkey={ev.pubkey || ''} onOpen={(pk) => openProfileByPubkey(pk)} />
               <span className="opacity-50">·</span>
               <time className="opacity-70 hover:underline cursor-pointer" onClick={() => onOpenNote(ev)} title="Open note tab">{formatTime(ev.created_at)}</time>
@@ -200,7 +201,7 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
 
             <div
               ref={wrapperRef}
-              className="relative"
+              className="relative py-4"
             >
               <div
                 ref={innerRef}
@@ -258,9 +259,10 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
                 <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0f1a1d] to-transparent pointer-events-none" />
               )}
             </div>
+            </div>
 
             {isOverflowing && (
-              <div className="mt-2 text-right">
+              <div className="mt-2 text-right relative z-20">
                 <button
                   type="button"
                   onClick={() => setExpanded(!expanded)}
