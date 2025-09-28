@@ -10,9 +10,10 @@ import {
 import {NDKEvent, type NDKFilter} from '@nostr-dev-kit/ndk'
 import {useEffect, useMemo, useRef, useState} from 'react'
 import {nip19} from 'nostr-tools'
-import {getRootEventHexId} from '@/lib/event'
+import {getRootEventHexId, getParentEventHexId} from '@/lib/event'
 import EmojiPicker, {type EmojiClickData, Theme} from 'emoji-picker-react'
 import {NoteCard} from './note'
+import { ensureThreadForEvent, useThread } from '@/lib/threadStore'
 
 export const Route = createFileRoute('/')({
     component: Home,
@@ -124,7 +125,7 @@ function renderMarkdownInline(text: string, keyPrefix: string) {
     return nodes
 }
 
-export function renderContent(text: string, openMedia: (g: MediaGallery) => void, openProfile?: (bech: string) => void, openHashtag?: (tag: string) => void, allowedTags?: string[], isAuthorFollowed?: boolean, onOpenNote?: (id: string) => void, onReply?: (e: NDKEvent) => void, onRepost?: (e: NDKEvent) => void, onQuote?: (e: NDKEvent) => void, onOpenThread?: (e: NDKEvent) => void, scopeId?: string, actionMessages?: Record<string, string>, replyOpen?: Record<string, boolean>, replyBuffers?: Record<string, string>, onChangeReplyText?: (id: string, v: string) => void, onCloseReply?: (id: string) => void, onSendReply?: (targetId: string) => void, userFollows?: string[]) {
+export function renderContent(text: string, openMedia: (g: MediaGallery) => void, openProfile?: (bech: string) => void, openHashtag?: (tag: string) => void, allowedTags?: string[], isAuthorFollowed?: boolean, onOpenNote?: (id: string) => void, onReply?: (e: NDKEvent) => void, onRepost?: (e: NDKEvent) => void, onQuote?: (e: NDKEvent) => void, onOpenThread?: (e: NDKEvent) => void, scopeId?: string, actionMessages?: Record<string, string>, replyOpen?: Record<string, boolean>, replyBuffers?: Record<string, string>, onChangeReplyText?: (id: string, v: string) => void, onCloseReply?: (id: string) => void, onSendReply?: (targetId: string) => void, userFollows?: string[], quoteOpen?: Record<string, boolean>, quoteBuffers?: Record<string, string>, onChangeQuoteText?: (id: string, v: string) => void, onCloseQuote?: (id: string) => void, onSendQuote?: (targetId: string) => void) {
     if (!text) return null
     // Pre-extract all media items in the content to build a gallery for navigation
     const urls = (text.match(URL_REGEX) || []) as string[]
@@ -238,6 +239,7 @@ export function renderContent(text: string, openMedia: (g: MediaGallery) => void
                                 onReply={onReply}
                                 onRepost={onRepost}
                                 onQuote={onQuote}
+                                onOpenThread={onOpenThread}
                                 scopeId={scopeId}
                                 actionMessages={actionMessages}
                                 replyOpen={replyOpen}
@@ -246,6 +248,11 @@ export function renderContent(text: string, openMedia: (g: MediaGallery) => void
                                 onCloseReply={onCloseReply}
                                 onSendReply={onSendReply}
                                 userFollows={userFollows}
+                                quoteOpen={quoteOpen}
+                                quoteBuffers={quoteBuffers}
+                                onChangeQuoteText={onChangeQuoteText}
+                                onCloseQuote={onCloseQuote}
+                                onSendQuote={onSendQuote}
                             />
                         </div>
                     )
@@ -347,7 +354,12 @@ function InlineNeventNote({
                               onChangeReplyText,
                               onCloseReply,
                               onSendReply,
-                              userFollows
+                              userFollows,
+                              quoteOpen,
+                              quoteBuffers,
+                              onChangeQuoteText,
+                              onCloseQuote,
+                              onSendQuote
                           }: {
     bech: string;
     openMedia: (g: MediaGallery) => void;
@@ -366,6 +378,11 @@ function InlineNeventNote({
     onCloseReply?: (id: string) => void;
     onSendReply?: (targetId: string) => void;
     userFollows?: string[];
+    quoteOpen?: Record<string, boolean>;
+    quoteBuffers?: Record<string, string>;
+    onChangeQuoteText?: (id: string, v: string) => void;
+    onCloseQuote?: (id: string) => void;
+    onSendQuote?: (targetId: string) => void;
 }) {
     const decoded = useMemo(() => {
         try {
@@ -395,7 +412,7 @@ function InlineNeventNote({
     })
 
     return (
-        <div className="border border-black rounded bg-[#10181b]">
+        <div className="rounded bg-[#10181b]">
             <div className="p-3">
                 {!decoded ? (
                     <div className="text-sm opacity-70">Invalid note
@@ -469,7 +486,7 @@ function InlineNeventNote({
                             )}
                             {actionMessages?.[evQuery.data.id || ''] && (
                                 <div
-                                    className="mt-3 bg-black/60 text-white border border-black rounded p-2 text-sm"
+                                    className="mt-3 bg-black/60 text-white rounded p-2 text-sm"
                                     role="status" aria-live="polite">
                                     {actionMessages[evQuery.data.id || '']}
                                 </div>
@@ -628,7 +645,7 @@ function InlineNaddrNote({
     })
 
     return (
-        <div className="border border-black rounded bg-[#10181b]">
+        <div className="rounded bg-[#10181b]">
             <div className="p-3">
                 {!decoded ? (
                     <div className="text-sm opacity-70">Invalid addressable
@@ -702,7 +719,7 @@ function InlineNaddrNote({
                             )}
                             {actionMessages?.[evQuery.data.id || ''] && (
                                 <div
-                                    className="mt-3 bg-black/60 text-white border border-black rounded p-2 text-sm"
+                                    className="mt-3 bg-black/60 text-white rounded p-2 text-sm"
                                     role="status" aria-live="polite">
                                     {actionMessages[evQuery.data.id || '']}
                                 </div>
@@ -799,7 +816,9 @@ function SingleNoteView({
                             onChangeReplyText,
                             onCloseReply,
                             onSendReply,
-                            openHashtag
+                            openHashtag,
+                            repostMode,
+                            onCancelRepost
                         }: {
     id: string;
     scopeId: string;
@@ -816,7 +835,9 @@ function SingleNoteView({
     onChangeReplyText?: (id: string, v: string) => void;
     onCloseReply?: (id: string) => void;
     onSendReply?: (targetId: string) => void;
-    openHashtag?: (tag: string) => void
+    openHashtag?: (tag: string) => void;
+    repostMode?: Record<string, boolean>;
+    onCancelRepost?: (e: NDKEvent) => void
 }) {
     const queryClient = useQueryClient()
     const {data: ev, isLoading} = useQuery<NDKEvent | null>({
@@ -841,7 +862,7 @@ function SingleNoteView({
     if (isLoading) return (
         <div className="p-3">
             <div
-                className="w-full bg-black text-white border border-black rounded-md px-3 py-2 flex items-center justify-between"
+                className="w-full bg-black text-white rounded-md px-3 py-2 flex items-center justify-between"
                 role="status" aria-live="polite">
                 <span className="text-sm">Loading note…</span>
                 <button
@@ -859,6 +880,10 @@ function SingleNoteView({
         </div>
     )
     if (!ev) return <div className="p-6">Note not found.</div>
+
+    // Previously, SingleNoteView replaced itself with a thread view if part of a thread.
+    // Now, the parent renders the thread panel beside this view, so we always render the single note here.
+
     return (
         <article className="p-3">
             <div className="flex gap-3">
@@ -921,7 +946,7 @@ function SingleNoteView({
                     </div>
                     {actionMessage && (
                         <div
-                            className="mt-3 bg-black/60 text-white border border-black rounded p-2 text-sm"
+                            className="mt-3 bg-black/60 text-white rounded p-2 text-sm"
                             role="status"
                             aria-live="polite">{actionMessage}</div>
                     )}
@@ -983,6 +1008,7 @@ function SingleNoteView({
 }
 
 function Home() {
+    const queryClient = useQueryClient()
     // Thread modal state (narrow) and side panel state (wide)
     const [threadRootId, setThreadRootId] = useState<string | null>(null)
     const [threadOpenSeed, _setThreadOpenSeed] = useState<string | null>(null) // store clicked event id for context
@@ -1407,6 +1433,20 @@ function Home() {
         setRepostMode(prev => ({...prev, [id]: false}))
     }
 
+    // Scoped repost toggles: maintain separate states per scope (e.g., feed vs preview)
+    const onRepostScoped = (scopeId: string) => (ev: NDKEvent) => {
+        const id = ev.id || ''
+        if (!id) return
+        const key = `${scopeId}|${id}`
+        setRepostMode(prev => ({...prev, [key]: !prev[key]}))
+    }
+    const cancelRepostScoped = (scopeId: string) => (ev: NDKEvent) => {
+        const id = ev.id || ''
+        if (!id) return
+        const key = `${scopeId}|${id}`
+        setRepostMode(prev => ({...prev, [key]: false}))
+    }
+
     // Reply composers: independent per-note open state and persistent buffers
     const [replyOpen, setReplyOpen] = useState<Record<string, boolean>>({})
     const [replyBuffers, setReplyBuffers] = useState<Record<string, string>>({})
@@ -1447,6 +1487,9 @@ function Home() {
         }
     }, [quoteBuffers])
 
+    // Hover preview panel state (note id to show on the right)
+    const [hoverPreviewId, setHoverPreviewId] = useState<string | null>(null)
+
     // Thread view single-active editor bridge (for ThreadModal/ThreadPanel legacy props)
     const [threadActiveReplyTargetKey, setThreadActiveReplyTargetKey] = useState<string | null>(null)
     const changeThreadReplyText = (v: string) => {
@@ -1486,7 +1529,7 @@ function Home() {
         }
 
         // If reply is being opened (was closed, now opening), scroll to bring it into view
-        if (!wasOpen) {
+        if (!wasOpen && !scopeId.startsWith('hover-preview')) {
             setTimeout(() => {
                 try {
                     // Find all ReplyComposer elements and look for the one that was just opened
@@ -1557,7 +1600,7 @@ function Home() {
         }
     }
 
-    const onQuote = (ev: NDKEvent) => {
+    const onQuoteScoped = (scopeId: string) => (ev: NDKEvent) => {
         const id = ev.id || ''
         if (!id) return
 
@@ -1565,18 +1608,14 @@ function Home() {
         const nevent = generateNeventForEvent(ev)
         if (!nevent) return
 
-        const key = `quote|${id}`
+        const key = `quote|${scopeId}|${id}`
         const quoteContent = `\n\nnostr:${nevent}`
 
-        // Close any open reply panels for this event when opening quote
+        // Close any open reply panels for this event within the same scope when opening quote
         setReplyOpen(prev => {
             const updated = {...prev}
-            // Close reply panels for all scopes of this event
-            Object.keys(updated).forEach(replyKey => {
-                if (replyKey.endsWith(`|${id}`)) {
-                    updated[replyKey] = false
-                }
-            })
+            const replyKey = `${scopeId}|${id}`
+            if (updated[replyKey]) updated[replyKey] = false
             return updated
         })
 
@@ -2104,7 +2143,6 @@ function Home() {
     // IntersectionObservers to trigger loading more (bottom) and fetching newer (top)
     const bottomSentinelRef = useRef<HTMLDivElement | null>(null)
     const topSentinelRef = useRef<HTMLDivElement | null>(null)
-    const queryClient = useQueryClient()
     const [isFetchingNewer, setIsFetchingNewer] = useState(false)
     const lastTopFetchRef = useRef<number>(0)
 
@@ -2138,7 +2176,7 @@ function Home() {
         }, {rootMargin: '120px 0px'})
         io.observe(el)
         return () => io.disconnect()
-    }, [feedQuery.hasNextPage, feedQuery.isFetchingNextPage])
+    }, [feedQuery.hasNextPage, feedQuery.isFetchingNextPage, mode, bottomSentinelRef.current])
 
     // Helper: compute newest timestamp in current cache
     const newestTs = useMemo(() => {
@@ -2182,6 +2220,16 @@ function Home() {
                 }
                 const eventsSet = await withTimeout(ndk.fetchEvents(filter), 8000, 'fetch newer events')
                 const fresh = Array.from(eventsSet).sort((a, b) => (b.created_at || 0) - (a.created_at || 0))
+                // Update thread store with any newly found thread-related events
+                try {
+                    for (const ev of fresh) {
+                        const tags = (ev as any).tags
+                        if (Array.isArray(tags) && tags.some((t: any[]) => t?.[0] === 'e' && t?.[3] === 'root')) {
+                            void ensureThreadForEvent(queryClient, ev)
+                        }
+                    }
+                } catch {}
+
                 if (fresh.length > 0) {
                     const key: any = mode === 'global'
                         ? ['global-feed']
@@ -2258,7 +2306,7 @@ function Home() {
         }, {rootMargin: '0px'})
         io.observe(el)
         return () => io.disconnect()
-    }, []) // Remove newestTs dependency to prevent observer recreation
+    }, [mode, topSentinelRef.current]) // Re-attach on mode or element change
 
     // Window-level touch handlers for pull-to-refresh (top) and pull-to-load (bottom)
     useEffect(() => {
@@ -2754,10 +2802,10 @@ function Home() {
                                         {profileMeta.data?.picture ? (
                                             <img src={profileMeta.data.picture}
                                                  alt="avatar"
-                                                 className="w-32 h-32 p-4 rounded-full object-cover ring-2 ring-black/40"/>
+                                                 className="w-32 h-32 rounded-full object-cover "/>
                                         ) : (
                                             <div
-                                                className="w-20 h-20 rounded-full bg-black/50 flex items-center justify-center text-[#cccccc] ring-2 ring-black/40">
+                                                className="w-20 h-20 rounded-full bg-black/50 flex items-center justify-center text-[#cccccc] ">
                                                 <UserIcon
                                                     className="w-10 h-10"/>
                                             </div>
@@ -2877,28 +2925,91 @@ function Home() {
                                 </>
                             )}
                             {mode === 'note' && currentNoteId ? (
-                                <SingleNoteView
-                                    id={currentNoteId}
-                                    scopeId={`note:${currentNoteId}`}
-                                    openMedia={setMediaToShow}
-                                    openProfileByBech={openProfileByBech}
-                                    openProfileByPubkey={openProfileByPubkey}
-                                    onReply={onReplyScoped(`note:${currentNoteId}`)}
-                                    onRepost={onRepost}
-                                    onQuote={onQuote}
-                                    onOpenNote={openNoteForEvent}
-                                    actionMessage={actionMessages[currentNoteId]}
-                                    replyOpen={replyOpen}
-                                    replyBuffers={replyBuffers}
-                                    onChangeReplyText={changeReplyText}
-                                    onCloseReply={closeReply}
-                                    onSendReply={sendReply}
-                                    openHashtag={openHashtag}
-                                />
+                                <div className="grid grid-cols-2 gap-4 w-[200%]">
+                                    <div className="min-h-[calc(100vh-3rem)]">
+                                        <SingleNoteView
+                                            id={currentNoteId}
+                                            scopeId={`note:${currentNoteId}`}
+                                            openMedia={setMediaToShow}
+                                            openProfileByBech={openProfileByBech}
+                                            openProfileByPubkey={openProfileByPubkey}
+                                            onReply={onReplyScoped(`note:${currentNoteId}`)}
+                                            onRepost={onRepost}
+                                            onQuote={onQuoteScoped(`note:${currentNoteId}`)}
+                                            onOpenNote={openNoteForEvent}
+                                            actionMessage={actionMessages[currentNoteId]}
+                                            replyOpen={replyOpen}
+                                            replyBuffers={replyBuffers}
+                                            onChangeReplyText={changeReplyText}
+                                            onCloseReply={closeReply}
+                                            onSendReply={sendReply}
+                                            openHashtag={openHashtag}
+                                            repostMode={repostMode}
+                                            onCancelRepost={cancelRepostScoped(`note:${currentNoteId}`)}
+                                        />
+                                        {/* Single note view's inline thread view below the main note */}
+                                        <div className="mt-4 p-[0.5em]">
+                                            <ThreadPanelContent
+                                                rootId={currentNoteId}
+                                                triggerNoteId={currentNoteId}
+                                                openMedia={setMediaToShow}
+                                                openProfileByBech={openProfileByBech}
+                                                openProfileByPubkey={openProfileByPubkey}
+                                                onReply={onReplyScoped(`thread-panel:${currentNoteId}`)}
+                                                onRepost={onRepost}
+                                                onQuote={onQuoteScoped(`thread-panel:${currentNoteId}`)}
+                                                onOpenNote={openNoteForEvent}
+                                                replyOpen={replyOpen}
+                                                replyBuffers={replyBuffers}
+                                                onChangeReplyText={changeReplyText}
+                                                onCloseReply={closeReply}
+                                                onSendReply={sendReply}
+                                                openHashtag={openHashtag}
+                                                userFollows={followsQuery.data || []}
+                                                repostMode={repostMode}
+                                                onCancelRepost={cancelRepost}
+                                                quoteOpen={quoteOpen}
+                                                quoteBuffers={quoteBuffers}
+                                                onChangeQuoteText={changeQuoteText}
+                                                onCloseQuote={closeQuote}
+                                                onSendQuote={sendQuote}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="sticky top-12 self-start min-h-[calc(100vh-3rem)] max-h-[calc(100vh-3rem)] overflow-y-auto overflow-x-hidden pr-2 -mr-2 p-[0.5em]">
+                                        <ThreadPanelContent
+                                            rootId={currentNoteId}
+                                            triggerNoteId={currentNoteId}
+                                            openMedia={setMediaToShow}
+                                            openProfileByBech={openProfileByBech}
+                                            openProfileByPubkey={openProfileByPubkey}
+                                            onReply={onReplyScoped(`thread-panel:${currentNoteId}`)}
+                                            onRepost={onRepost}
+                                            onQuote={onQuoteScoped(`thread-panel:${currentNoteId}`)}
+                                            onOpenNote={openNoteForEvent}
+                                            replyOpen={replyOpen}
+                                            replyBuffers={replyBuffers}
+                                            onChangeReplyText={changeReplyText}
+                                            onCloseReply={closeReply}
+                                            onSendReply={sendReply}
+                                            openHashtag={openHashtag}
+                                            userFollows={followsQuery.data || []}
+                                            repostMode={repostMode}
+                                            onCancelRepost={cancelRepost}
+                                            quoteOpen={quoteOpen}
+                                            quoteBuffers={quoteBuffers}
+                                            onChangeQuoteText={changeQuoteText}
+                                            onCloseQuote={closeQuote}
+                                            onSendQuote={sendQuote}
+                                        />
+                                    </div>
+                                </div>
                             ) : events.length === 0 && feedQuery.isLoading ? (
                                 <div className="p-6">Loading feed…</div>
                             ) : (
-                                events.map((ev) => {
+                                <div className={hoverPreviewId ? 'grid grid-cols-2 gap-4 w-[200%]' : ''}>
+                                    <div>
+                                        {events.map((ev) => {
                                     // For notifications mode, use compact display for reactions
                                     if (mode === 'notifications' && ev.kind === 7) {
                                         return (
@@ -2907,6 +3018,24 @@ function Home() {
                                                 ev={ev}
                                                 openProfileByPubkey={openProfileByPubkey}
                                                 userPubkey={user?.pubkey}
+                                                scopeId={'notifications'}
+                                                onReply={onReplyScoped('notifications')}
+                                                onRepost={onRepostScoped('notifications')}
+                                                onQuote={onQuoteScoped('notifications')}
+                                                actionMessages={actionMessages}
+                                                replyOpen={replyOpen}
+                                                replyBuffers={replyBuffers}
+                                                onChangeReplyText={changeReplyText}
+                                                onCloseReply={closeReply}
+                                                onSendReply={sendReply}
+                                                quoteOpen={quoteOpen}
+                                                quoteBuffers={quoteBuffers}
+                                                onChangeQuoteText={changeQuoteText}
+                                                onCloseQuote={closeQuote}
+                                                onSendQuote={sendQuote}
+                                                repostMode={repostMode}
+                                                onCancelRepost={cancelRepost}
+                                                onHoverOpen={(e) => { if (e.id) { try { ensureThreadForEvent(queryClient, e) } catch {} setHoverPreviewId(e.id) } }}
                                             />
                                         )
                                     }
@@ -2919,6 +3048,24 @@ function Home() {
                                                 ev={ev}
                                                 openProfileByPubkey={openProfileByPubkey}
                                                 userPubkey={user?.pubkey}
+                                                scopeId={'user'}
+                                                onReply={onReplyScoped('user')}
+                                                onRepost={onRepostScoped('user')}
+                                                onQuote={onQuoteScoped('user')}
+                                                actionMessages={actionMessages}
+                                                replyOpen={replyOpen}
+                                                replyBuffers={replyBuffers}
+                                                onChangeReplyText={changeReplyText}
+                                                onCloseReply={closeReply}
+                                                onSendReply={sendReply}
+                                                quoteOpen={quoteOpen}
+                                                quoteBuffers={quoteBuffers}
+                                                onChangeQuoteText={changeReplyText}
+                                                onCloseQuote={closeQuote}
+                                                onSendQuote={sendReply}
+                                                repostMode={repostMode}
+                                                onCancelRepost={cancelRepost}
+                                                onHoverOpen={(e) => { if (e.id) { try { ensureThreadForEvent(queryClient, e) } catch {} setHoverPreviewId(e.id) } }}
                                             />
                                         )
                                     }
@@ -2931,6 +3078,24 @@ function Home() {
                                                 ev={ev}
                                                 openProfileByPubkey={openProfileByPubkey}
                                                 userPubkey={user?.pubkey}
+                                                scopeId={'profile'}
+                                                onReply={onReplyScoped('profile')}
+                                                onRepost={onRepostScoped('profile')}
+                                                onQuote={onQuoteScoped('profile')}
+                                                actionMessages={actionMessages}
+                                                replyOpen={replyOpen}
+                                                replyBuffers={replyBuffers}
+                                                onChangeReplyText={changeReplyText}
+                                                onCloseReply={closeReply}
+                                                onSendReply={sendReply}
+                                                quoteOpen={quoteOpen}
+                                                quoteBuffers={quoteBuffers}
+                                                onChangeQuoteText={changeReplyText}
+                                                onCloseQuote={closeReply}
+                                                onSendQuote={sendReply}
+                                                repostMode={repostMode}
+                                                onCancelRepost={cancelRepost}
+                                                onHoverOpen={(e) => { if (e.id) { try { ensureThreadForEvent(queryClient, e) } catch {} setHoverPreviewId(e.id) } }}
                                             />
                                         )
                                     }
@@ -2942,8 +3107,8 @@ function Home() {
                                             ev={ev}
                                             scopeId={'feed'}
                                             onReply={onReplyScoped('feed')}
-                                            onRepost={onRepost}
-                                            onQuote={onQuote}
+                                            onRepost={onRepostScoped('feed')}
+                                            onQuote={onQuoteScoped('feed')}
                                             onOpenNote={openNoteForEvent}
                                             openMedia={setMediaToShow}
                                             openProfileByBech={openProfileByBech}
@@ -2956,9 +3121,10 @@ function Home() {
                                             onSendReply={sendReply}
                                             openHashtag={openHashtag}
                                             userFollows={followsQuery.data || []}
+                                            onHoverOpen={(e) => { if (e.id) { try { ensureThreadForEvent(queryClient, e) } catch {} setHoverPreviewId(e.id) } }}
                                             userPubkey={user?.pubkey}
                                             repostMode={repostMode}
-                                            onCancelRepost={cancelRepost}
+                                            onCancelRepost={cancelRepostScoped('feed')}
                                             quoteOpen={quoteOpen}
                                             quoteBuffers={quoteBuffers}
                                             onChangeQuoteText={changeQuoteText}
@@ -2966,7 +3132,41 @@ function Home() {
                                             onSendQuote={sendQuote}
                                         />
                                     )
-                                })
+                                })}
+                                    </div>
+                                    {hoverPreviewId && (
+                                        <div className="sticky top-12 self-start max-h-[calc(100vh-3rem)] overflow-y-auto overflow-x-hidden pr-2 -mr-2">
+                                            <PreviewNotePanel
+                                                id={hoverPreviewId}
+                                                scopeId={'hover-preview'}
+                                                onReply={onReplyScoped('hover-preview')}
+                                                onRepost={onRepostScoped('hover-preview')}
+                                                onQuote={onQuoteScoped('hover-preview')}
+                                                onOpenNote={openNoteForEvent}
+                                                openMedia={setMediaToShow}
+                                                openProfileByBech={openProfileByBech}
+                                                openProfileByPubkey={openProfileByPubkey}
+                                                actionMessages={actionMessages}
+                                                replyOpen={replyOpen}
+                                                replyBuffers={replyBuffers}
+                                                onChangeReplyText={changeReplyText}
+                                                onCloseReply={closeReply}
+                                                onSendReply={sendReply}
+                                                openHashtag={openHashtag}
+                                                userFollows={followsQuery.data || []}
+                                                userPubkey={user?.pubkey}
+                                                repostMode={repostMode}
+                                                onCancelRepost={cancelRepostScoped('hover-preview')}
+                                                quoteOpen={quoteOpen}
+                                                quoteBuffers={quoteBuffers}
+                                                onChangeQuoteText={changeQuoteText}
+                                                onCloseQuote={closeQuote}
+                                                onSendQuote={sendQuote}
+                                                onClosePanel={() => setHoverPreviewId(null)}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             )}
                             {mode !== 'note' && !feedQuery.hasNextPage && events.length > 0 && (
                                 <div className="p-4 text-sm opacity-60">No more
@@ -3817,7 +4017,7 @@ function ThreadModal({
                                 }
                                 return (
                                     <div key={id}
-                                         className="border border-black rounded bg-[#10181b]"
+                                         className="rounded bg-[#10181b]"
                                          style={{marginLeft: Math.min(24, depth) * 16}}>
                                         <div className="p-3">
                                             <div className="flex gap-3">
@@ -4344,7 +4544,7 @@ function NoteCard_Legacy({
                         {/* Action message box at bottom of note content */}
                         {actionMessages?.[ev.id || ''] && (
                             <div
-                                className="mt-3 bg-black/60 text-white border border-black rounded p-2 text-sm"
+                                className="mt-3 bg-black/60 text-white rounded p-2 text-sm"
                                 role="status" aria-live="polite">
                                 {actionMessages[ev.id || '']}
                             </div>
@@ -4838,7 +5038,12 @@ export function RepostNote({
                                onSendReply,
                                userFollows,
                                repostMode,
-                               onCancelRepost
+                               onCancelRepost,
+                               quoteOpen,
+                               quoteBuffers,
+                               onChangeQuoteText,
+                               onCloseQuote,
+                               onSendQuote
                            }: {
     ev: NDKEvent,
     openMedia: (g: MediaGallery) => void,
@@ -4859,7 +5064,12 @@ export function RepostNote({
     onSendReply?: (targetId: string) => void,
     userFollows?: string[],
     repostMode?: Record<string, boolean>,
-    onCancelRepost?: (e: NDKEvent) => void
+    onCancelRepost?: (e: NDKEvent) => void,
+    quoteOpen?: Record<string, boolean>,
+    quoteBuffers?: Record<string, string>,
+    onChangeQuoteText?: (id: string, v: string) => void,
+    onCloseQuote?: (id: string) => void,
+    onSendQuote?: (targetId: string) => void
 }) {
     // Attempt to parse embedded original event JSON (classic kind 6 style)
     let embedded: any = null
@@ -4922,7 +5132,7 @@ export function RepostNote({
 
     return (
         <div className="mt-2">
-            <div className="rounded-lg bg-[#1a2529] p-3">
+            <div className="rounded-lg bg-black/20 p-3">
                 <div className="flex gap-3">
                     <div className="flex-1 min-w-0">
                         <div
@@ -4966,7 +5176,7 @@ export function RepostNote({
                         )}
                         {actionMessages?.[targetEvent.id || ''] && (
                             <div
-                                className="mt-3 bg-black/60 text-white border border-black rounded p-2 text-sm"
+                                className="mt-3 bg-black/60 text-white rounded p-2 text-sm"
                                 role="status" aria-live="polite">
                                 {actionMessages[targetEvent.id || '']}
                             </div>
@@ -4978,6 +5188,16 @@ export function RepostNote({
                                 onClose={() => onCloseReply?.(`${scopeId}|${targetEvent.id!}`)}
                                 onSend={() => onSendReply?.(`${scopeId}|${targetEvent.id!}`)}
                                 replyKey={`${scopeId}|${targetEvent.id}`}
+                            />
+                        )}
+
+                        {(targetEvent.id && quoteOpen?.[`quote|${targetEvent.id}`]) && (
+                            <QuoteComposer
+                                value={(quoteBuffers?.[`quote|${targetEvent.id}`] || '')}
+                                onChange={(v) => onChangeQuoteText?.(`quote|${targetEvent.id!}`, v)}
+                                onClose={() => onCloseQuote?.(`quote|${targetEvent.id!}`)}
+                                onSend={() => onSendQuote?.(`quote|${targetEvent.id!}`)}
+                                quoteKey={`quote|${targetEvent.id}`}
                             />
                         )}
 
@@ -5393,10 +5613,28 @@ function BellIcon({className = ''}: { className?: string }) {
     )
 }
 
-function CompactReactionNote({ev, openProfileByPubkey, userPubkey}: {
+function CompactReactionNote({ev, openProfileByPubkey, userPubkey, scopeId, onReply, onRepost, onQuote, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, quoteOpen, quoteBuffers, onChangeQuoteText, onCloseQuote, onSendQuote, repostMode, onCancelRepost, onHoverOpen}: {
     ev: NDKEvent;
     openProfileByPubkey?: (pubkey: string) => void;
-    userPubkey?: string
+    userPubkey?: string;
+    scopeId?: string;
+    onReply?: (e: NDKEvent) => void;
+    onRepost?: (e: NDKEvent) => void;
+    onQuote?: (e: NDKEvent) => void;
+    actionMessages?: Record<string, string | undefined>;
+    replyOpen?: Record<string, boolean>;
+    replyBuffers?: Record<string, string>;
+    onChangeReplyText?: (id: string, v: string) => void;
+    onCloseReply?: (id: string) => void;
+    onSendReply?: (targetId: string) => void;
+    quoteOpen?: Record<string, boolean>;
+    quoteBuffers?: Record<string, string>;
+    onChangeQuoteText?: (id: string, v: string) => void;
+    onCloseQuote?: (id: string) => void;
+    onSendQuote?: (targetId: string) => void;
+    repostMode?: Record<string, boolean>;
+    onCancelRepost?: (e: NDKEvent) => void;
+    onHoverOpen?: (e: NDKEvent) => void;
 }) {
     const {data: profile} = useQuery({
         queryKey: ['profile', ev.pubkey || ''],
@@ -5455,6 +5693,11 @@ function CompactReactionNote({ev, openProfileByPubkey, userPubkey}: {
     // Check if reaction content is an image URL
     const isImageReaction = reactionContent.startsWith('http') && /\.(jpg|jpeg|png|gif|webp|bmp|svg)(?:\?.*)?$/i.test(reactionContent)
 
+    const hasRootMarker = useMemo(() => {
+        const t = (referencedEvent as any)?.tags
+        return Array.isArray(t) && t.some((tag: any[]) => tag?.[0] === 'e' && tag?.[3] === 'root')
+    }, [referencedEvent])
+
     return (
         <div className="border-b border-[#37474f] overflow-hidden">
             {/* Reaction header with banner background */}
@@ -5506,7 +5749,17 @@ function CompactReactionNote({ev, openProfileByPubkey, userPubkey}: {
 
             {/* Referenced event below */}
             {referencedEvent ? (
-                <div className="bg-[#10181b] p-3">
+                <div
+                    className={`bg-black/20 p-3 ${hasRootMarker ? 'note-hover-target' : ''}`}
+                    onClick={(e) => {
+                        try {
+                            const t = e.target as HTMLElement | null
+                            if (t && t.closest('button, a, input, textarea, [contenteditable="true"]')) return
+                            if (!hasRootMarker || !referencedEvent?.id) return
+                            onHoverOpen?.(referencedEvent)
+                        } catch {}
+                    }}
+                >
                     <div className="flex gap-3">
                         <div className="flex-1 min-w-0">
                             <header
@@ -5518,20 +5771,355 @@ function CompactReactionNote({ev, openProfileByPubkey, userPubkey}: {
                                 <time
                                     className="opacity-70">{formatTime(referencedEvent.created_at)}</time>
                             </header>
-                            <div
-                                className="whitespace-pre-wrap break-words text-[#cccccc]">
-                                {referencedEvent.content}
+                            <div className="relative">
+                                <div className="prose prose-invert max-w-none whitespace-pre-wrap break-words text-[#cccccc]">
+                                    {renderContent(
+                                        referencedEvent.content || '',
+                                        (g) => { try { const item = g.items?.[g.index]; if (item?.url) window.open(item.url, '_blank'); } catch {}
+                                        },
+                                            (bech) => { try { window.location.hash = `profile/${encodeURIComponent(bech)}` } catch {} },
+                                            (tag) => { try { const t = String(tag).startsWith('#') ? String(tag).slice(1).toLowerCase() : String(tag).toLowerCase(); window.location.hash = `hashtag/${encodeURIComponent(t)}` } catch {}
+                                            },
+                                        extractHashtagTags(referencedEvent.tags),
+                                        false
+                                    )}
+
+                                    {/* Hashtag list for 't' tag hashtags */}
+                                    {extractHashtagTags(referencedEvent.tags).length > 0 && (
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            {extractHashtagTags(referencedEvent.tags).map((tag, idx) => (
+                                                <button
+                                                    key={`ref-hashtag-${idx}-${tag}`}
+                                                    type="button"
+                                                    onClick={() => { try { window.location.hash = `hashtag/${encodeURIComponent(tag)}` } catch {} }}
+                                                    className="text-[#9ecfff] hover:text-white text-sm"
+                                                    title={`Open #${tag}`}
+                                                >
+                                                    #{tag}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+
+                            {!!referencedEvent.id && (
+                                <>
+                                <div className="mt-2 grid grid-cols-[1fr_auto] items-end gap-x-2 gap-y-1">
+                                    <div className="min-w-0 flex flex-wrap-reverse items-end content-end gap-2">
+                                        <ReactionButtonRow
+                                            eventId={referencedEvent.id}
+                                            onReact={(emoji: string) => {
+                                                (async () => {
+                                                    try {
+                                                        const reactionEvent = new NDKEvent(ndk)
+                                                        reactionEvent.kind = 7
+                                                        reactionEvent.content = emoji
+                                                        reactionEvent.tags = [
+                                                            ['e', referencedEvent.id!],
+                                                            ['p', referencedEvent.pubkey!],
+                                                        ]
+                                                        await reactionEvent.publish()
+                                                    } catch (err) {
+                                                        console.error('Failed to publish reaction:', err)
+                                                    }
+                                                })()
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2 justify-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => onQuote?.(referencedEvent)}
+                                            className={`${(quoteOpen?.[`quote|${scopeId || 'notifications'}|${referencedEvent.id}`]) ? 'bg-[#fff3b0] text-black' : 'bg-[#1b3a40] text-white hover:bg-[#215059]'} text-xs px-2 py-1 rounded-full flex items-center gap-2`}
+                                            title="Quote"
+                                        >
+                                            <QuoteIcon className="w-8 h-8"/>
+                                        </button>
+                                        {repostMode?.[`${scopeId || 'notifications'}|${referencedEvent.id}`] ? (
+                                            <div className="flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onRepost?.(referencedEvent)}
+                                                    className="bg-[#fff3b0] text-black text-xs px-2 py-1 rounded-full hover:bg-[#ffed80] flex items-center gap-2"
+                                                    title="Repost (active)"
+                                                >
+                                                    <RepostEllipsisBubbleIcon className="w-8 h-8"/>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); onCancelRepost?.(referencedEvent) }}
+                                                    className="bg-red-600 text-white text-xs px-2 py-1 rounded-full hover:bg-red-700 flex items-center gap-2"
+                                                    title="Cancel repost"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => onRepost?.(referencedEvent)}
+                                                className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2"
+                                                title="Repost"
+                                            >
+                                                <RepostEllipsisBubbleIcon className="w-8 h-8"/>
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => onReply?.(referencedEvent)}
+                                            className={`${(replyOpen?.[`${scopeId || 'notifications'}|${referencedEvent.id}`]) ? 'bg-[#fff3b0] text-black' : 'bg-[#1b3a40] text-white hover:bg-[#215059]'} text-xs px-2 py-1 rounded-full flex items-center gap-2`}
+                                            title="Reply"
+                                        >
+                                            <ReplyBubbleIcon className="w-8 h-8"/>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Inline composers for the referenced event when open */}
+                                    {(replyOpen?.[`${scopeId || 'notifications'}|${referencedEvent.id}`]) && (
+                                        <ReplyComposer
+                                            value={(replyBuffers?.[`${scopeId || 'notifications'}|${referencedEvent.id}`] || '')}
+                                            onChange={(v) => onChangeReplyText?.(`${scopeId || 'notifications'}|${referencedEvent.id!}`, v)}
+                                            onClose={() => onCloseReply?.(`${scopeId || 'notifications'}|${referencedEvent.id!}`)}
+                                            onSend={() => onSendReply?.(`${scopeId || 'notifications'}|${referencedEvent.id!}`)}
+                                            replyKey={`${scopeId || 'notifications'}|${referencedEvent.id}`}
+                                        />
+                                    )}
+
+                                    {(quoteOpen?.[`quote|${scopeId || 'notifications'}|${referencedEvent.id}`]) && (
+                                        <QuoteComposer
+                                            value={(quoteBuffers?.[`quote|${scopeId || 'notifications'}|${referencedEvent.id}`] || '')}
+                                            onChange={(v) => onChangeQuoteText?.(`quote|${scopeId || 'notifications'}|${referencedEvent.id!}`, v)}
+                                            onClose={() => onCloseQuote?.(`quote|${scopeId || 'notifications'}|${referencedEvent.id!}`)}
+                                            onSend={() => onSendQuote?.(`quote|${scopeId || 'notifications'}|${referencedEvent.id!}`)}
+                                            quoteKey={`quote|${scopeId || 'notifications'}|${referencedEvent.id}`}
+                                        />
+                                    )}
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
             ) : reactionTargetId ? (
-                <div className="bg-[#10181b] p-3">
+                <div className="bg-black/20 p-3">
                     <div className="text-sm text-[#cccccc] opacity-70">Loading
                         referenced event...
                     </div>
                 </div>
             ) : null}
+        </div>
+    )
+}
+
+function PreviewNotePanel({id, scopeId, onReply, onRepost, onQuote, onOpenNote, openMedia, openProfileByBech, openProfileByPubkey, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, openHashtag, userFollows, userPubkey, repostMode, onCancelRepost, quoteOpen, quoteBuffers, onChangeQuoteText, onCloseQuote, onSendQuote, onClosePanel}: { id: string; scopeId: string; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenNote: (e: NDKEvent) => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; actionMessages?: Record<string, string | undefined>; replyOpen?: Record<string, boolean>; replyBuffers?: Record<string, string>; onChangeReplyText?: (id: string, v: string) => void; onCloseReply?: (id: string) => void; onSendReply?: (targetId: string) => void; openHashtag?: (tag: string) => void; userFollows?: string[]; userPubkey?: string; repostMode?: Record<string, boolean>; onCancelRepost?: (e: NDKEvent) => void; quoteOpen?: Record<string, boolean>; quoteBuffers?: Record<string, string>; onChangeQuoteText?: (id: string, v: string) => void; onCloseQuote?: (id: string) => void; onSendQuote?: (targetId: string) => void; onClosePanel: () => void }) {
+    const topRef = useRef<HTMLDivElement | null>(null)
+    const [showFloatingClose, setShowFloatingClose] = useState(false)
+    useEffect(() => {
+        const el = topRef.current
+        if (!el) return
+        const obs = new IntersectionObserver((entries) => {
+            const e = entries[0]
+            setShowFloatingClose(!e.isIntersecting)
+        }, {root: null, threshold: 0})
+        obs.observe(el)
+        return () => { try { obs.disconnect() } catch {} }
+    }, [])
+
+    const containerRef = useRef<HTMLDivElement | null>(null)
+
+    // When thread panel opens or updates, scroll to the highlighted opener note
+    useEffect(() => {
+        // Delay slightly to ensure DOM is painted
+        const timer = setTimeout(() => {
+            try {
+                const target = document.querySelector(`[data-thread-item-id="${id}"]`)
+                if (target && target instanceof HTMLElement) {
+                    target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                }
+            } catch {}
+        }, 100)
+        return () => clearTimeout(timer)
+    }, [id])
+
+    const {data: ev} = useQuery<NDKEvent | null>({
+        queryKey: ['hover-preview', id],
+        enabled: !!id,
+        staleTime: 1000 * 60 * 5,
+        queryFn: async () => {
+            try {
+                const set = await withTimeout(ndk.fetchEvents({ids: [id]} as any), 6000, 'fetch hover preview')
+                const arr = Array.from(set)
+                return arr[0] || null
+            } catch {
+                return null
+            }
+        }
+    })
+
+    // Determine thread root and use centralized thread store
+    const rootId = useMemo(() => (ev ? (getRootEventHexId(ev) || ev.id || null) : null), [ev])
+
+    // Populate the store exhaustively when we know the opener/root
+    const qc = useQueryClient()
+    useEffect(() => {
+        if (ev && rootId) {
+            try { ensureThreadForEvent(qc, ev) } catch {}
+        }
+    }, [qc, ev, rootId])
+
+    const { data: threadData } = useThread(rootId || undefined)
+    const sortedThread = useMemo(() => threadData?.items || [], [threadData])
+
+    // Build parent map and depth per item based on e-tags (prefer 'reply' marker)
+    const depthMap = useMemo(() => {
+        const byId = new Map<string, NDKEvent>()
+        for (const ev of sortedThread) if (ev?.id) byId.set(ev.id, ev)
+        const parentOf = new Map<string, string | null>()
+        const root = rootId || null
+        for (const ev of sortedThread) {
+            if (!ev?.id) continue
+            const eTags = (ev.tags || []).filter((t: any[]) => t && t[0] === 'e')
+            let parent: string | null = null
+            const reply = eTags.find((t: any[]) => t?.[3] === 'reply')?.[1] as string | undefined
+            const rootTag = eTags.find((t: any[]) => t?.[3] === 'root')?.[1] as string | undefined
+            if (reply) parent = reply
+            else if (rootTag && rootTag !== ev.id) parent = rootTag
+            else if (eTags.length > 0) parent = (eTags[eTags.length - 1][1] as string)
+            if (parent && !byId.has(parent)) parent = root // attach to root if parent not in set
+            if (parent === ev.id) parent = root // avoid self-parenting
+            parentOf.set(ev.id, parent || (ev.id === root ? null : root))
+        }
+        const depth = new Map<string, number>()
+        const MAX_STEPS = 64
+        const computeDepth = (id: string): number => {
+            if (depth.has(id)) return depth.get(id) as number
+            let d = 0
+            let cur: string | null | undefined = id
+            let steps = 0
+            while (cur && cur !== root && steps < MAX_STEPS) {
+                const p = parentOf.get(cur) || null
+                if (!p || p === root) break
+                d++
+                cur = p
+                steps++
+            }
+            depth.set(id, d)
+            return d
+        }
+        for (const ev of sortedThread) if (ev?.id) computeDepth(ev.id)
+        return depth
+    }, [sortedThread, rootId])
+
+    return (
+        <div className="relative p-[0.5em]">
+            <div ref={topRef} />
+            <div className="sticky top-0 z-30">
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={onClosePanel}
+                        className="absolute -top-2 -right-2 z-40 w-8 h-8 rounded-full bg-black/70 text-white hover:bg-black/90 flex items-center justify-center"
+                        aria-label="Close preview"
+                        title="Close preview"
+                    >
+                        ×
+                    </button>
+                </div>
+            </div>
+            <div className="min-h-[50vh]" ref={containerRef}>
+                {ev ? (
+                    <>
+                        {Array.isArray(sortedThread) && sortedThread.length > 0 ? (
+                            sortedThread.map((item, idx) => {
+                                const isOpener = !!item.id && item.id === id
+                                const depth = item.id ? (depthMap.get(item.id) || 0) : 0
+                                return (
+                                    <div
+                                        key={item.id || `${idx}-${item.created_at}`}
+                                        data-thread-item-id={item.id || ''}
+                                        className={`${idx < sortedThread.length - 1 ? 'mb-3' : ''} ${isOpener ? 'ring-2 ring-[#fff3b0] rounded-lg' : ''}`}
+                                        style={{ marginLeft: `${depth}em` }}
+                                    >
+                                        <NoteCard
+                                            ev={item}
+                                            scopeId={scopeId}
+                                            onReply={onReply}
+                                            onRepost={onRepost}
+                                            onQuote={onQuote}
+                                            onOpenNote={onOpenNote}
+                                            openMedia={openMedia}
+                                            openProfileByBech={openProfileByBech}
+                                            openProfileByPubkey={openProfileByPubkey}
+                                            actionMessages={actionMessages}
+                                            replyOpen={replyOpen}
+                                            replyBuffers={replyBuffers}
+                                            onChangeReplyText={onChangeReplyText}
+                                            onCloseReply={onCloseReply}
+                                            onSendReply={onSendReply}
+                                            openHashtag={openHashtag}
+                                            userFollows={userFollows}
+                                            userPubkey={userPubkey}
+                                            repostMode={repostMode}
+                                            onCancelRepost={onCancelRepost}
+                                            quoteOpen={quoteOpen}
+                                            quoteBuffers={quoteBuffers}
+                                            onChangeQuoteText={onChangeQuoteText}
+                                            onCloseQuote={onCloseQuote}
+                                            onSendQuote={onSendQuote}
+                                        />
+                                    </div>
+                                )
+                            })
+                        ) : (
+                            <div data-thread-item-id={ev.id || ''}>
+                                <NoteCard
+                                    ev={ev}
+                                    scopeId={scopeId}
+                                    onReply={onReply}
+                                    onRepost={onRepost}
+                                    onQuote={onQuote}
+                                    onOpenNote={onOpenNote}
+                                    openMedia={openMedia}
+                                    openProfileByBech={openProfileByBech}
+                                    openProfileByPubkey={openProfileByPubkey}
+                                    actionMessages={actionMessages}
+                                    replyOpen={replyOpen}
+                                    replyBuffers={replyBuffers}
+                                    onChangeReplyText={onChangeReplyText}
+                                    onCloseReply={onCloseReply}
+                                    onSendReply={onSendReply}
+                                    openHashtag={openHashtag}
+                                    userFollows={userFollows}
+                                    userPubkey={userPubkey}
+                                    repostMode={repostMode}
+                                    onCancelRepost={onCancelRepost}
+                                    quoteOpen={quoteOpen}
+                                    quoteBuffers={quoteBuffers}
+                                    onChangeQuoteText={onChangeQuoteText}
+                                    onCloseQuote={onCloseQuote}
+                                    onSendQuote={onSendQuote}
+                                />
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="p-4 text-sm opacity-70">Loading preview…</div>
+                )}
+            </div>
+            {showFloatingClose && (
+                <div className="fixed bottom-6 right-6 z-[100]">
+                    <button
+                        type="button"
+                        onClick={onClosePanel}
+                        className="w-10 h-10 rounded-full bg-black/80 text-white hover:bg-black/90 flex items-center justify-center shadow-lg"
+                        aria-label="Close preview"
+                        title="Close preview"
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
         </div>
     )
 }
@@ -6196,7 +6784,7 @@ function ThreadPanel({
                                 }
                                 return (
                                     <div key={id}
-                                         className="border border-black rounded bg-[#10181b]"
+                                         className="rounded bg-[#10181b]"
                                          style={{marginLeft: Math.min(24, depth) * 16}}>
                                         <div className="p-3">
                                             <div className="flex gap-3">

@@ -50,3 +50,67 @@ input, textarea, select, button {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Hover overlay for note content */
+.note-hover-target {
+  position: relative;
+  border-radius: inherit; /* match container radius (e.g., rounded-lg) */
+  cursor: auto; /* default cursor; will change on hover */
+}
+.note-hover-target:hover {
+  cursor: pointer;
+}
+.note-hover-target::after {
+  content: "";
+  position: absolute;
+  z-index: 40;
+  top: -0em;
+  right: -0em;
+  bottom: -0em;
+  left: -0em;
+  border-radius: inherit; /* match container radius */
+  /*background: rgba(255, 255, 255, 0.05); !* 20% white fill *!*/
+  opacity: 0;
+  transition: opacity 150ms ease;
+  pointer-events: none; /* allow interacting with content */
+}
+.note-hover-target:hover::after {
+  opacity: 1;
+  backdrop-filter: contrast(1.2) saturate(1.05) brightness(1.05);
+  -webkit-backdrop-filter: contrast(1.2) saturate(1.05) brightness(1.05);
+}
+
+/* Make note text full white when hover overlay is active */
+.note-hover-target:hover,
+.note-hover-target:hover .prose,
+.note-hover-target:hover .prose * {
+  color: #ffffff !important;
+}
+
+/* Ensure all note content breaks long words/URLs safely */
+.note-hover-target .prose,
+.note-hover-target .prose * {
+  /* Prefer modern wrapping behavior */
+  overflow-wrap: anywhere; /* allows breaking anywhere if needed */
+  word-break: break-word;  /* legacy-friendly fallback */
+  word-wrap: break-word;   /* older spec name */
+  min-width: 0;            /* prevent flex/min-width from forcing overflow */
+}
+
+/* Global word-breaking rules to prevent long URLs/media links from overflowing */
+.prose,
+.prose * {
+  overflow-wrap: anywhere; /* modern */
+  word-break: break-word;  /* fallback */
+  word-wrap: break-word;   /* older spec name */
+  min-width: 0;            /* prevent flex children from forcing overflow */
+}
+
+/* Ensure any area using Tailwind's break-words also breaks anywhere deeply */
+.break-words,
+.break-words * {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  word-wrap: break-word;
+  min-width: 0;
+}
