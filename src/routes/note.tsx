@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { NDKEvent } from '@nostr-dev-kit/ndk'
 import { ndk } from '@/lib/ndk'
-import { renderContent, fetchThreadEvents, type MediaGallery, ThreadReelIcon, QuoteIcon, RepostEllipsisBubbleIcon, ReplyBubbleIcon, formatTime, AuthorLabel, ReactionButtonRow, ReplyComposer, QuoteComposer, RepostNote } from './index'
+import { renderContent, type MediaGallery, QuoteIcon, RepostEllipsisBubbleIcon, ReplyBubbleIcon, formatTime, AuthorLabel, ReactionButtonRow, ReplyComposer, QuoteComposer, RepostNote } from './index'
 
 export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread, onOpenNote, openMedia, openProfileByBech, openProfileByPubkey, activeThreadRootId, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, openHashtag, userFollows, hideThread, userPubkey, showActionMessage, repostMode, onCancelRepost, quoteOpen, quoteBuffers, onChangeQuoteText, onCloseQuote, onSendQuote }: { ev: NDKEvent; scopeId: string; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenThread: (e: NDKEvent) => void; onOpenNote: (e: NDKEvent) => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; activeThreadRootId?: string | null; actionMessages?: Record<string, string | undefined>; replyOpen?: Record<string, boolean>; replyBuffers?: Record<string, string>; onChangeReplyText?: (id: string, v: string) => void; onCloseReply?: (id: string) => void; onSendReply?: (targetId: string) => void; openHashtag?: (tag: string) => void; userFollows?: string[]; hideThread?: boolean; userPubkey?: string; showActionMessage?: (e: NDKEvent, msg: string) => void; repostMode?: Record<string, boolean>; onCancelRepost?: (e: NDKEvent) => void; quoteOpen?: Record<string, boolean>; quoteBuffers?: Record<string, string>; onChangeQuoteText?: (id: string, v: string) => void; onCloseQuote?: (id: string) => void; onSendQuote?: (targetId: string) => void }) {
   // Moved implementation from index.tsx without functional changes.
+  void onOpenThread
+  void hideThread
   const handleReaction = async (targetEvent: NDKEvent, emoji: string) => {
     if (!targetEvent.id || !userPubkey) return
     try {
@@ -23,15 +24,6 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
       showActionMessage?.(targetEvent, 'Failed to react')
     }
   }
-  const getThreadRootIdLocal = (ev: NDKEvent): string => {
-    const eTags = (ev.tags || []).filter(t => t[0] === 'e')
-    const root = eTags.find(t => (t[3] === 'root'))?.[1] as string | undefined
-    const reply = eTags.find(t => (t[3] === 'reply'))?.[1] as string | undefined
-    const any = eTags[0]?.[1] as string | undefined
-    return (root || reply || any || ev.id || '')
-  }
-  const thisRootId = getThreadRootIdLocal(ev)
-  const isActiveThread = !!activeThreadRootId && activeThreadRootId === thisRootId
   const mentionsUser = userPubkey && (ev.tags || []).some(t => t[0] === 'p' && t[1] === userPubkey)
 
   const [expanded, setExpanded] = useState(false)
@@ -41,38 +33,8 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
   const innerRef = useRef<HTMLDivElement | null>(null)
   const cardRef = useRef<HTMLElement | null>(null)
   const buttonRowRef = useRef<HTMLDivElement | null>(null)
-  const [isVisible, setIsVisible] = useState(false)
 
-  useEffect(() => {
-    const el = cardRef.current
-    if (!el) return
-    const io = new IntersectionObserver((entries) => {
-      const entry = entries[0]
-      if (entry && entry.isIntersecting) {
-        setIsVisible(true)
-        try { io.disconnect() } catch {}
-      }
-    }, { root: null, rootMargin: '0px', threshold: 0.2 })
-    io.observe(el)
-    return () => {
-      try { io.disconnect() } catch {}
-    }
-  }, [])
 
-  const threadProbe = useQuery<number>({
-    queryKey: ['thread-probe', thisRootId],
-    enabled: isVisible && !!thisRootId,
-    staleTime: 1000 * 60 * 5,
-    queryFn: async () => {
-      try {
-        const res = await fetchThreadEvents(thisRootId)
-        return (res || []).length
-      } catch {
-        return 0
-      }
-    },
-  })
-  const showThreadButton = threadProbe.isSuccess
 
   const scrollButtonRowToBottom = () => {
     if (buttonRowRef.current) {
@@ -169,13 +131,6 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
               >
                 &lt;/&gt;
               </button>
-              <div className="ml-auto flex items-center gap-2">
-                {showThreadButton && !hideThread && (
-                  <button type="button" onClick={() => onOpenThread(ev)} className="bg-black/60 text-white hover:bg-black/80 text-xs px-2 py-1 rounded-full flex items-center gap-2" title="Open thread">
-                    <ThreadReelIcon className="w-8 h-8" />
-                  </button>
-                )}
-              </div>
             </header>
 
             {jsonViewerOpen && (
@@ -217,7 +172,6 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
                     onReply={(e) => handleReply(e)}
                     onRepost={(e) => onRepost(e)}
                     onQuote={(e) => handleQuote(e)}
-                    onOpenThread={(e) => onOpenThread(e)}
                     onOpenNote={(e) => onOpenNote(e)}
                     scopeId={scopeId}
                     actionMessages={actionMessages as any}
