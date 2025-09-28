@@ -2948,7 +2948,6 @@ function Home() {
                                             openMedia={setMediaToShow}
                                             openProfileByBech={openProfileByBech}
                                             openProfileByPubkey={openProfileByPubkey}
-                                            activeThreadRootId={threadRootId}
                                             actionMessages={actionMessages}
                                             replyOpen={replyOpen}
                                             replyBuffers={replyBuffers}
@@ -5939,7 +5938,6 @@ function ThreadPanelContent({
                                         onSendReply={onSendReply}
                                         openHashtag={openHashtag}
                                         userFollows={userFollows}
-                                        hideThread={true}
                                         repostMode={repostMode}
                                         onCancelRepost={onCancelRepost}
                                         quoteOpen={quoteOpen}
@@ -5976,7 +5974,6 @@ function ThreadPanelContent({
                                     onSendReply={onSendReply}
                                     openHashtag={openHashtag}
                                     userFollows={userFollows}
-                                    hideThread={true}
                                     repostMode={repostMode}
                                     onCancelRepost={onCancelRepost}
                                     quoteOpen={quoteOpen}
