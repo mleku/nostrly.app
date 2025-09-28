@@ -131,7 +131,7 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
     const calc = () => {
       const inner = innerRef.current
       if (!inner) { setIsOverflowing(false); return }
-      const maxPx = Math.max(0, Math.floor(window.innerHeight * 0.5))
+      const maxPx = Math.max(0, Math.floor(window.innerHeight * 0.25))
       const natural = inner.scrollHeight
       setIsOverflowing(natural > maxPx + 4)
     }
@@ -150,7 +150,7 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
       <div className="flex flex-col">
         <div className="flex gap-3 mb-3">
           <div className="flex-1 min-w-0">
-            <div className={`relative ${expanded ? 'overflow-auto' : 'max-h-[50vh]'} `}>
+            <div className={`relative ${expanded ? 'overflow-auto' : 'max-h-[25vh]'} `}>
               <header className="sticky top-0 z-10 flex items-center text-sm text-[#cccccc]">
               <AuthorLabel pubkey={ev.pubkey || ''} onOpen={(pk) => openProfileByPubkey(pk)} />
               <span className="opacity-50">·</span>
@@ -201,11 +201,11 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
 
             <div
               ref={wrapperRef}
-              className="relative py-4"
+              className="relative"
             >
               <div
                 ref={innerRef}
-                className={`prose prose-invert max-w-none ${expanded ? '' : 'max-h-[50vh] overflow-hidden'} transition-[max-height] duration-300 ease-out`}
+                className={`prose prose-invert max-w-none py-4 ${expanded ? '' : 'max-h-[25vh] overflow-hidden'} transition-[max-height] duration-300 ease-out`}
               >
                 {ev.kind === 6 ? (
                   <RepostNote
@@ -256,13 +256,13 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
               </div>
 
               {isOverflowing && !expanded && (
-                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0f1a1d] to-transparent pointer-events-none" />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0f1a1d] to-transparent pointer-events-none" />
               )}
             </div>
             </div>
 
             {isOverflowing && (
-              <div className="mt-2 text-right relative z-20">
+              <div className="mt-2 text-right relative z-20 p-4">
                 <button
                   type="button"
                   onClick={() => setExpanded(!expanded)}
@@ -295,15 +295,15 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
           />
         )}
 
-        <div className="flex items-center gap-2 justify-between mt-1" ref={buttonRowRef}>
-          <div className="flex items-center gap-2">
+        <div className="grid grid-cols-[1fr_auto] items-end gap-x-2 gap-y-1" ref={buttonRowRef}>
+          <div className="min-w-0 flex flex-wrap-reverse items-end content-end gap-2">
             {!!ev.id && (
               <ReactionButtonRow eventId={ev.id} onReact={(emoji: string) => handleReaction(ev, emoji)} excludeEl={cardRef.current}
               />
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-end">
             <button type="button" onClick={() => handleQuote(ev)} className={`${(ev.id && quoteOpen?.[`quote|${ev.id}`]) ? 'bg-[#fff3b0] text-black' : 'bg-[#1b3a40] text-white hover:bg-[#215059]'} text-xs px-2 py-1 rounded-full flex items-center gap-2`} title="Quote">
               <QuoteIcon className="w-8 h-8" />
             </button>

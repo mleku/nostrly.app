@@ -488,8 +488,8 @@ function InlineNeventNote({
                         </div>
                         {onReply && onRepost && onQuote && evQuery.data && (
                             <div
-                                className="flex items-center gap-2 justify-between mt-1">
-                                <div className="flex items-center gap-2">
+                                className="grid grid-cols-[1fr_auto] items-end gap-x-2 gap-y-1 mt-1">
+                                <div className="min-w-0 flex flex-wrap-reverse items-end content-end gap-2">
                                     {!!evQuery.data.id && (
                                         <ReactionButtonRow
                                             eventId={evQuery.data.id}
@@ -513,7 +513,7 @@ function InlineNeventNote({
                                             }}/>
                                     )}
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 justify-end">
                                     {onOpenThread && (
                                         <button type="button"
                                                 onClick={() => onOpenThread(evQuery.data!)}
@@ -721,8 +721,8 @@ function InlineNaddrNote({
                         </div>
                         {onReply && onRepost && onQuote && evQuery.data && (
                             <div
-                                className="flex items-center gap-2 justify-between mt-1">
-                                <div className="flex items-center gap-2">
+                                className="grid grid-cols-[1fr_auto] items-end gap-x-2 gap-y-1 mt-1">
+                                <div className="min-w-0 flex flex-wrap-reverse items-end content-end gap-2">
                                     {!!evQuery.data.id && (
                                         <ReactionButtonRow
                                             eventId={evQuery.data.id}
@@ -746,7 +746,7 @@ function InlineNaddrNote({
                                             }}/>
                                     )}
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 justify-end">
                                     {onOpenThread && (
                                         <button type="button"
                                                 onClick={() => onOpenThread(evQuery.data!)}
@@ -937,8 +937,8 @@ function SingleNoteView({
                         />
                     )}
                 </div>
-                <div className="flex items-center gap-2 justify-between mt-1">
-                    <div className="flex items-center gap-2">
+                <div className="grid grid-cols-[1fr_auto] items-end gap-x-2 gap-y-1 mt-1">
+                    <div className="min-w-0 flex flex-wrap-reverse items-end content-end gap-2">
                         {!!ev.id && (
                             <ReactionButtonRow eventId={ev.id}
                                                onReact={(emoji: string) => {
@@ -961,7 +961,7 @@ function SingleNoteView({
                                                }}/>
                         )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 justify-end">
                         <button type="button" onClick={() => onQuote(ev)}
                                 className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2"
                                 title="Quote">
@@ -3875,9 +3875,9 @@ function ThreadModal({
                                                     )}
                                                 </div>
                                                 <div
-                                                    className="flex items-center gap-2 justify-between mt-1">
+                                                    className="grid grid-cols-[1fr_auto] items-end gap-x-2 gap-y-1 mt-1">
                                                     <div
-                                                        className="flex items-center gap-2">
+                                                        className="min-w-0 flex flex-wrap-reverse items-end content-end gap-2">
                                                         {!!ev.id && (
                                                             <ReactionButtonRow
                                                                 eventId={ev.id}
@@ -3902,7 +3902,7 @@ function ThreadModal({
                                                         )}
                                                     </div>
                                                     <div
-                                                        className="flex items-center gap-2">
+                                                        className="flex items-center gap-2 justify-end">
                                                         <button type="button"
                                                                 onClick={() => onQuote(ev)}
                                                                 className={`${(ev.id && quoteOpen?.[`quote|${ev.id}`]) ? 'bg-[#fff3b0] text-black' : 'bg-[#1b3a40] text-white hover:bg-[#215059]'} text-xs px-2 py-1 rounded-full flex items-center gap-2`}
@@ -4266,12 +4266,12 @@ function NoteCard_Legacy({
                             </div>
                         )}
 
-                        {/* Collapsible content wrapper capped at 50vh when not expanded */}
+                        {/* Collapsible content wrapper capped at 25vh when not expanded */}
                         <div
                             ref={wrapperRef}
                             className="relative"
                             style={{
-                                maxHeight: expanded ? 'none' as any : '50vh',
+                                maxHeight: expanded ? 'none' as any : '25vh',
                                 overflow: expanded ? 'visible' : 'hidden'
                             }}
                         >
@@ -4987,8 +4987,8 @@ export function RepostNote({
 
                         {onReply && onRepost && onQuote && (
                             <div
-                                className="flex items-center gap-2 justify-between mt-1">
-                                <div className="flex items-center gap-2">
+                                className="grid grid-cols-[1fr_auto] items-end gap-x-2 gap-y-1 mt-1">
+                                <div className="min-w-0 flex flex-wrap-reverse items-end content-end gap-2">
                                     {!!targetEvent.id && (
                                         <ReactionButtonRow
                                             eventId={targetEvent.id}
@@ -5012,7 +5012,7 @@ export function RepostNote({
                                             }}/>
                                     )}
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 justify-end">
                                     {onOpenThread && (
                                         <button type="button"
                                                 onClick={() => onOpenThread(targetEvent)}
@@ -5549,31 +5549,31 @@ export function ReplyComposer({value, onChange, onClose, onSend, replyKey}: {
 }) {
     return (
         <div
-            className="mt-3 border border-black rounded bg-[#0f1a1d] text-[#cccccc]"
+            className="mt-3  rounded bg-transparent text-[#cccccc]"
             data-reply-key={replyKey}>
             <div className="flex items-stretch gap-2 p-2">
         <textarea
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="Write a reply..."
-            className="flex-1 resize-none bg-transparent outline-none text-[#cccccc] p-2 border border-black rounded min-h-[9rem]"
+            className="flex-1 resize-none bg-[#00000080] outline-none text-[#cccccc] p-2 rounded min-h-[9rem]"
             rows={6}
         />
                 <div className="flex flex-col items-center gap-2 self-stretch">
                     <button type="button"
-                            className="bg-[#162a2f] text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
+                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
                             title="Add image">
-                        <ImageIcon className="w-6 h-6"/>
+                        <ImageIcon className="w-8 h-8"/>
                     </button>
                     <button type="button"
-                            className="bg-[#162a2f] text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
+                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
                             title="Emoji">
-                        <EmojiIcon className="w-6 h-6"/>
+                        <EmojiIcon className="w-8 h-8"/>
                     </button>
                     <button type="button" onClick={onSend}
-                            className="bg-[#1b3a40] text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#215059]"
+                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#215059]"
                             title="Send">
-                        <SendIcon className="w-6 h-6"/>
+                        <SendIcon className="w-12 h-12"/>
                     </button>
                 </div>
             </div>
@@ -5590,31 +5590,31 @@ export function QuoteComposer({value, onChange, onClose, onSend, quoteKey}: {
 }) {
     return (
         <div
-            className="mt-3 border border-black rounded bg-[#0f1a1d] text-[#cccccc]"
+            className="mt-3  rounded bg-transparent text-[#cccccc]"
             data-quote-key={quoteKey}>
             <div className="flex items-stretch gap-2 p-2">
         <textarea
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="Write a quote post..."
-            className="flex-1 resize-none bg-transparent outline-none text-[#cccccc] p-2 border border-black rounded min-h-[9rem]"
+            className="flex-1 resize-none bg-[#00000080] outline-none text-[#cccccc] p-2 rounded min-h-[9rem]"
             rows={6}
         />
                 <div className="flex flex-col items-center gap-2 self-stretch">
                     <button type="button"
-                            className="bg-[#162a2f] text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
+                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
                             title="Add image">
-                        <ImageIcon className="w-6 h-6"/>
+                        <ImageIcon className="w-8 h-8"/>
                     </button>
                     <button type="button"
-                            className="bg-[#162a2f] text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
+                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
                             title="Emoji">
-                        <EmojiIcon className="w-6 h-6"/>
+                        <EmojiIcon className="w-8 h-8"/>
                     </button>
                     <button type="button" onClick={onSend}
-                            className="bg-[#1b3a40] text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#215059]"
+                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#215059]"
                             title="Send">
-                        <SendIcon className="w-6 h-6"/>
+                        <SendIcon className="w-12 h-12"/>
                     </button>
                 </div>
             </div>
@@ -5906,7 +5906,7 @@ function ThreadPanelContent({
     }, [all, rootId])
 
     return (
-        <div className="max-h-[50vh] overflow-y-auto">
+        <div className="max-h-[25vh] overflow-y-auto">
             <div className="p-3">
                 {order.length === 0 ? (
                     <div className="text-sm text-[#cccccc]">Loading
@@ -6256,9 +6256,9 @@ function ThreadPanel({
                                                     )}
                                                 </div>
                                                 <div
-                                                    className="flex items-center gap-2 justify-between mt-1">
+                                                    className="grid grid-cols-[1fr_auto] items-end gap-x-2 gap-y-1 mt-1">
                                                     <div
-                                                        className="flex items-center gap-2">
+                                                        className="min-w-0 flex flex-wrap-reverse items-end content-end gap-2">
                                                         {!!ev.id && (
                                                             <ReactionButtonRow
                                                                 eventId={ev.id}
@@ -6283,7 +6283,7 @@ function ThreadPanel({
                                                         )}
                                                     </div>
                                                     <div
-                                                        className="flex items-center gap-2">
+                                                        className="flex items-center gap-2 justify-end">
                                                         <button type="button"
                                                                 onClick={() => onQuote(ev)}
                                                                 className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2"
