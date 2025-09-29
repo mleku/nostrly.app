@@ -1689,6 +1689,8 @@ function Home() {
     const openThreadFor = (ev: NDKEvent) => {
         const root = getThreadRootId(ev)
         if (!root) return
+        // Seed thread store immediately with any known items (including opener and parent chain)
+        try { void ensureThreadForEvent(queryClient, ev) } catch {}
 
         // If clicking the same top thread, toggle visibility
         if (openedThreads[0] === root) {
@@ -2977,22 +2979,28 @@ function Home() {
                                         </div>
                                     </div>
                                     <div className="sticky top-12 self-start min-h-[calc(100vh-3rem)] max-h-[calc(100vh-3rem)] overflow-y-auto overflow-x-hidden pr-2 -mr-2 p-[0.5em]">
-                                        <ThreadPanelContent
-                                            rootId={currentNoteId}
-                                            triggerNoteId={currentNoteId}
+                                        <ThreadsStackView
+                                            openedThreads={openedThreads}
+                                            threadTriggerNotes={threadTriggerNotes}
                                             openMedia={setMediaToShow}
                                             openProfileByBech={openProfileByBech}
                                             openProfileByPubkey={openProfileByPubkey}
-                                            onReply={onReplyScoped(`thread-panel:${currentNoteId}`)}
+                                            onReply={onReplyScoped}
                                             onRepost={onRepost}
-                                            onQuote={onQuoteScoped(`thread-panel:${currentNoteId}`)}
+                                            onQuote={(ev) => onQuoteScoped('threads-stack')(ev)}
                                             onOpenNote={openNoteForEvent}
+                                            actionMessages={actionMessages}
                                             replyOpen={replyOpen}
                                             replyBuffers={replyBuffers}
                                             onChangeReplyText={changeReplyText}
                                             onCloseReply={closeReply}
                                             onSendReply={sendReply}
                                             openHashtag={openHashtag}
+                                            onOpenThreadAsMain={(rootId) => {
+                                                setCurrentNoteId(rootId);
+                                                setMode('note');
+                                            }}
+                                            onCloseThread={closeThreadFromStack}
                                             userFollows={followsQuery.data || []}
                                             repostMode={repostMode}
                                             onCancelRepost={cancelRepost}
@@ -3019,6 +3027,7 @@ function Home() {
                                                 openProfileByPubkey={openProfileByPubkey}
                                                 userPubkey={user?.pubkey}
                                                 scopeId={'notifications'}
+                                                userFollows={followsQuery.data || []}
                                                 onReply={onReplyScoped('notifications')}
                                                 onRepost={onRepostScoped('notifications')}
                                                 onQuote={onQuoteScoped('notifications')}
@@ -3049,6 +3058,7 @@ function Home() {
                                                 openProfileByPubkey={openProfileByPubkey}
                                                 userPubkey={user?.pubkey}
                                                 scopeId={'user'}
+                                                userFollows={followsQuery.data || []}
                                                 onReply={onReplyScoped('user')}
                                                 onRepost={onRepostScoped('user')}
                                                 onQuote={onQuoteScoped('user')}
@@ -3079,6 +3089,7 @@ function Home() {
                                                 openProfileByPubkey={openProfileByPubkey}
                                                 userPubkey={user?.pubkey}
                                                 scopeId={'profile'}
+                                                userFollows={followsQuery.data || []}
                                                 onReply={onReplyScoped('profile')}
                                                 onRepost={onRepostScoped('profile')}
                                                 onQuote={onQuoteScoped('profile')}
@@ -3207,7 +3218,7 @@ function Home() {
                                     openProfileByPubkey={openProfileByPubkey}
                                     onReply={onReplyScoped(`thread-modal:${threadRootId}`)}
                                     onRepost={onRepost}
-                                    onQuote={onQuote}
+                                    onQuote={onQuoteScoped(`thread-modal:${threadRootId}`)}
                                     onOpenNote={openNoteForEvent}
                                     actionMessages={actionMessages}
                                     replyOpen={replyOpen}
@@ -3267,7 +3278,7 @@ function Home() {
                                     openProfileByPubkey={openProfileByPubkey}
                                     onReply={onReplyScoped}
                                     onRepost={onRepost}
-                                    onQuote={onQuote}
+                                    onQuote={(ev) => onQuoteScoped('threads-stack')(ev)}
                                     onOpenNote={openNoteForEvent}
                                     actionMessages={actionMessages}
                                     replyOpen={replyOpen}
@@ -3390,7 +3401,7 @@ function Home() {
                                 openProfileByPubkey={openProfileByPubkey}
                                 onReply={onReplyScoped}
                                 onRepost={onRepost}
-                                onQuote={onQuote}
+                                onQuote={(ev) => onQuoteScoped('threads-stack')(ev)}
                                 onOpenNote={openNoteForEvent}
                                 actionMessages={actionMessages}
                                 replyOpen={replyOpen}
@@ -3702,7 +3713,7 @@ function Home() {
                                     openProfileByPubkey={openProfileByPubkey}
                                     onReply={onReplyScoped(`thread-modal:${openedThreads[0]}`)}
                                     onRepost={onRepost}
-                                    onQuote={onQuote}
+                                    onQuote={onQuoteScoped(`thread-modal:${openedThreads[0]}`)}
                                     onOpenNote={openNoteForEvent}
                                     actionMessages={actionMessages}
                                     replyOpen={replyOpen}
@@ -5613,7 +5624,7 @@ function BellIcon({className = ''}: { className?: string }) {
     )
 }
 
-function CompactReactionNote({ev, openProfileByPubkey, userPubkey, scopeId, onReply, onRepost, onQuote, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, quoteOpen, quoteBuffers, onChangeQuoteText, onCloseQuote, onSendQuote, repostMode, onCancelRepost, onHoverOpen}: {
+function CompactReactionNote({ev, openProfileByPubkey, userPubkey, scopeId, onReply, onRepost, onQuote, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, quoteOpen, quoteBuffers, onChangeQuoteText, onCloseQuote, onSendQuote, repostMode, onCancelRepost, onHoverOpen, userFollows}: {
     ev: NDKEvent;
     openProfileByPubkey?: (pubkey: string) => void;
     userPubkey?: string;
@@ -5635,6 +5646,7 @@ function CompactReactionNote({ev, openProfileByPubkey, userPubkey, scopeId, onRe
     repostMode?: Record<string, boolean>;
     onCancelRepost?: (e: NDKEvent) => void;
     onHoverOpen?: (e: NDKEvent) => void;
+    userFollows?: string[];
 }) {
     const {data: profile} = useQuery({
         queryKey: ['profile', ev.pubkey || ''],
@@ -5781,7 +5793,7 @@ function CompactReactionNote({ev, openProfileByPubkey, userPubkey, scopeId, onRe
                                             (tag) => { try { const t = String(tag).startsWith('#') ? String(tag).slice(1).toLowerCase() : String(tag).toLowerCase(); window.location.hash = `hashtag/${encodeURIComponent(t)}` } catch {}
                                             },
                                         extractHashtagTags(referencedEvent.tags),
-                                        false
+                                        !!(userFollows && (referencedEvent?.pubkey ? userFollows.includes(referencedEvent.pubkey) : false))
                                     )}
 
                                     {/* Hashtag list for 't' tag hashtags */}
@@ -6067,6 +6079,7 @@ function PreviewNotePanel({id, scopeId, onReply, onRepost, onQuote, onOpenNote, 
                                             onChangeQuoteText={onChangeQuoteText}
                                             onCloseQuote={onCloseQuote}
                                             onSendQuote={onSendQuote}
+                                            onHoverOpen={onOpenNote}
                                         />
                                     </div>
                                 )
@@ -6099,6 +6112,7 @@ function PreviewNotePanel({id, scopeId, onReply, onRepost, onQuote, onOpenNote, 
                                     onChangeQuoteText={onChangeQuoteText}
                                     onCloseQuote={onCloseQuote}
                                     onSendQuote={onSendQuote}
+                                    onHoverOpen={onOpenNote}
                                 />
                             </div>
                         )}
@@ -6421,16 +6435,18 @@ function ThreadPanelContent({
         },
     })
 
+    const threadData = useThread(rootId)
     const all = useMemo(() => {
-        const arr: NDKEvent[] = []
+        // Prefer items already assembled in thread store for instant display
+        const arr: NDKEvent[] = [...(threadData.data?.items || [])]
         if (root) arr.push(root)
         for (const c of (children || [])) arr.push(c)
         const map = new Map<string, NDKEvent>()
         for (const ev of arr) {
-            if (ev.id) map.set(ev.id, ev)
+            if (ev?.id) map.set(ev.id, ev)
         }
         return Array.from(map.values())
-    }, [root, children])
+    }, [threadData.data?.items, root, children])
 
     const {tree, order, truncated} = useMemo(() => {
         // Same tree building logic as ThreadPanel
@@ -6674,17 +6690,19 @@ function ThreadPanel({
             }
         },
     })
+    const threadData = useThread(rootId)
     const all = useMemo(() => {
-        const arr: NDKEvent[] = []
+        // Prefer items already assembled in thread store for instant display
+        const arr: NDKEvent[] = [...(threadData.data?.items || [])]
         if (root) arr.push(root)
         if (seed) arr.push(seed)
         for (const c of (children || [])) arr.push(c)
         const map = new Map<string, NDKEvent>()
         for (const ev of arr) {
-            if (ev.id) map.set(ev.id, ev)
+            if (ev?.id) map.set(ev.id, ev)
         }
         return Array.from(map.values())
-    }, [root, seed, children])
+    }, [threadData.data?.items, root, seed, children])
     const {tree, order, truncated} = useMemo(() => {
         // Exclude reposts (kind 6) from the thread tree; we will summarize them at the bottom
         const nonReposts = all.filter(ev => ev.kind !== 6)

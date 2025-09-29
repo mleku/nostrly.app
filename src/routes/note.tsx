@@ -214,7 +214,7 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
           />
         )}
 
-        <div className="grid grid-cols-[1fr_auto] items-end gap-x-2 gap-y-1" ref={buttonRowRef}>
+        <div className="grid grid-cols-[1fr_auto] items-end gap-x-2 gap-y-1 mt-1" ref={buttonRowRef}>
           <div className="min-w-0 flex flex-wrap-reverse items-end content-end gap-2">
             {!!ev.id && (
               <ReactionButtonRow eventId={ev.id} onReact={(emoji: string) => handleReaction(ev, emoji)} excludeEl={cardRef.current}
