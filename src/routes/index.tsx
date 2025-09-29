@@ -1543,7 +1543,7 @@ function Home() {
         // Close any open quote panels for this event when opening reply
         setQuoteOpen(prev => {
             const updated = {...prev}
-            const quoteKey = `quote|${id}`
+            const quoteKey = `quote|${scopeId}|${id}`
             if (updated[quoteKey]) {
                 updated[quoteKey] = false
             }
@@ -2185,6 +2185,7 @@ function Home() {
     // New note composer overlay state
     const [isNewNoteOpen, setIsNewNoteOpen] = useState(false)
     const [newNoteText, setNewNoteText] = useState('')
+    const newNoteTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
     // Bottom IO: older pages
     useEffect(() => {
@@ -3368,7 +3369,13 @@ function Home() {
                         <span className="text-[#fff3b0] select-none">write</span>
                         <button
                             type="button"
-                            onClick={() => setIsNewNoteOpen(true)}
+                            onClick={() => {
+                                setIsNewNoteOpen(true)
+                                // Focus textarea after the panel opens
+                                setTimeout(() => {
+                                    newNoteTextareaRef.current?.focus()
+                                }, 100)
+                            }}
                             className="rounded-full bg-[#162a2f] text-[#fff3b0] shadow-lg hover:bg-[#1b3a40]"
                             title="New note"
                             aria-label="New note"
@@ -3405,16 +3412,12 @@ function Home() {
 
             {/* New note overlay editor */}
             {isNewNoteOpen && (
-                <div className="fixed inset-0 z-[120]">
-                    <div className="absolute inset-0 bg-black/60" onClick={() => setIsNewNoteOpen(false)} />
-                    <div className="relative w-full max-w-2xl bg-[#162a2f] shadow-2xl flex flex-col mx-auto mt-8 rounded-xl overflow-hidden">
-                        <div className="px-4 py-3 bg-[#1a2529] border-b border-[#37474f] flex items-center justify-between">
-                            <div className="text-[#fff3b0] font-semibold">New Note</div>
-                            <button type="button" onClick={() => setIsNewNoteOpen(false)} className="w-8 h-8 rounded-full bg-black/70 text-white hover:bg-black/90 flex items-center justify-center" aria-label="Close new note">×</button>
-                        </div>
+                <div className={`fixed z-[120] ${canFitSidebar ? 'ml-[3rem] lg:ml-[10rem]' : 'ml-0'} w-full max-w-2xl bottom-0 left-0`}>
+                    <div className="relative w-full bg-[#162a2f] shadow-2xl flex flex-col rounded-t-xl overflow-hidden border-t border-[#37474f]">
                         <div className="p-2">
                             <div className="flex items-stretch gap-2 p-2">
                                 <textarea
+                                    ref={newNoteTextareaRef}
                                     value={newNoteText}
                                     onChange={(e) => setNewNoteText(e.target.value)}
                                     placeholder="Write a note..."
