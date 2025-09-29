@@ -26,6 +26,8 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
   const mentionsUser = userPubkey && (ev.tags || []).some(t => t[0] === 'p' && t[1] === userPubkey)
 
   const [jsonViewerOpen, setJsonViewerOpen] = useState(false)
+  const [showSnackbar, setShowSnackbar] = useState(false)
+  const [snackbarMessage, setSnackbarMessage] = useState('')
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const innerRef = useRef<HTMLDivElement | null>(null)
   const cardRef = useRef<HTMLElement | null>(null)
@@ -36,6 +38,7 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
 
   const scrollQuoteComposerToCenter = (ev: NDKEvent) => {
     if (scopeId?.startsWith('hover-preview')) return
+    if (scopeId?.startsWith('thread-modal:') || scopeId?.startsWith('thread-panel:')) return
     setTimeout(() => {
       const quoteKey = `quote|${stateScope}|${ev.id}`
       const quoteComposer = document.querySelector(`[data-quote-key="${quoteKey}"]`)
@@ -60,6 +63,7 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
   }
 
   const scrollReplyComposerToCenter = (ev: NDKEvent) => {
+    if (scopeId?.startsWith('thread-modal:') || scopeId?.startsWith('thread-panel:')) return
     setTimeout(() => {
       const replyKey = `${scopeId}|${ev.id}`
       const replyComposer = document.querySelector(`[data-reply-key="${replyKey}"]`)
@@ -83,7 +87,14 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
   const stateScope = (scopeId && scopeId.startsWith('hover-preview')) ? 'hover-preview' : scopeId
 
   return (
-  <article className={`p-3 relative rounded-lg bg-black/20 ${hasRootMarker ? 'note-hover-target' : ''}`} ref={cardRef} data-ev-id={ev.id} data-ts={ev.created_at} onClick={(e) => {
+    <>
+      {/* Snackbar notification */}
+      {showSnackbar && (
+        <div className="fixed top-16 left-1/2 transform -translate-x-1/2 z-[200] bg-[#162a2f] text-[#fff3b0] px-4 py-2 rounded-lg shadow-lg border border-[#37474f] w-full max-w-2xl">
+          {snackbarMessage}
+        </div>
+      )}
+      <article className={`p-3 relative rounded-lg bg-black/20 ${hasRootMarker ? 'note-hover-target' : ''}`} ref={cardRef} data-ev-id={ev.id} data-ts={ev.created_at} onClick={(e) => {
         const t = e.target as HTMLElement | null;
         if (t && t.closest('button, a, input, textarea, [contenteditable="true"]')) return;
         if (!hasRootMarker) return;
@@ -121,6 +132,10 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
                       document.body.removeChild(ta)
                     }
                     showActionMessage?.(ev, 'Copied note reference')
+                    // Show snackbar
+                    setSnackbarMessage(`nostr:${bech} copied!`)
+                    setShowSnackbar(true)
+                    setTimeout(() => setShowSnackbar(false), 3000)
                   } catch (err) {
                     console.warn('Failed to copy note reference', err)
                     showActionMessage?.(ev, 'Failed to copy')
@@ -285,6 +300,7 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
         )}
       </div>
     </article>
+    </>
   )
 }
 

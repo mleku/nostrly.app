@@ -2179,8 +2179,6 @@ function Home() {
     const BOTTOM_PULL_THRESHOLD = 80
     const BOTTOM_PULL_MAX = 140
 
-    // Back-to-top visibility
-    const [showBackToTop, setShowBackToTop] = useState(false)
 
     // New note composer overlay state
     const [isNewNoteOpen, setIsNewNoteOpen] = useState(false)
@@ -2408,55 +2406,7 @@ function Home() {
         }
     }, [pullDistance, bottomPullDistance, feedQuery.hasNextPage, feedQuery.isFetchingNextPage])
 
-    // Show back-to-top button after half-screen scroll
-    useEffect(() => {
-        const onScroll = () => {
-            try {
-                setShowBackToTop(window.scrollY > window.innerHeight / 2)
-            } catch {
-            }
-        }
-        onScroll()
-        window.addEventListener('scroll', onScroll, {passive: true} as any)
-        return () => window.removeEventListener('scroll', onScroll as any)
-    }, [])
 
-    // Scroll to top and then trigger a refresh for newer items
-    const goTopAndRefresh = () => {
-        const trigger = () => {
-            // small delay to ensure layout settled at top
-            setTimeout(() => {
-                fetchNewer()
-            }, 50)
-        }
-        if (window.scrollY <= 0) {
-            trigger()
-            return
-        }
-        let done = false
-        const onTop = () => {
-            if (!done && window.scrollY <= 0) {
-                done = true
-                window.removeEventListener('scroll', onTop)
-                trigger()
-            }
-        }
-        window.addEventListener('scroll', onTop)
-        // Fast smooth scroll
-        try {
-            window.scrollTo({top: 0, behavior: 'smooth'})
-        } catch {
-            window.scrollTo(0, 0)
-        }
-        // Fallback timeout in case scroll event doesn't fire
-        setTimeout(() => {
-            if (!done) {
-                done = true
-                window.removeEventListener('scroll', onTop)
-                trigger()
-            }
-        }, 1200)
-    }
 
     // Get user's mute list for filtering
     const muteList = useMemo(() => {
@@ -2793,7 +2743,7 @@ function Home() {
             <div ref={layoutRef}
                  className={`${canFitSidebar ? 'ml-[3rem] lg:ml-[10rem]' : 'ml-0'} flex items-start`}>
                 <div ref={mainColRef}
-                     className="w-full max-w-2xl flex-shrink-0">
+                     className="w-full max-w-2xl flex-shrink-0 relative">
                     {(mode === 'user' || mode === 'follows' || mode === 'notifications') && !user ? (
                         <div className="bg-[#162a2f] rounded-xl p-6">
                             <p>Please use the Login button in the top bar to
@@ -3387,28 +3337,6 @@ function Home() {
                 </div>
             )}
 
-            {showBackToTop && (
-                <div
-                    className={`fixed z-[100] flex items-center gap-3 ${(openedThreads.length > 0 && !canFitBoth && !isThreadsModalOpen) || (openedThreads.length > 0 && canFitBoth && isThreadsHiddenInWideMode) ? 'right-24' : 'right-6'} ${!isNewNoteOpen ? 'bottom-[calc(6rem+2em+2em)]' : 'bottom-6'}`}>
-                    {/*<button*/}
-                    {/*    type="button"*/}
-                    {/*    onClick={goTopAndRefresh}*/}
-                    {/*    className="rounded-full bg-[#162a2f] text-[#cccccc] shadow  px-4 h-12 flex items-center"*/}
-                    {/*    title="back to top"*/}
-                    {/*>*/}
-                        back to top
-                    {/*</button>*/}
-                    <button
-                        type="button"
-                        aria-label="back to top"
-                        onClick={goTopAndRefresh}
-                        className="w-12 h-12 rounded-full bg-[#162a2f] text-[#cccccc] shadow hover:bg-[#1b3a40] flex items-center justify-center"
-                        title="back to top"
-                    >
-                        <UpArrowIcon className="w-6 h-6"/>
-                    </button>
-                </div>
-            )}
 
             {/* New note overlay editor */}
             {isNewNoteOpen && (
@@ -3968,6 +3896,7 @@ function ThreadModal({
     onSendQuote?: (targetId: string) => void
 }) {
     const scopeId = `thread-modal:${rootId}`
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null)
     // Fetch root event
     const {data: root} = useQuery<NDKEvent | null>({
         queryKey: ['thread-root', rootId],
@@ -4093,6 +4022,7 @@ function ThreadModal({
         return Array.from(set)
     }, [all])
 
+
     const onBackdrop = (e: any) => {
         e.stopPropagation();
         onClose()
@@ -4109,6 +4039,7 @@ function ThreadModal({
                     aria-label="Close thread view">×
             </button>
             <div
+                ref={scrollContainerRef}
                 className="absolute inset-y-2 left-[10%] right-[10%] bg-[#0f1a1d] rounded-lg shadow-xl overflow-auto"
                 onClick={(e) => e.stopPropagation()}>
                 <div className="p-4 pt-[1em]">
@@ -5611,17 +5542,6 @@ function UsersIcon({className = ''}: { className?: string }) {
     )
 }
 
-function UpArrowIcon({className = ''}: { className?: string }) {
-    return (
-        <svg className={className} viewBox="0 0 24 24" fill="none"
-             xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M12 19V5" stroke="currentColor" strokeWidth="2"
-                  strokeLinecap="round"/>
-            <path d="M6 11l6-6 6 6" stroke="currentColor" strokeWidth="2"
-                  strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-    )
-}
 
 export function ThreadReelIcon({className = ''}: { className?: string }) {
     // Simple spool/reel: two discs with thread lines
@@ -6740,6 +6660,7 @@ function ThreadPanel({
     onCancelRepost?: (e: NDKEvent) => void
 }) {
     const scopeId = `thread-panel:${rootId}`
+    const scrollContainerRef = useRef<HTMLDivElement | null>(null)
     const {data: root} = useQuery<NDKEvent | null>({
         queryKey: ['thread-root', rootId],
         staleTime: 1000 * 60 * 5,
@@ -6851,6 +6772,7 @@ function ThreadPanel({
         }
         return Array.from(set)
     }, [all])
+
     return (
         <div className="bg-[#0f1a1d] rounded-lg shadow-xl overflow-hidden">
             <div
@@ -6861,7 +6783,7 @@ function ThreadPanel({
                         aria-label="Close thread panel">×
                 </button>
             </div>
-            <div className="max-h-[calc(100vh-7rem)] overflow-auto">
+            <div ref={scrollContainerRef} className="max-h-[calc(100vh-7rem)] overflow-auto relative">
                 <div className="p-4 pt-[1em]">
                     {!root ? (
                         <div className="text-sm text-[#cccccc]">Loading
