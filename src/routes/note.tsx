@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { NDKEvent } from '@nostr-dev-kit/ndk'
 import { ndk } from '@/lib/ndk'
+import { nip19 } from 'nostr-tools'
 import { renderContent, type MediaGallery, QuoteIcon, RepostEllipsisBubbleIcon, ReplyBubbleIcon, formatTime, AuthorLabel, ReactionButtonRow, ReplyComposer, QuoteComposer, RepostNote } from './index'
 
 export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread, onOpenNote, openMedia, openProfileByBech, openProfileByPubkey, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, openHashtag, userFollows, userPubkey, showActionMessage, repostMode, onCancelRepost, quoteOpen, quoteBuffers, onChangeQuoteText, onCloseQuote, onSendQuote, onHoverOpen }: { ev: NDKEvent; scopeId: string; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenThread: (e: NDKEvent) => void; onOpenNote: (e: NDKEvent) => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; actionMessages?: Record<string, string | undefined>; replyOpen?: Record<string, boolean>; replyBuffers?: Record<string, string>; onChangeReplyText?: (id: string, v: string) => void; onCloseReply?: (id: string) => void; onSendReply?: (targetId: string) => void; openHashtag?: (tag: string) => void; userFollows?: string[]; userPubkey?: string; showActionMessage?: (e: NDKEvent, msg: string) => void; repostMode?: Record<string, boolean>; onCancelRepost?: (e: NDKEvent) => void; quoteOpen?: Record<string, boolean>; quoteBuffers?: Record<string, string>; onChangeQuoteText?: (id: string, v: string) => void; onCloseQuote?: (id: string) => void; onSendQuote?: (targetId: string) => void; onHoverOpen?: (e: NDKEvent) => void }) {
@@ -95,7 +96,39 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
               <header className="mb-1 flex items-center text-sm text-[#cccccc]">
               <AuthorLabel pubkey={ev.pubkey || ''} onOpen={(pk) => openProfileByPubkey(pk)} />
               <span className="opacity-50">·</span>
-              <time className="opacity-70 hover:underline cursor-pointer" onClick={() => onOpenNote(ev)} title="Open note tab">{formatTime(ev.created_at)}</time>
+              <button
+                type="button"
+                className="opacity-70 hover:opacity-100 hover:underline focus:underline focus:outline-none"
+                title="Copy note reference"
+                aria-label="Copy note reference"
+                onClick={async (eBtn) => {
+                  eBtn.stopPropagation()
+                  try {
+                    if (!ev.id) return
+                    const bech = nip19.neventEncode({ id: ev.id, author: ev.pubkey, kind: ev.kind })
+                    const text = `nostr:${bech}`
+                    if (navigator.clipboard?.writeText) {
+                      await navigator.clipboard.writeText(text)
+                    } else {
+                      const ta = document.createElement('textarea')
+                      ta.value = text
+                      ta.setAttribute('readonly', '')
+                      ta.style.position = 'absolute'
+                      ta.style.left = '-9999px'
+                      document.body.appendChild(ta)
+                      ta.select()
+                      document.execCommand('copy')
+                      document.body.removeChild(ta)
+                    }
+                    showActionMessage?.(ev, 'Copied note reference')
+                  } catch (err) {
+                    console.warn('Failed to copy note reference', err)
+                    showActionMessage?.(ev, 'Failed to copy')
+                  }
+                }}
+              >
+                {formatTime(ev.created_at)}
+              </button>
               {mentionsUser && (
                 <>
                   <span className="opacity-50">·</span>

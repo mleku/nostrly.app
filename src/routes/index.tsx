@@ -431,13 +431,38 @@ function InlineNeventNote({
                                 <AuthorLabel
                                     pubkey={evQuery.data.pubkey || ''}/>
                                 <span className="opacity-50">·</span>
-                                <time
-                                    className="opacity-70 hover:underline cursor-pointer"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        if (evQuery.data?.id) onOpenNote?.(evQuery.data.id)
+                                <button
+                                    type="button"
+                                    className="opacity-70 hover:opacity-100 hover:underline focus:underline focus:outline-none"
+                                    title="Copy note reference"
+                                    aria-label="Copy note reference"
+                                    onClick={async (eBtn) => {
+                                        eBtn.stopPropagation()
+                                        try {
+                                            const ev = evQuery.data!
+                                            if (!ev?.id) return
+                                            const bech = nip19.neventEncode({ id: ev.id, author: ev.pubkey, kind: ev.kind })
+                                            const text = `nostr:${bech}`
+                                            if (navigator.clipboard?.writeText) {
+                                                await navigator.clipboard.writeText(text)
+                                            } else {
+                                                const ta = document.createElement('textarea')
+                                                ta.value = text
+                                                ta.setAttribute('readonly', '')
+                                                ta.style.position = 'absolute'
+                                                ta.style.left = '-9999px'
+                                                document.body.appendChild(ta)
+                                                ta.select()
+                                                document.execCommand('copy')
+                                                document.body.removeChild(ta)
+                                            }
+                                        } catch (err) {
+                                            console.warn('Failed to copy note reference', err)
+                                        }
                                     }}
-                                    title="Open note tab">{formatTime(evQuery.data.created_at)}</time>
+                                >
+                                    {formatTime(evQuery.data.created_at)}
+                                </button>
                             </header>
                             {evQuery.data.kind === 6 ? (
                                 <RepostNote
@@ -810,6 +835,7 @@ function SingleNoteView({
                             onRepost,
                             onQuote,
                             onOpenNote,
+                            onOpenThread,
                             actionMessage,
                             replyOpen,
                             replyBuffers,
@@ -829,6 +855,7 @@ function SingleNoteView({
     onRepost: (e: NDKEvent) => void;
     onQuote: (e: NDKEvent) => void;
     onOpenNote: (e: NDKEvent) => void;
+    onOpenThread: (e: NDKEvent) => void;
     actionMessage?: string;
     replyOpen?: Record<string, boolean>;
     replyBuffers?: Record<string, string>;
@@ -910,6 +937,7 @@ function SingleNoteView({
                                 onReply={onReply}
                                 onRepost={onRepost}
                                 onQuote={onQuote}
+                                onOpenThread={onOpenThread}
                                 onOpenNote={onOpenNote}
                                 scopeId={scopeId}
                                 actionMessages={{[ev.id || '']: actionMessage}}
@@ -924,7 +952,7 @@ function SingleNoteView({
                             />
                         ) : (
                             <div
-                                className="contents">{renderContent(ev.content, openMedia, openProfileByBech, openHashtag, extractHashtagTags((ev as any)?.tags), false, (id: string) => onOpenNote({id} as NDKEvent), onReply, onRepost, onQuote, undefined, scopeId, {[ev.id || '']: actionMessage}, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, undefined)}</div>
+                                className="contents">{renderContent(ev.content, openMedia, openProfileByBech, openHashtag, extractHashtagTags((ev as any)?.tags), false, (id: string) => onOpenNote({id} as NDKEvent), onReply, onRepost, onQuote, onOpenThread, scopeId, {[ev.id || '']: actionMessage}, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, undefined)}</div>
                         )}
 
                         {/* Hashtag list for 't' tag hashtags */}
@@ -1667,19 +1695,8 @@ function Home() {
     }
 
     const openNoteById = (id?: string | null) => {
-        const noteId = id || ''
-        if (!noteId) return
-        // Add to opened list if not present
-        setOpenedNotes(prev => (prev.some(n => n.id === noteId) ? prev : [{id: noteId}, ...prev].slice(0, 20)))
-        // Save previous view if switching
-        setPrevView({mode, profilePubkey, noteId: currentNoteId})
-        setCurrentNoteId(noteId)
-        setMode('note')
-        // Inform header
-        try {
-            window.dispatchEvent(new CustomEvent('nostr-active-view', {detail: {label: 'Note'}}))
-        } catch {
-        }
+        // Single note view has been removed; disable this action.
+        return
     }
     const openNoteForEvent = (ev: NDKEvent) => openNoteById(ev.id)
 
@@ -2164,6 +2181,10 @@ function Home() {
 
     // Back-to-top visibility
     const [showBackToTop, setShowBackToTop] = useState(false)
+
+    // New note composer overlay state
+    const [isNewNoteOpen, setIsNewNoteOpen] = useState(false)
+    const [newNoteText, setNewNoteText] = useState('')
 
     // Bottom IO: older pages
     useEffect(() => {
@@ -2864,7 +2885,7 @@ function Home() {
 
                             {mode === 'note' && (
                                 <div
-                                    className="sticky top-12 z-40 w-full bg-[#1a2529]">
+                                    className="sticky top-24 z-40 w-full bg-[#1a2529]">
                                     <div
                                         className="relative p-0 flex items-center justify-between">
                                         <div
@@ -2939,6 +2960,7 @@ function Home() {
                                             onRepost={onRepost}
                                             onQuote={onQuoteScoped(`note:${currentNoteId}`)}
                                             onOpenNote={openNoteForEvent}
+                                            onOpenThread={openThreadFor}
                                             actionMessage={actionMessages[currentNoteId]}
                                             replyOpen={replyOpen}
                                             replyBuffers={replyBuffers}
@@ -2978,7 +3000,7 @@ function Home() {
                                             />
                                         </div>
                                     </div>
-                                    <div className="sticky top-12 self-start min-h-[calc(100vh-3rem)] max-h-[calc(100vh-3rem)] overflow-y-auto overflow-x-hidden pr-2 -mr-2 p-[0.5em]">
+                                    <div className="sticky top-[calc(3rem+1em)] self-start min-h-[calc(100vh-3rem)] max-h-[calc(100vh-3rem)] overflow-y-auto overflow-x-hidden pr-2 -mr-2 p-[0.5em] pt-[1em]">
                                         <ThreadsStackView
                                             openedThreads={openedThreads}
                                             threadTriggerNotes={threadTriggerNotes}
@@ -3245,7 +3267,7 @@ function Home() {
                 </div>
                 {openedThreads.length > 0 && canFitBoth && !isThreadsHiddenInWideMode && (
                     <div
-                        className="w-full max-w-2xl flex-shrink-0 sticky top-12 self-start">
+                        className="w-full max-w-2xl flex-shrink-0 sticky top-[calc(3rem+1em)] self-start">
                         <div
                             className="bg-[#162a2f] rounded-xl shadow-lg overflow-hidden">
                             <div
@@ -3269,7 +3291,7 @@ function Home() {
                                 </div>
                             </div>
                             <div
-                                className="max-h-[calc(100vh-6rem)] overflow-y-auto">
+                                className="max-h-[calc(100vh-6rem)] overflow-y-auto pt-[1em]">
                                 <ThreadsStackView
                                     openedThreads={openedThreads}
                                     threadTriggerNotes={threadTriggerNotes}
@@ -3338,26 +3360,108 @@ function Home() {
                 </div>
             )}
 
+            {/* Floating new note (pen) button */}
+            {!isNewNoteOpen && (
+                <div
+                    className={`fixed z-[110] ${(openedThreads.length > 0 && !canFitBoth && !isThreadsModalOpen) || (openedThreads.length > 0 && canFitBoth && isThreadsHiddenInWideMode) ? 'bottom-6 right-24' : 'bottom-6 right-6'}`}>
+                    <div className="flex items-center gap-3">
+                        <span className="text-[#fff3b0] select-none">write</span>
+                        <button
+                            type="button"
+                            onClick={() => setIsNewNoteOpen(true)}
+                            className="rounded-full bg-[#162a2f] text-[#fff3b0] shadow-lg hover:bg-[#1b3a40]"
+                            title="New note"
+                            aria-label="New note"
+                            style={{ padding: '2em' }}
+                        >
+                            <PencilIcon />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {showBackToTop && (
                 <div
-                    className={`fixed bottom-6 z-[100] flex items-center gap-3 ${(openedThreads.length > 0 && !canFitBoth && !isThreadsModalOpen) || (openedThreads.length > 0 && canFitBoth && isThreadsHiddenInWideMode) ? 'right-24' : 'right-6'}`}>
+                    className={`fixed z-[100] flex items-center gap-3 ${(openedThreads.length > 0 && !canFitBoth && !isThreadsModalOpen) || (openedThreads.length > 0 && canFitBoth && isThreadsHiddenInWideMode) ? 'right-24' : 'right-6'} ${!isNewNoteOpen ? 'bottom-[calc(6rem+2em+2em)]' : 'bottom-6'}`}>
+                    {/*<button*/}
+                    {/*    type="button"*/}
+                    {/*    onClick={goTopAndRefresh}*/}
+                    {/*    className="rounded-full bg-[#162a2f] text-[#cccccc] shadow  px-4 h-12 flex items-center"*/}
+                    {/*    title="back to top"*/}
+                    {/*>*/}
+                        back to top
+                    {/*</button>*/}
                     <button
                         type="button"
-                        onClick={goTopAndRefresh}
-                        className="rounded-full bg-[#162a2f] text-[#cccccc] shadow hover:bg-[#1b3a40] px-4 h-12 flex items-center"
-                        title="Back to top"
-                    >
-                        Back to top
-                    </button>
-                    <button
-                        type="button"
-                        aria-label="Back to top"
+                        aria-label="back to top"
                         onClick={goTopAndRefresh}
                         className="w-12 h-12 rounded-full bg-[#162a2f] text-[#cccccc] shadow hover:bg-[#1b3a40] flex items-center justify-center"
-                        title="Back to top"
+                        title="back to top"
                     >
                         <UpArrowIcon className="w-6 h-6"/>
                     </button>
+                </div>
+            )}
+
+            {/* New note overlay editor */}
+            {isNewNoteOpen && (
+                <div className="fixed inset-0 z-[120]">
+                    <div className="absolute inset-0 bg-black/60" onClick={() => setIsNewNoteOpen(false)} />
+                    <div className="relative w-full max-w-2xl bg-[#162a2f] shadow-2xl flex flex-col mx-auto mt-8 rounded-xl overflow-hidden">
+                        <div className="px-4 py-3 bg-[#1a2529] border-b border-[#37474f] flex items-center justify-between">
+                            <div className="text-[#fff3b0] font-semibold">New Note</div>
+                            <button type="button" onClick={() => setIsNewNoteOpen(false)} className="w-8 h-8 rounded-full bg-black/70 text-white hover:bg-black/90 flex items-center justify-center" aria-label="Close new note">×</button>
+                        </div>
+                        <div className="p-2">
+                            <div className="flex items-stretch gap-2 p-2">
+                                <textarea
+                                    value={newNoteText}
+                                    onChange={(e) => setNewNoteText(e.target.value)}
+                                    placeholder="Write a note..."
+                                    className="flex-1 resize-none bg-[#00000080] outline-none text-[#cccccc] p-2 rounded min-h-[9rem]"
+                                    rows={6}
+                                />
+                                <div className="flex flex-col items-center gap-2 self-stretch">
+                                    <button type="button"
+                                            onClick={() => setIsNewNoteOpen(false)}
+                                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
+                                            title="Close">
+                                        {/* X button */}
+                                        <span className="text-2xl leading-none">×</span>
+                                    </button>
+                                    <button type="button"
+                                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
+                                            title="Add image">
+                                        <ImageIcon className="w-8 h-8"/>
+                                    </button>
+                                    <button type="button"
+                                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
+                                            title="Emoji">
+                                        <EmojiIcon className="w-8 h-8"/>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            try {
+                                                const event = new NDKEvent(ndk)
+                                                event.kind = 1
+                                                event.content = newNoteText
+                                                event.tags = []
+                                                await event.publish()
+                                                setNewNoteText('')
+                                                setIsNewNoteOpen(false)
+                                            } catch (e) {
+                                                console.error('Failed to publish note', e)
+                                            }
+                                        }}
+                                        className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#215059]"
+                                        title="Send">
+                                        <SendIcon className="w-12 h-12"/>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -3392,7 +3496,7 @@ function Home() {
                             </button>
                         </div>
                         {/* Scrollable content */}
-                        <div className="flex-1 overflow-y-auto">
+                        <div className="flex-1 overflow-y-auto pt-[1em]">
                             <ThreadsStackView
                                 openedThreads={openedThreads}
                                 threadTriggerNotes={threadTriggerNotes}
@@ -3998,13 +4102,13 @@ function ThreadModal({
                 e.stopPropagation();
                 onClose()
             }}
-                    className="fixed top-3 right-3 z-[1300] w-10 h-10 rounded-full bg-black/70 text-white hover:bg-black/90"
+                    className="fixed top-[2em] right-[2em] z-[1300] w-10 h-10 rounded-full bg-black/70 text-white hover:bg-black/90"
                     aria-label="Close thread view">×
             </button>
             <div
                 className="absolute inset-y-2 left-[10%] right-[10%] bg-[#0f1a1d] rounded-lg shadow-xl overflow-auto"
                 onClick={(e) => e.stopPropagation()}>
-                <div className="p-4">
+                <div className="p-4 pt-[1em]">
                     {!root ? (
                         <div className="text-sm text-[#cccccc]">Loading
                             thread…</div>
@@ -5926,17 +6030,6 @@ function CompactReactionNote({ev, openProfileByPubkey, userPubkey, scopeId, onRe
 
 function PreviewNotePanel({id, scopeId, onReply, onRepost, onQuote, onOpenNote, openMedia, openProfileByBech, openProfileByPubkey, actionMessages, replyOpen, replyBuffers, onChangeReplyText, onCloseReply, onSendReply, openHashtag, userFollows, userPubkey, repostMode, onCancelRepost, quoteOpen, quoteBuffers, onChangeQuoteText, onCloseQuote, onSendQuote, onClosePanel}: { id: string; scopeId: string; onReply: (e: NDKEvent) => void; onRepost: (e: NDKEvent) => void; onQuote: (e: NDKEvent) => void; onOpenNote: (e: NDKEvent) => void; openMedia: (g: MediaGallery) => void; openProfileByBech: (bech: string) => void; openProfileByPubkey: (pubkey: string) => void; actionMessages?: Record<string, string | undefined>; replyOpen?: Record<string, boolean>; replyBuffers?: Record<string, string>; onChangeReplyText?: (id: string, v: string) => void; onCloseReply?: (id: string) => void; onSendReply?: (targetId: string) => void; openHashtag?: (tag: string) => void; userFollows?: string[]; userPubkey?: string; repostMode?: Record<string, boolean>; onCancelRepost?: (e: NDKEvent) => void; quoteOpen?: Record<string, boolean>; quoteBuffers?: Record<string, string>; onChangeQuoteText?: (id: string, v: string) => void; onCloseQuote?: (id: string) => void; onSendQuote?: (targetId: string) => void; onClosePanel: () => void }) {
     const topRef = useRef<HTMLDivElement | null>(null)
-    const [showFloatingClose, setShowFloatingClose] = useState(false)
-    useEffect(() => {
-        const el = topRef.current
-        if (!el) return
-        const obs = new IntersectionObserver((entries) => {
-            const e = entries[0]
-            setShowFloatingClose(!e.isIntersecting)
-        }, {root: null, threshold: 0})
-        obs.observe(el)
-        return () => { try { obs.disconnect() } catch {} }
-    }, [])
 
     const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -6121,19 +6214,6 @@ function PreviewNotePanel({id, scopeId, onReply, onRepost, onQuote, onOpenNote, 
                     <div className="p-4 text-sm opacity-70">Loading preview…</div>
                 )}
             </div>
-            {showFloatingClose && (
-                <div className="fixed bottom-6 right-6 z-[100]">
-                    <button
-                        type="button"
-                        onClick={onClosePanel}
-                        className="w-10 h-10 rounded-full bg-black/80 text-white hover:bg-black/90 flex items-center justify-center shadow-lg"
-                        aria-label="Close preview"
-                        title="Close preview"
-                    >
-                        ×
-                    </button>
-                </div>
-            )}
         </div>
     )
 }
@@ -6779,7 +6859,7 @@ function ThreadPanel({
                 </button>
             </div>
             <div className="max-h-[calc(100vh-7rem)] overflow-auto">
-                <div className="p-4">
+                <div className="p-4 pt-[1em]">
                     {!root ? (
                         <div className="text-sm text-[#cccccc]">Loading
                             thread…</div>
@@ -6948,5 +7028,16 @@ function ThreadPanel({
                 </div>
             </div>
         </div>
+    )
+}
+
+
+// Pencil icon for new note FAB (fixed 2em size as requested)
+function PencilIcon() {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ width: '2em', height: '2em' }}>
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+            <path d="M14.06 6.19l1.77-1.77a1.5 1.5 0 0 1 2.12 0l1.63 1.63a1.5 1.5 0 0 1 0 2.12l-1.77 1.77-3.75-3.75z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        </svg>
     )
 }
