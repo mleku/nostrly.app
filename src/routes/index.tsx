@@ -15,6 +15,7 @@ import EmojiPicker, {type EmojiClickData, Theme} from 'emoji-picker-react'
 import {NoteCard} from './note'
 import { ensureThreadForEvent, useThread } from '@/lib/threadStore'
 import { useScrollToTop, BackToTopButton } from '@/hooks/useScrollToTop'
+import { uiStateManager } from '@/lib/uiStateManager'
 
 export const Route = createFileRoute('/')({
     component: Home,
@@ -280,6 +281,13 @@ export function renderContent(text: string, openMedia: (g: MediaGallery) => void
                                 onCloseReply={onCloseReply}
                                 onSendReply={onSendReply}
                                 userFollows={userFollows}
+                                quoteOpen={quoteOpen}
+                                quoteBuffers={quoteBuffers}
+                                onChangeQuoteText={onChangeQuoteText}
+                                onCloseQuote={onCloseQuote}
+                                onSendQuote={onSendQuote}
+                                repostMode={repostMode}
+                                onCancelRepost={onCancelRepost}
                             />
                         </div>
                     )
@@ -611,7 +619,14 @@ function InlineNaddrNote({
                              onChangeReplyText,
                              onCloseReply,
                              onSendReply,
-                             userFollows
+                             userFollows,
+                             quoteOpen,
+                             quoteBuffers,
+                             onChangeQuoteText,
+                             onCloseQuote,
+                             onSendQuote,
+                             repostMode,
+                             onCancelRepost
                          }: {
     bech: string;
     openMedia: (g: MediaGallery) => void;
@@ -630,6 +645,13 @@ function InlineNaddrNote({
     onCloseReply?: (id: string) => void;
     onSendReply?: (targetId: string) => void;
     userFollows?: string[];
+    quoteOpen?: Record<string, boolean>;
+    quoteBuffers?: Record<string, string>;
+    onChangeQuoteText?: (id: string, v: string) => void;
+    onCloseQuote?: (id: string) => void;
+    onSendQuote?: (targetId: string) => void;
+    repostMode?: Record<string, boolean>;
+    onCancelRepost?: (e: NDKEvent) => void;
 }) {
     const decoded = useMemo(() => {
         try {
@@ -759,6 +781,16 @@ function InlineNaddrNote({
                                     replyKey={`${scopeId}|${evQuery.data.id}`}
                                 />
                             )}
+
+                            {(evQuery.data.id && scopeId && quoteOpen?.[`quote|${scopeId}|${evQuery.data.id}`]) && (
+                                <QuoteComposer
+                                    value={(quoteBuffers?.[`quote|${scopeId}|${evQuery.data.id}`] || '')}
+                                    onChange={(v) => onChangeQuoteText?.(`quote|${scopeId}|${evQuery.data.id!}`, v)}
+                                    onClose={() => onCloseQuote?.(`quote|${scopeId}|${evQuery.data.id!}`)}
+                                    onSend={() => onSendQuote?.(`quote|${scopeId}|${evQuery.data.id!}`)}
+                                    quoteKey={`quote|${scopeId}|${evQuery.data.id}`}
+                                />
+                            )}
                         </div>
                         
                         {/* Action buttons on a separate row */}
@@ -801,17 +833,28 @@ function InlineNaddrNote({
                                     )}
                                     <button type="button"
                                             onClick={() => onQuote(evQuery.data!)}
-                                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2"
+                                            className={`${(evQuery.data.id && scopeId && quoteOpen?.[`quote|${scopeId}|${evQuery.data.id}`]) ? 'bg-[#fff3b0] text-black' : 'bg-[#1b3a40] text-white hover:bg-[#215059]'} text-xs px-2 py-1 rounded-full flex items-center gap-2`}
                                             title="Quote">
                                         <QuoteIcon className="w-8 h-8"/>
                                     </button>
-                                    <button type="button"
-                                            onClick={() => onRepost(evQuery.data!)}
-                                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2"
-                                            title="Repost">
-                                        <RepostEllipsisBubbleIcon
-                                            className="w-8 h-8"/>
-                                    </button>
+                                    {repostMode?.[`${scopeId}|${evQuery.data.id || ''}`] ? (
+                                        <div className="flex items-center gap-1">
+                                            <button type="button" onClick={() => onRepost(evQuery.data!)} className="bg-[#fff3b0] text-black text-xs px-2 py-1 rounded-full hover:bg-[#ffed80] flex items-center gap-2" title="Repost (active)">
+                                                <RepostEllipsisBubbleIcon className="w-8 h-8" />
+                                            </button>
+                                            <button type="button" onClick={(e) => { e.stopPropagation(); onCancelRepost?.(evQuery.data!) }} className="bg-red-600 text-white text-xs px-2 py-1 rounded-full hover:bg-red-700 flex items-center gap-2" title="Cancel repost">
+                                                ×
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button type="button"
+                                                onClick={() => onRepost(evQuery.data!)}
+                                                className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full hover:bg-[#215059] flex items-center gap-2"
+                                                title="Repost">
+                                            <RepostEllipsisBubbleIcon
+                                                className="w-8 h-8"/>
+                                        </button>
+                                    )}
                                     <button type="button"
                                             onClick={() => onReply(evQuery.data!)}
                                             className={`${(evQuery.data.id && scopeId && replyOpen?.[`${scopeId}|${evQuery.data.id}`]) ? 'bg-[#fff3b0] text-black' : 'bg-[#1b3a40] text-white hover:bg-[#215059]'} text-xs px-2 py-1 rounded-full flex items-center gap-2`}
@@ -1107,42 +1150,29 @@ function Home() {
     const previewPanelScroll = useScrollToTop()
     const mainThreadsScroll = useScrollToTop()
 
-    // --- UI state persistence (tabs, current view, scroll position, top-most ts) ---
-    const UI_STATE_KEY = 'nostrly-ui-state-v1'
-    type SavedUIState = {
-        mode: FeedMode
-        currentNoteId: string | null
-        profilePubkey: string | null
-        currentHashtag: string | null
-        openedNotes: { id: string }[]
-        openedProfiles: { pubkey: string; npub: string; name?: string; picture?: string; about?: string }[]
-        openedHashtags: string[]
-        scrollY: number
-        topMostTs?: number | null
-    }
-    const loadUIState = (): SavedUIState | null => {
+    // Feed mode and user info (from localStorage saved by Root)
+    const [mode, setMode] = useState<FeedMode>('global')
+    const [user, setUser] = useState<LoggedInUser | null>(null)
+
+    // New note composer overlay state (moved here to avoid temporal dead zone)
+    const [isNewNoteOpen, setIsNewNoteOpen] = useState(false)
+    const [newNoteText, setNewNoteText] = useState('')
+    const newNoteTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+    
+    // Hover preview panel state (moved here to avoid temporal dead zone)
+    const [hoverPreviewId, setHoverPreviewId] = useState<string | null>(null)
+    
+    // Reply buffers state (moved here to avoid temporal dead zone)
+    const [replyBuffers, setReplyBuffers] = useState<Record<string, string>>({})
+    
+    // Quote buffers state (moved here to avoid temporal dead zone)
+    const [quoteOpen, setQuoteOpen] = useState<Record<string, boolean>>({})
+    const [quoteBuffers, setQuoteBuffers] = useState<Record<string, string>>({})
+
+    // --- UI state persistence using comprehensive database storage ---
+    const saveUIState = async (immediate: boolean = false) => {
         try {
-            const raw = localStorage.getItem(UI_STATE_KEY)
-            if (!raw) return null
-            const obj = JSON.parse(raw)
-            return obj
-        } catch { return null }
-    }
-    const saveUIState = (partial?: Partial<SavedUIState>) => {
-        try {
-            const prev = loadUIState() || {
-                mode: 'global' as FeedMode,
-                currentNoteId: null,
-                profilePubkey: null,
-                currentHashtag: null,
-                openedNotes: [],
-                openedProfiles: [],
-                openedHashtags: [],
-                scrollY: 0,
-                topMostTs: null,
-            }
-            const next: SavedUIState = {
-                ...prev,
+            const state = {
                 mode,
                 currentNoteId,
                 profilePubkey,
@@ -1150,56 +1180,111 @@ function Home() {
                 openedNotes,
                 openedProfiles,
                 openedHashtags,
+                openedThreads,
+                threadTriggerNotes,
+                isNewNoteOpen,
+                isThreadsModalOpen,
+                isThreadsHiddenInWideMode,
+                isSidebarDrawerOpen,
+                hoverPreviewId,
+                newNoteText,
+                replyBuffers,
+                quoteBuffers,
                 scrollY: window.scrollY,
-                ...partial,
+                topMostTs: getTopMostTs(),
+                replyOpen,
+                quoteOpen,
+                repostMode,
+                actionMessages
             }
-            localStorage.setItem(UI_STATE_KEY, JSON.stringify(next))
-        } catch {}
+            
+            if (immediate) {
+                await uiStateManager.saveUIState(state)
+            } else {
+                await uiStateManager.saveUIState(state, 'main-state')
+            }
+        } catch (error) {
+            console.warn('Failed to save UI state:', error)
+        }
     }
 
-    // Restore tabs and view on first mount
+    // Restore comprehensive UI state on first mount
     const restoredRef = useRef(false)
     const restoreAppliedRef = useRef(false)
     useEffect(() => {
         if (restoredRef.current) return
         restoredRef.current = true
-        const saved = loadUIState()
-        if (saved) {
-            try { setOpenedNotes(Array.isArray(saved.openedNotes) ? saved.openedNotes : []) } catch {}
-            try { setOpenedProfiles(Array.isArray(saved.openedProfiles) ? saved.openedProfiles : []) } catch {}
-            try { setOpenedHashtags(Array.isArray(saved.openedHashtags) ? saved.openedHashtags : []) } catch {}
-            if (saved.profilePubkey) setProfilePubkey(saved.profilePubkey)
-            if (saved.currentHashtag) setCurrentHashtag(saved.currentHashtag)
-            if (saved.currentNoteId) setCurrentNoteId(saved.currentNoteId)
-            if (saved.mode) setMode(saved.mode)
-            // Robust scroll restoration: wait until content height is sufficient or timeout
-            const targetY = Number(saved.scrollY || 0)
-            const start = performance.now()
-            const maxMs = 1500
-            const tryScroll = () => {
-                try {
-                    const doc = document.documentElement
-                    const body = document.body
-                    const scrollHeight = Math.max(doc.scrollHeight, body.scrollHeight)
-                    const viewport = window.innerHeight
-                    const enough = scrollHeight >= targetY + Math.max(0, viewport - 32)
-                    if (enough || (performance.now() - start) > maxMs) {
-                        window.scrollTo(0, targetY)
-                        restoreAppliedRef.current = true
-                        return
+        
+        const restoreState = async () => {
+            try {
+                const saved = await uiStateManager.loadUIState()
+                if (saved) {
+                    // Restore navigation state
+                    if (saved.mode) setMode(saved.mode as FeedMode)
+                    if (saved.currentNoteId) setCurrentNoteId(saved.currentNoteId)
+                    if (saved.profilePubkey) setProfilePubkey(saved.profilePubkey)
+                    if (saved.currentHashtag) setCurrentHashtag(saved.currentHashtag)
+                    
+                    // Restore tabs
+                    if (Array.isArray(saved.openedNotes)) setOpenedNotes(saved.openedNotes)
+                    if (Array.isArray(saved.openedProfiles)) setOpenedProfiles(saved.openedProfiles)
+                    if (Array.isArray(saved.openedHashtags)) setOpenedHashtags(saved.openedHashtags)
+                    if (Array.isArray(saved.openedThreads)) setOpenedThreads(saved.openedThreads)
+                    if (saved.threadTriggerNotes) setThreadTriggerNotes(saved.threadTriggerNotes)
+                    
+                    // Restore panel states
+                    if (typeof saved.isNewNoteOpen === 'boolean') setIsNewNoteOpen(saved.isNewNoteOpen)
+                    if (typeof saved.isThreadsModalOpen === 'boolean') setIsThreadsModalOpen(saved.isThreadsModalOpen)
+                    if (typeof saved.isThreadsHiddenInWideMode === 'boolean') setIsThreadsHiddenInWideMode(saved.isThreadsHiddenInWideMode)
+                    if (typeof saved.isSidebarDrawerOpen === 'boolean') setIsSidebarDrawerOpen(saved.isSidebarDrawerOpen)
+                    if (saved.hoverPreviewId) setHoverPreviewId(saved.hoverPreviewId)
+                    
+                    // Restore editor content
+                    if (saved.newNoteText) setNewNoteText(saved.newNoteText)
+                    if (saved.replyBuffers) setReplyBuffers(saved.replyBuffers)
+                    if (saved.quoteBuffers) setQuoteBuffers(saved.quoteBuffers)
+                    
+                    // Restore other UI states
+                    if (saved.replyOpen) setReplyOpen(saved.replyOpen)
+                    if (saved.quoteOpen) setQuoteOpen(saved.quoteOpen)
+                    if (saved.repostMode) setRepostMode(saved.repostMode)
+                    if (saved.actionMessages) setActionMessages(saved.actionMessages)
+                    
+                    // Robust scroll restoration: wait until content height is sufficient or timeout
+                    const targetY = Number(saved.scrollY || 0)
+                    const start = performance.now()
+                    const maxMs = 1500
+                    const tryScroll = () => {
+                        try {
+                            const doc = document.documentElement
+                            const body = document.body
+                            const scrollHeight = Math.max(doc.scrollHeight, body.scrollHeight)
+                            const viewport = window.innerHeight
+                            const enough = scrollHeight >= targetY + Math.max(0, viewport - 32)
+                            if (enough || (performance.now() - start) > maxMs) {
+                                window.scrollTo(0, targetY)
+                                restoreAppliedRef.current = true
+                                return
+                            }
+                            requestAnimationFrame(tryScroll)
+                        } catch {
+                            // Fallback immediate scroll
+                            try { window.scrollTo(0, targetY) } catch {}
+                            restoreAppliedRef.current = true
+                        }
                     }
                     requestAnimationFrame(tryScroll)
-                } catch {
-                    // Fallback immediate scroll
-                    try { window.scrollTo(0, targetY) } catch {}
+                } else {
+                    // No saved state; mark restore applied so subsequent saves proceed
                     restoreAppliedRef.current = true
                 }
+            } catch (error) {
+                console.warn('Failed to restore UI state:', error)
+                restoreAppliedRef.current = true
             }
-            requestAnimationFrame(tryScroll)
-        } else {
-            // No saved state; mark restore applied so subsequent saves proceed
-            restoreAppliedRef.current = true
         }
+        
+        restoreState()
     }, [])
 
 
@@ -1221,26 +1306,55 @@ function Home() {
         } catch { return null }
     }
     const scrollSaveTimer = useRef<number | null>(null)
+    
+    // Auto-save UI state when key variables change
+    useEffect(() => {
+        if (!restoreAppliedRef.current) return
+        saveUIState()
+    }, [mode, currentNoteId, profilePubkey, currentHashtag, openedNotes, openedProfiles, openedHashtags, 
+        openedThreads, isNewNoteOpen, isThreadsModalOpen, isThreadsHiddenInWideMode, isSidebarDrawerOpen, 
+        hoverPreviewId, restoreAppliedRef.current])
+
+    // Auto-save scroll position when user stops scrolling (debounced)
     useEffect(() => {
         const onScroll = () => {
             try {
                 if (scrollSaveTimer.current) window.clearTimeout(scrollSaveTimer.current)
-                scrollSaveTimer.current = window.setTimeout(() => {
-                    const ts = getTopMostTs()
-                    saveUIState({ scrollY: window.scrollY, topMostTs: ts })
+                scrollSaveTimer.current = window.setTimeout(async () => {
+                    try {
+                        await uiStateManager.saveUIState({
+                            scrollY: window.scrollY,
+                            topMostTs: getTopMostTs()
+                        }, 'scroll-position')
+                    } catch (error) {
+                        console.warn('Failed to save scroll position:', error)
+                    }
                 }, 200)
             } catch {}
         }
         window.addEventListener('scroll', onScroll, { passive: true } as any)
         return () => { window.removeEventListener('scroll', onScroll as any); if (scrollSaveTimer.current) window.clearTimeout(scrollSaveTimer.current) }
     }, [])
+
+    // Auto-save editor content when it changes
+    useEffect(() => {
+        if (!restoreAppliedRef.current) return
+        uiStateManager.saveEditorContent('newNoteText', newNoteText).catch(console.warn)
+    }, [newNoteText, restoreAppliedRef.current])
+
+    useEffect(() => {
+        if (!restoreAppliedRef.current) return
+        uiStateManager.saveUIState({replyBuffers}, 'reply-buffers').catch(console.warn)
+    }, [replyBuffers, restoreAppliedRef.current])
+
+    useEffect(() => {
+        if (!restoreAppliedRef.current) return
+        uiStateManager.saveUIState({quoteBuffers}, 'quote-buffers').catch(console.warn)
+    }, [quoteBuffers, restoreAppliedRef.current])
     // Infinite feed query using NDK. When a signer is present, NDK auto-connects
     // to user relays; otherwise it uses default relays configured in ndk.ts.
     const PAGE_SIZE = 4
 
-    // Feed mode and user info (from localStorage saved by Root)
-    const [mode, setMode] = useState<FeedMode>('global')
-    const [user, setUser] = useState<LoggedInUser | null>(null)
     const [_isWide, _setIsWide] = useState<boolean>(false) // Unused but keeping for potential future use
 
     // Save when structural state changes (skip until initial restoration applied)
@@ -1485,7 +1599,6 @@ function Home() {
 
     // Reply composers: independent per-note open state and persistent buffers
     const [replyOpen, setReplyOpen] = useState<Record<string, boolean>>({})
-    const [replyBuffers, setReplyBuffers] = useState<Record<string, string>>({})
 
     // Hydrate buffers
     useEffect(() => {
@@ -1504,8 +1617,6 @@ function Home() {
     }, [replyBuffers])
 
     // Quote composers: independent per-note open state and persistent buffers
-    const [quoteOpen, setQuoteOpen] = useState<Record<string, boolean>>({})
-    const [quoteBuffers, setQuoteBuffers] = useState<Record<string, string>>({})
 
     // Hydrate quote buffers
     useEffect(() => {
@@ -1522,9 +1633,6 @@ function Home() {
         } catch {
         }
     }, [quoteBuffers])
-
-    // Hover preview panel state (note id to show on the right)
-    const [hoverPreviewId, setHoverPreviewId] = useState<string | null>(null)
 
     // Thread view single-active editor bridge (for ThreadModal/ThreadPanel legacy props)
     const [threadActiveReplyTargetKey, setThreadActiveReplyTargetKey] = useState<string | null>(null)
@@ -2188,11 +2296,6 @@ function Home() {
     const BOTTOM_PULL_MAX = 140
 
 
-    // New note composer overlay state
-    const [isNewNoteOpen, setIsNewNoteOpen] = useState(false)
-    const [newNoteText, setNewNoteText] = useState('')
-    const newNoteTextareaRef = useRef<HTMLTextAreaElement | null>(null)
-
     // Bottom IO: older pages
     useEffect(() => {
         const el = bottomSentinelRef.current
@@ -2250,15 +2353,7 @@ function Home() {
                 }
                 const eventsSet = await withTimeout(ndk.fetchEvents(filter), 8000, 'fetch newer events')
                 const fresh = Array.from(eventsSet).sort((a, b) => (b.created_at || 0) - (a.created_at || 0))
-                // Update thread store with any newly found thread-related events
-                try {
-                    for (const ev of fresh) {
-                        const tags = (ev as any).tags
-                        if (Array.isArray(tags) && tags.some((t: any[]) => t?.[0] === 'e' && t?.[3] === 'root')) {
-                            void ensureThreadForEvent(queryClient, ev)
-                        }
-                    }
-                } catch {}
+                // Thread processing removed - threads now load on demand only
 
                 if (fresh.length > 0) {
                     const key: any = mode === 'global'
@@ -2745,6 +2840,30 @@ function Home() {
                                 className="hidden lg:inline ml-2 text-[#cccccc] select-none">Global</span>
                         </button>
                     </div>
+                    {/* Write button tab */}
+                    <div className={`relative inline-block group ${isNewNoteOpen ? 'bg-[#0d1417]' : ''}`}>
+                        <button
+                            aria-label="Write new note"
+                            onClick={() => {
+                                setIsNewNoteOpen(!isNewNoteOpen)
+                                // Focus textarea after the panel opens
+                                if (!isNewNoteOpen) {
+                                    setTimeout(() => {
+                                        newNoteTextareaRef.current?.focus()
+                                    }, 100)
+                                }
+                            }}
+                            className={`w-12 lg:w-40 h-12 ${isNewNoteOpen ? 'bg-[#111e22]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center lg:justify-start lg:px-3`}
+                            title="Write new note"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="w-6 h-6 text-[#cccccc]">
+                                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                                <path d="M14.06 6.19l1.77-1.77a1.5 1.5 0 0 1 2.12 0l1.63 1.63a1.5 1.5 0 0 1 0 2.12l-1.77 1.77-3.75-3.75z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                            </svg>
+                            <span
+                                className="hidden lg:inline ml-2 bold text-[#fff3b0] select-none">Write</span>
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -2752,6 +2871,61 @@ function Home() {
                  className={`${canFitSidebar ? 'ml-[3rem] lg:ml-[10rem]' : 'ml-0'} flex items-start`}>
                 <div ref={mainColRef}
                      className="w-full max-w-2xl flex-shrink-0 relative">
+                    
+                    {/* Write panel overlay on note view */}
+                    {isNewNoteOpen && (
+                        <div className="fixed left-[3rem] lg:left-[10rem] top-12 w-full max-w-2xl z-50 p-4 bg-[#162a2f] rounded-lg shadow-xl border border-[#37474f]">
+                            <div className="flex items-stretch gap-2">
+                                <textarea
+                                    ref={newNoteTextareaRef}
+                                    value={newNoteText}
+                                    onChange={(e) => setNewNoteText(e.target.value)}
+                                    placeholder="Write a note..."
+                                    className="flex-1 resize-none bg-[#00000080] outline-none text-[#cccccc] p-2 rounded min-h-[9rem]"
+                                    rows={6}
+                                />
+                                <div className="flex flex-col items-center gap-2 self-stretch">
+                                    <button type="button"
+                                            onClick={() => setIsNewNoteOpen(false)}
+                                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
+                                            title="Close">
+                                        {/* X button */}
+                                        <span className="text-2xl leading-none">×</span>
+                                    </button>
+                                    <button type="button"
+                                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
+                                            title="Add image">
+                                        <ImageIcon className="w-8 h-8"/>
+                                    </button>
+                                    <button type="button"
+                                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
+                                            title="Emoji">
+                                        <EmojiIcon className="w-8 h-8"/>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            try {
+                                                const event = new NDKEvent(ndk)
+                                                event.kind = 1
+                                                event.content = newNoteText
+                                                event.tags = []
+                                                await event.publish()
+                                                setNewNoteText('')
+                                                setIsNewNoteOpen(false)
+                                            } catch (e) {
+                                                console.error('Failed to publish note', e)
+                                            }
+                                        }}
+                                        className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#215059]"
+                                        title="Send">
+                                        <SendIcon className="w-12 h-12"/>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
                     {(mode === 'user' || mode === 'follows' || mode === 'notifications') && !user ? (
                         <div className="bg-[#162a2f] rounded-xl p-6">
                             <p>Please use the Login button in the top bar to
@@ -3001,7 +3175,7 @@ function Home() {
                                 <div className="p-6">Loading feed…</div>
                             ) : (
                                 <div className={hoverPreviewId ? 'grid grid-cols-2 gap-4 w-[200%]' : ''}>
-                                    <div>
+                                    <div className={isNewNoteOpen ? 'mt-48' : ''}>
                                         {events.map((ev) => {
                                     // For notifications mode, use compact display for reactions
                                     if (mode === 'notifications' && ev.kind === 7) {
@@ -3029,7 +3203,7 @@ function Home() {
                                                 onSendQuote={sendQuote}
                                                 repostMode={repostMode}
                                                 onCancelRepost={cancelRepost}
-                                                onHoverOpen={(e) => { if (e.id) { try { ensureThreadForEvent(queryClient, e) } catch {} setHoverPreviewId(e.id) } }}
+                                                onHoverOpen={(e) => { if (e.id) { setHoverPreviewId(e.id) } }}
                                             />
                                         )
                                     }
@@ -3060,7 +3234,7 @@ function Home() {
                                                 onSendQuote={sendReply}
                                                 repostMode={repostMode}
                                                 onCancelRepost={cancelRepost}
-                                                onHoverOpen={(e) => { if (e.id) { try { ensureThreadForEvent(queryClient, e) } catch {} setHoverPreviewId(e.id) } }}
+                                                onHoverOpen={(e) => { if (e.id) { setHoverPreviewId(e.id) } }}
                                             />
                                         )
                                     }
@@ -3091,7 +3265,7 @@ function Home() {
                                                 onSendQuote={sendReply}
                                                 repostMode={repostMode}
                                                 onCancelRepost={cancelRepost}
-                                                onHoverOpen={(e) => { if (e.id) { try { ensureThreadForEvent(queryClient, e) } catch {} setHoverPreviewId(e.id) } }}
+                                                onHoverOpen={(e) => { if (e.id) { setHoverPreviewId(e.id) } }}
                                             />
                                         )
                                     }
@@ -3117,7 +3291,7 @@ function Home() {
                                             onSendReply={sendReply}
                                             openHashtag={openHashtag}
                                             userFollows={followsQuery.data || []}
-                                            onHoverOpen={(e) => { if (e.id) { try { ensureThreadForEvent(queryClient, e) } catch {} setHoverPreviewId(e.id) } }}
+                                            onHoverOpen={(e) => { if (e.id) { setHoverPreviewId(e.id) } }}
                                             userPubkey={user?.pubkey}
                                             repostMode={repostMode}
                                             onCancelRepost={cancelRepostScoped('feed')}
@@ -3131,7 +3305,7 @@ function Home() {
                                 })}
                                     </div>
                                     {hoverPreviewId && (
-                                        <div ref={previewPanelScroll.scrollContainerRef} className="sticky top-12 self-start max-h-[calc(100vh-3rem)] overflow-y-auto overflow-x-hidden pr-2 -mr-2 relative">
+                                        <div ref={previewPanelScroll.scrollContainerRef} className="sticky top-12 self-start max-h-[calc(100vh-12*0.25rem)] overflow-y-auto overflow-x-hidden pr-2 -mr-2 relative">
                                             <BackToTopButton 
                                                 show={previewPanelScroll.showBackToTop} 
                                                 onClick={previewPanelScroll.scrollToTop} 
@@ -3331,90 +3505,8 @@ function Home() {
                 </div>
             )}
 
-            {/* Floating new note (pen) button */}
-            {!isNewNoteOpen && (
-                <div
-                    className={`fixed z-[110] ${(openedThreads.length > 0 && !canFitBoth && !isThreadsModalOpen) || (openedThreads.length > 0 && canFitBoth && isThreadsHiddenInWideMode) ? 'bottom-6 right-24' : 'bottom-6 right-6'}`}>
-                    <div className="flex items-center gap-3">
-                        <span className="text-[#fff3b0] select-none">write</span>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setIsNewNoteOpen(true)
-                                // Focus textarea after the panel opens
-                                setTimeout(() => {
-                                    newNoteTextareaRef.current?.focus()
-                                }, 100)
-                            }}
-                            className="rounded-full bg-[#162a2f] text-[#fff3b0] shadow-lg hover:bg-[#1b3a40]"
-                            title="New note"
-                            aria-label="New note"
-                            style={{ padding: '2em' }}
-                        >
-                            <PencilIcon />
-                        </button>
-                    </div>
-                </div>
-            )}
 
 
-            {/* New note overlay editor */}
-            {isNewNoteOpen && (
-                <div className={`fixed z-[120] ${canFitSidebar ? 'ml-[3rem] lg:ml-[10rem]' : 'ml-0'} w-full max-w-2xl bottom-0 left-0`}>
-                    <div className="relative w-full bg-[#162a2f] shadow-2xl flex flex-col rounded-t-xl overflow-hidden border-t border-[#37474f]">
-                        <div className="p-2">
-                            <div className="flex items-stretch gap-2 p-2">
-                                <textarea
-                                    ref={newNoteTextareaRef}
-                                    value={newNoteText}
-                                    onChange={(e) => setNewNoteText(e.target.value)}
-                                    placeholder="Write a note..."
-                                    className="flex-1 resize-none bg-[#00000080] outline-none text-[#cccccc] p-2 rounded min-h-[9rem]"
-                                    rows={6}
-                                />
-                                <div className="flex flex-col items-center gap-2 self-stretch">
-                                    <button type="button"
-                                            onClick={() => setIsNewNoteOpen(false)}
-                                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
-                                            title="Close">
-                                        {/* X button */}
-                                        <span className="text-2xl leading-none">×</span>
-                                    </button>
-                                    <button type="button"
-                                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
-                                            title="Add image">
-                                        <ImageIcon className="w-8 h-8"/>
-                                    </button>
-                                    <button type="button"
-                                            className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#1b3a40]"
-                                            title="Emoji">
-                                        <EmojiIcon className="w-8 h-8"/>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={async () => {
-                                            try {
-                                                const event = new NDKEvent(ndk)
-                                                event.kind = 1
-                                                event.content = newNoteText
-                                                event.tags = []
-                                                await event.publish()
-                                                setNewNoteText('')
-                                                setIsNewNoteOpen(false)
-                                            } catch (e) {
-                                                console.error('Failed to publish note', e)
-                                            }
-                                        }}
-                                        className="bg-[#1b3a40] text-white text-xs px-2 py-1 rounded-full flex items-center justify-center hover:bg-[#215059]"
-                                        title="Send">
-                                        <SendIcon className="w-12 h-12"/>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
 
             {/* Threads Modal for narrow screens */}

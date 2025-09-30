@@ -1,17 +1,31 @@
 import { NDKEvent } from '@nostr-dev-kit/ndk'
+import { ndk } from './ndk'
 
 // IndexedDB database configuration
 const DB_NAME = 'NostrEventsDB'
-const DB_VERSION = 1
+const DB_VERSION = 3
 const EVENTS_STORE = 'events'
 const THREADS_STORE = 'threads'
+const UI_STATE_STORE = 'uiState'
 
 // Cache expiration time (7 days in milliseconds)
 const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000
+// Editor content expiration time (1 month in milliseconds)
+const EDITOR_CONTENT_EXPIRY = 30 * 24 * 60 * 60 * 1000
+
+export interface SerializedEventData {
+  id: string
+  pubkey: string
+  created_at: number
+  kind: number
+  tags: any[]
+  content: string
+  sig?: string
+}
 
 export interface StoredEvent {
   id: string
-  event: NDKEvent
+  event: SerializedEventData
   cachedAt: number
   expiresAt: number
 }
@@ -23,9 +37,77 @@ export interface StoredThread {
   expiresAt: number
 }
 
+export interface UIState {
+  // Main panel and navigation state
+  mode: string
+  currentNoteId: string | null
+  profilePubkey: string | null
+  currentHashtag: string | null
+  
+  // Tab management
+  openedNotes: Array<{ id: string }>
+  openedProfiles: Array<{ pubkey: string; npub: string; name?: string; picture?: string; about?: string }>
+  openedHashtags: string[]
+  openedThreads: string[]
+  threadTriggerNotes: Record<string, string>
+  
+  // Panel states
+  isNewNoteOpen: boolean
+  isThreadsModalOpen: boolean
+  isThreadsHiddenInWideMode: boolean
+  isSidebarDrawerOpen: boolean
+  hoverPreviewId: string | null
+  
+  // Editor content with expiration
+  newNoteText: string
+  replyBuffers: Record<string, string>
+  quoteBuffers: Record<string, string>
+  
+  // Scroll positions
+  scrollY: number
+  topMostTs: number | null
+  
+  // Other UI states
+  replyOpen: Record<string, boolean>
+  quoteOpen: Record<string, boolean>
+  repostMode: Record<string, boolean>
+  actionMessages: Record<string, string>
+}
+
+export interface StoredUIState {
+  id: string // Will use 'global' as the single key
+  state: UIState
+  cachedAt: number
+  expiresAt: number
+}
+
 class EventDatabase {
   private db: IDBDatabase | null = null
   private initPromise: Promise<IDBDatabase> | null = null
+
+  private serializeEvent(event: NDKEvent): SerializedEventData {
+    return {
+      id: event.id || '',
+      pubkey: event.pubkey || '',
+      created_at: event.created_at || 0,
+      kind: event.kind || 0,
+      tags: event.tags || [],
+      content: event.content || '',
+      sig: event.sig || undefined
+    }
+  }
+
+  private deserializeEvent(data: SerializedEventData): NDKEvent {
+    const event = new NDKEvent(ndk)
+    event.id = data.id
+    event.pubkey = data.pubkey
+    event.created_at = data.created_at
+    event.kind = data.kind
+    event.tags = data.tags
+    event.content = data.content
+    event.sig = data.sig
+    return event
+  }
 
   async init(): Promise<IDBDatabase> {
     if (this.db) return this.db
@@ -55,6 +137,12 @@ class EventDatabase {
           const threadsStore = db.createObjectStore(THREADS_STORE, { keyPath: 'rootId' })
           threadsStore.createIndex('expiresAt', 'expiresAt')
         }
+
+        // Create UI state store
+        if (!db.objectStoreNames.contains(UI_STATE_STORE)) {
+          const uiStateStore = db.createObjectStore(UI_STATE_STORE, { keyPath: 'id' })
+          uiStateStore.createIndex('expiresAt', 'expiresAt')
+        }
       }
     })
 
@@ -69,7 +157,7 @@ class EventDatabase {
       const now = Date.now()
       const storedEvent: StoredEvent = {
         id: event.id,
-        event,
+        event: this.serializeEvent(event),
         cachedAt: now,
         expiresAt: now + CACHE_EXPIRY
       }
@@ -109,7 +197,7 @@ class EventDatabase {
             return
           }
 
-          resolve(result.event)
+          resolve(this.deserializeEvent(result.event))
         }
         request.onerror = () => resolve(null) // Fail gracefully
       })
@@ -133,7 +221,7 @@ class EventDatabase {
         
         const storedEvent: StoredEvent = {
           id: event.id,
-          event,
+          event: this.serializeEvent(event),
           cachedAt: now,
           expiresAt: now + CACHE_EXPIRY
         }
@@ -166,7 +254,7 @@ class EventDatabase {
           request.onsuccess = () => {
             const result = request.result as StoredEvent | undefined
             if (result && now <= result.expiresAt) {
-              results.set(id, result.event)
+              results.set(id, this.deserializeEvent(result.event))
             } else if (result && now > result.expiresAt) {
               // Clean up expired entry
               this.deleteEvent(id)
@@ -316,8 +404,99 @@ class EventDatabase {
         }
         request.onerror = () => resolve()
       })
+
+      // Clean up expired UI state
+      const uiStateTransaction = db.transaction([UI_STATE_STORE], 'readwrite')
+      const uiStateStore = uiStateTransaction.objectStore(UI_STATE_STORE)
+      const uiStateIndex = uiStateStore.index('expiresAt')
+      
+      await new Promise<void>((resolve) => {
+        const request = uiStateIndex.openCursor(eventsRange)
+        request.onsuccess = (event) => {
+          const cursor = (event.target as IDBRequest).result
+          if (cursor) {
+            cursor.delete()
+            cursor.continue()
+          } else {
+            resolve()
+          }
+        }
+        request.onerror = () => resolve()
+      })
     } catch (error) {
       console.warn('Failed to cleanup expired entries:', error)
+    }
+  }
+
+  async storeUIState(state: UIState): Promise<void> {
+    try {
+      const db = await this.init()
+      const now = Date.now()
+      const storedUIState: StoredUIState = {
+        id: 'global',
+        state,
+        cachedAt: now,
+        expiresAt: now + EDITOR_CONTENT_EXPIRY // UI state expires after 1 month
+      }
+
+      const transaction = db.transaction([UI_STATE_STORE], 'readwrite')
+      const store = transaction.objectStore(UI_STATE_STORE)
+      await new Promise<void>((resolve, reject) => {
+        const request = store.put(storedUIState)
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(new Error('Failed to store UI state'))
+      })
+    } catch (error) {
+      console.warn('Failed to store UI state in IndexedDB:', error)
+    }
+  }
+
+  async getUIState(): Promise<UIState | null> {
+    try {
+      const db = await this.init()
+      const transaction = db.transaction([UI_STATE_STORE], 'readonly')
+      const store = transaction.objectStore(UI_STATE_STORE)
+
+      return new Promise<UIState | null>((resolve) => {
+        const request = store.get('global')
+        request.onsuccess = () => {
+          const result = request.result as StoredUIState | undefined
+          if (!result) {
+            resolve(null)
+            return
+          }
+
+          // Check if expired
+          if (Date.now() > result.expiresAt) {
+            // Clean up expired entry
+            this.deleteUIState()
+            resolve(null)
+            return
+          }
+
+          resolve(result.state)
+        }
+        request.onerror = () => resolve(null) // Fail gracefully
+      })
+    } catch (error) {
+      console.warn('Failed to get UI state from IndexedDB:', error)
+      return null
+    }
+  }
+
+  async deleteUIState(): Promise<void> {
+    try {
+      const db = await this.init()
+      const transaction = db.transaction([UI_STATE_STORE], 'readwrite')
+      const store = transaction.objectStore(UI_STATE_STORE)
+      
+      await new Promise<void>((resolve, reject) => {
+        const request = store.delete('global')
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(new Error('Failed to delete UI state'))
+      })
+    } catch (error) {
+      console.warn('Failed to delete UI state from IndexedDB:', error)
     }
   }
 }

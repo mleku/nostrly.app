@@ -6,7 +6,7 @@ import { eventDB } from './eventDB'
 const PREPOPULATE_KINDS: NDKKind[] = [1, 1111, 6, 7, 30023, 9802, 1068, 1222, 1244, 20, 21, 22] as unknown as NDKKind[]
 
 /**
- * Prepopulate the database with events from the last month
+ * Prepopulate the database with events from the last 24 hours
  * This runs on application startup to improve initial load performance
  */
 export async function prepopulateDatabase(): Promise<void> {
@@ -16,17 +16,17 @@ export async function prepopulateDatabase(): Promise<void> {
     // Ensure NDK is initialized
     await initializeNDK(10000)
     
-    // Calculate timestamp for 30 days ago
-    const thirtyDaysAgo = Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000)
+    // Calculate timestamp for 24 hours ago
+    const twentyFourHoursAgo = Math.floor((Date.now() - 24 * 60 * 60 * 1000) / 1000)
     
     // Check if we already have recent data to avoid unnecessary fetching
-    const hasRecentData = await checkForRecentData(thirtyDaysAgo)
+    const hasRecentData = await checkForRecentData(twentyFourHoursAgo)
     if (hasRecentData) {
       console.log('Database already contains recent data, skipping prepopulation')
       return
     }
     
-    console.log('Fetching events from the last month...')
+    console.log('Fetching events from the last 24 hours...')
     
     // Fetch events in smaller batches to avoid overwhelming the relays
     const batchSize = 500
@@ -37,7 +37,7 @@ export async function prepopulateDatabase(): Promise<void> {
       try {
         const filter: NDKFilter = {
           kinds: PREPOPULATE_KINDS,
-          since: thirtyDaysAgo,
+          since: twentyFourHoursAgo,
           limit: batchSize
         }
         
