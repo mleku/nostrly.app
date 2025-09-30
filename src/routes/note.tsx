@@ -85,6 +85,12 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
 
   const hasRootMarker = Array.isArray(ev.tags) && ev.tags.some((tag: any[]) => tag?.[0] === 'e' && tag?.[3] === 'root')
   const stateScope = (scopeId && scopeId.startsWith('hover-preview')) ? 'hover-preview' : scopeId
+  const isThreadView = scopeId?.startsWith('thread-panel:') || scopeId?.startsWith('thread-modal:')
+  const isSecondColumn = scopeId === 'hover-preview'
+  
+  // Extract root ID from thread scope to identify root notes
+  const threadRootId = isThreadView ? scopeId?.split(':')[1] : null
+  const isRootNote = threadRootId ? ev.id === threadRootId : false
 
   return (
     <>
@@ -94,10 +100,10 @@ export function NoteCard({ ev, scopeId, onReply, onRepost, onQuote, onOpenThread
           {snackbarMessage}
         </div>
       )}
-      <article className={`p-3 relative rounded-lg bg-black/20 ${hasRootMarker ? 'note-hover-target' : ''}`} ref={cardRef} data-ev-id={ev.id} data-ts={ev.created_at} onClick={(e) => {
+      <article className={`p-3 relative rounded-lg bg-black/20 ${hasRootMarker && !isThreadView ? 'note-hover-target' : ''}`} ref={cardRef} data-ev-id={ev.id} data-ts={ev.created_at} data-column={isSecondColumn ? 'second' : 'first'} onClick={(e) => {
         const t = e.target as HTMLElement | null;
         if (t && t.closest('button, a, input, textarea, [contenteditable="true"]')) return;
-        if (!hasRootMarker) return;
+        if (!hasRootMarker || isThreadView) return;
         onHoverOpen?.(ev);
       }}>
       <div className="flex flex-col">

@@ -14,6 +14,7 @@ import {getRootEventHexId, getParentEventHexId} from '@/lib/event'
 import EmojiPicker, {type EmojiClickData, Theme} from 'emoji-picker-react'
 import {NoteCard} from './note'
 import { ensureThreadForEvent, useThread } from '@/lib/threadStore'
+import { useScrollToTop, BackToTopButton } from '@/hooks/useScrollToTop'
 
 export const Route = createFileRoute('/')({
     component: Home,
@@ -682,7 +683,7 @@ function InlineNaddrNote({
                     <div className="text-sm opacity-70">Referenced event not
                         found.</div>
                 ) : (
-                    <div className="flex gap-3">
+                    <div className="flex flex-col gap-3">
                         <div className="flex-1 min-w-0">
                             <header
                                 className="mb-2 flex items-center gap-2 text-sm text-[#cccccc]">
@@ -759,6 +760,8 @@ function InlineNaddrNote({
                                 />
                             )}
                         </div>
+                        
+                        {/* Action buttons on a separate row */}
                         {onReply && onRepost && onQuote && evQuery.data && (
                             <div
                                 className="grid grid-cols-[1fr_auto] items-end gap-x-2 gap-y-1 mt-1">
@@ -1098,6 +1101,11 @@ function Home() {
         profilePubkey: string | null;
         noteId?: string | null
     } | null>(null)
+
+    // Scroll to top hooks for each scrollable column
+    const threadsStackScroll = useScrollToTop()
+    const previewPanelScroll = useScrollToTop()
+    const mainThreadsScroll = useScrollToTop()
 
     // --- UI state persistence (tabs, current view, scroll position, top-most ts) ---
     const UI_STATE_KEY = 'nostrly-ui-state-v1'
@@ -2951,7 +2959,11 @@ function Home() {
                                             />
                                         </div>
                                     </div>
-                                    <div className="sticky top-[calc(3rem+1em)] self-start min-h-[calc(100vh-3rem)] max-h-[calc(100vh-3rem)] overflow-y-auto overflow-x-hidden pr-2 -mr-2 p-[0.5em] pt-[1em]">
+                                    <div ref={threadsStackScroll.scrollContainerRef} className="sticky top-[calc(3rem+1em)] self-start min-h-[calc(100vh-3rem)] max-h-[calc(100vh-3rem)] overflow-y-auto overflow-x-hidden pr-2 -mr-2 p-[0.5em] pt-[1em] relative">
+                                        <BackToTopButton 
+                                            show={threadsStackScroll.showBackToTop} 
+                                            onClick={threadsStackScroll.scrollToTop} 
+                                        />
                                         <ThreadsStackView
                                             openedThreads={openedThreads}
                                             threadTriggerNotes={threadTriggerNotes}
@@ -3119,7 +3131,11 @@ function Home() {
                                 })}
                                     </div>
                                     {hoverPreviewId && (
-                                        <div className="sticky top-12 self-start max-h-[calc(100vh-3rem)] overflow-y-auto overflow-x-hidden pr-2 -mr-2">
+                                        <div ref={previewPanelScroll.scrollContainerRef} className="sticky top-12 self-start max-h-[calc(100vh-3rem)] overflow-y-auto overflow-x-hidden pr-2 -mr-2 relative">
+                                            <BackToTopButton 
+                                                show={previewPanelScroll.showBackToTop} 
+                                                onClick={previewPanelScroll.scrollToTop} 
+                                            />
                                             <PreviewNotePanel
                                                 id={hoverPreviewId}
                                                 scopeId={'hover-preview'}
@@ -3241,8 +3257,12 @@ function Home() {
                                     </button>
                                 </div>
                             </div>
-                            <div
-                                className="max-h-[calc(100vh-6rem)] overflow-y-auto pt-[1em]">
+                            <div ref={mainThreadsScroll.scrollContainerRef}
+                                className="max-h-[calc(100vh-6rem)] overflow-y-auto pt-[1em] relative">
+                                <BackToTopButton 
+                                    show={mainThreadsScroll.showBackToTop} 
+                                    onClick={mainThreadsScroll.scrollToTop} 
+                                />
                                 <ThreadsStackView
                                     openedThreads={openedThreads}
                                     threadTriggerNotes={threadTriggerNotes}
@@ -4040,9 +4060,28 @@ function ThreadModal({
             </button>
             <div
                 ref={scrollContainerRef}
-                className="absolute inset-y-2 left-[10%] right-[10%] bg-[#0f1a1d] rounded-lg shadow-xl overflow-auto"
+                className="fixed inset-y-2 left-[10%] right-[10%] bg-[#0f1a1d] rounded-lg shadow-xl overflow-auto"
                 onClick={(e) => e.stopPropagation()}>
-                <div className="p-4 pt-[1em]">
+                <div className="p-4 pt-[1em] absolute top-0 left-0 right-0">
+                    {/* Always visible up arrow button */}
+                    <div className="absolute top-2 right-4 z-30">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (scrollContainerRef.current) {
+                                    scrollContainerRef.current.scrollTo({
+                                        top: 0,
+                                        behavior: 'smooth'
+                                    })
+                                }
+                            }}
+                            className="w-8 h-8 rounded-full bg-black/70 text-white hover:bg-black/90 flex items-center justify-center transition-all duration-200 shadow-lg"
+                            aria-label="Scroll to top"
+                            title="Scroll to top"
+                        >
+                            to top ↑
+                        </button>
+                    </div>
                     {!root ? (
                         <div className="text-sm text-[#cccccc]">Loading
                             thread…</div>
@@ -5737,6 +5776,12 @@ function CompactReactionNote({ev, openProfileByPubkey, userPubkey, scopeId, onRe
         return Array.isArray(t) && t.some((tag: any[]) => tag?.[0] === 'e' && tag?.[3] === 'root')
     }, [referencedEvent])
 
+    const isThreadView = scopeId?.startsWith('thread-panel:') || scopeId?.startsWith('thread-modal:')
+    
+    // Extract root ID from thread scope to identify root notes
+    const threadRootId = isThreadView ? scopeId?.split(':')[1] : null
+    const isRootNote = threadRootId ? referencedEvent?.id === threadRootId : false
+
     return (
         <div className="border-b border-[#37474f] overflow-hidden">
             {/* Reaction header with banner background */}
@@ -5789,7 +5834,7 @@ function CompactReactionNote({ev, openProfileByPubkey, userPubkey, scopeId, onRe
             {/* Referenced event below */}
             {referencedEvent ? (
                 <div
-                    className={`bg-black/20 p-3 ${hasRootMarker ? 'note-hover-target' : ''}`}
+                    className={`bg-black/20 p-3 ${hasRootMarker && (!isThreadView || isRootNote) ? 'note-hover-target' : ''}`}
                     onClick={(e) => {
                         try {
                             const t = e.target as HTMLElement | null
@@ -6508,8 +6553,29 @@ function ThreadPanelContent({
         return {tree: {byId, childrenMap, parentOf}, order, truncated}
     }, [all, rootId])
 
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
+
     return (
-        <div className="max-h-[25vh] overflow-y-auto">
+        <div ref={scrollContainerRef} className="max-h-[25vh] overflow-y-auto relative">
+            {/* Always visible up arrow button */}
+            <div className="absolute top-2 right-2 z-10">
+                <button
+                    type="button"
+                    onClick={() => {
+                        if (scrollContainerRef.current) {
+                            scrollContainerRef.current.scrollTo({
+                                top: 0,
+                                behavior: 'smooth'
+                            })
+                        }
+                    }}
+                    className="w-8 h-8 rounded-full bg-black/70 text-white hover:bg-black/90 flex items-center justify-center transition-all duration-200 shadow-lg"
+                    aria-label="Scroll to top"
+                    title="Scroll to top"
+                >
+                    ↑
+                </button>
+            </div>
             <div className="p-3">
                 {order.length === 0 ? (
                     <div className="text-sm text-[#cccccc]">Loading
