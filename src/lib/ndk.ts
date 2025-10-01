@@ -213,6 +213,22 @@ export const logout = () => {
     switchRelays(DEFAULT_RELAYS).catch(() => {})
 }
 
+// Ensure an NIP-07 signer is available on the NDK instance
+export const ensureSigner = async (): Promise<boolean> => {
+    try {
+        if ((ndk as any).signer) return true
+        const nip07 = (window as any).nostr
+        if (!nip07 || typeof nip07.getPublicKey !== 'function') return false
+        const signer = new NDKNip07Signer()
+        ndk.signer = signer
+        // Warm up permissions (non-fatal if it times out)
+        try { await withTimeout(signer.user(), 5000, 'NIP-07 getPublicKey') } catch {}
+        return true
+    } catch {
+        return false
+    }
+}
+
 // Initialize NDK when module loads
 initializeNDK()
 

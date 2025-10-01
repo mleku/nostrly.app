@@ -5,9 +5,10 @@ import {
     initializeNDK,
     type LoggedInUser,
     ndk,
-    withTimeout
+    withTimeout,
+    ensureSigner
 } from '@/lib/ndk'
-import {NDKEvent, type NDKFilter} from '@nostr-dev-kit/ndk'
+import {NDKEvent, type NDKFilter, NDKRelaySet} from '@nostr-dev-kit/ndk'
 import {useEffect, useMemo, useRef, useState} from 'react'
 import {nip19} from 'nostr-tools'
 import {getRootEventHexId, getParentEventHexId} from '@/lib/event'
@@ -30,6 +31,7 @@ type FeedMode =
     | 'hashtag'
     | 'notifications'
     | 'relays'
+    | 'relay-view'
 
 // Event kinds to include in feeds (global and user)
 const FEED_KINDS: number[] = [1, 1111, 6, 7, 30023, 9802, 1068, 1222, 1244, 20, 21, 22]
@@ -1154,6 +1156,10 @@ function Home() {
     // Feed mode and user info (from localStorage saved by Root)
     const [mode, setMode] = useState<FeedMode>('global')
     const [user, setUser] = useState<LoggedInUser | null>(null)
+    // Selected relay for relay-view
+    const [currentRelayUrl, setCurrentRelayUrl] = useState<string | null>(null)
+    // Opened relay tabs (relay-view)
+    const [openedRelays, setOpenedRelays] = useState<string[]>([]) 
 
     // New note composer overlay state (moved here to avoid temporal dead zone)
     const [isNewNoteOpen, setIsNewNoteOpen] = useState(false)
@@ -1222,9 +1228,11 @@ function Home() {
                 currentNoteId,
                 profilePubkey,
                 currentHashtag,
+                currentRelayUrl,
                 openedNotes,
                 openedProfiles,
                 openedHashtags,
+                openedRelays,
                 openedThreads,
                 threadTriggerNotes,
                 isNewNoteOpen,
@@ -2144,6 +2152,140 @@ function Home() {
         }
     })
 
+    // --- Relays editing state & helpers ---
+    const [relayDrafts, setRelayDrafts] = useState<RelayInfo[] | null>(null)
+    const [newRelayUrl, setNewRelayUrl] = useState<string>('')
+    const [isPublishingRelays, setIsPublishingRelays] = useState<boolean>(false)
+
+    // Initialize drafts from loaded list when entering relays mode
+    useEffect(() => {
+        if (mode !== 'relays') return
+        if (Array.isArray(relaysQuery.data)) {
+            // clone to avoid mutating query cache
+            setRelayDrafts(relaysQuery.data.map(r => ({...r})))
+        } else {
+            setRelayDrafts([])
+        }
+    }, [mode, relaysQuery.data])
+
+    // Ensure signer is ready when entering Relays mode
+    useEffect(() => {
+        if (mode === 'relays' && user?.pubkey) {
+            try { ensureSigner() } catch {}
+        }
+    }, [mode, user?.pubkey])
+
+    const normalizeRelayUrl = (u: string): string => {
+        let s = (u || '').trim()
+        if (!s) return ''
+        if (!/^wss?:\/\//i.test(s)) s = 'wss://' + s
+        // force wss scheme if ws provided
+        s = s.replace(/^ws:\/\//i, 'wss://')
+        try {
+            // Use URL to normalize trailing slashes, etc.
+            const url = new URL(s)
+            // remove trailing slash for consistent tags
+            const out = `${url.protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`
+            return out
+        } catch {
+            return s
+        }
+    }
+
+    const relayToHttpUrl = (u: string): string => {
+        try {
+            const src = (u || '').trim()
+            if (!src) return ''
+            // If it already is http(s), return as-is (normalize trailing slash off)
+            const normalized = src.replace(/^ws:\/\//i, 'wss://')
+            const url = new URL(/^wss?:/i.test(normalized) ? normalized.replace(/^wss?:\/\//i, 'https://') : (/^https?:/i.test(normalized) ? normalized : 'https://' + normalized))
+            return `${url.protocol}//${url.host}${url.pathname.replace(/\/$/, '')}`
+        } catch {
+            return (u || '').trim().replace(/^wss?:\/\//i, 'https://')
+        }
+    }
+
+    const upsertRelay = (url: string, updater: (prev: RelayInfo | null) => RelayInfo | null) => {
+        setRelayDrafts(prev => {
+            const list = [...(prev || [])]
+            const idx = list.findIndex(r => r.url === url)
+            const next = updater(idx >= 0 ? list[idx] : null)
+            if (!next) {
+                if (idx >= 0) list.splice(idx, 1)
+                return list
+            }
+            if (idx >= 0) list[idx] = next
+            else list.push(next)
+            return list
+        })
+    }
+
+    const toggleFlag = (url: string, key: 'read' | 'write' | 'inbox') => {
+        upsertRelay(url, (prev) => {
+            const base: RelayInfo = prev || { url, read: false, write: false, inbox: false, outbox: false }
+            return { ...base, [key]: !base[key] }
+        })
+    }
+
+    const deleteRelay = (url: string) => {
+        setRelayDrafts(prev => (prev || []).filter(r => r.url !== url))
+    }
+
+    const publishRelayList = async (draftsOverride?: RelayInfo[]) => {
+        if (!user?.pubkey) {
+            alert('Please log in to publish your relay list.')
+            return
+        }
+        const sourceDrafts = draftsOverride ?? relayDrafts
+        if (!sourceDrafts) return
+        setIsPublishingRelays(true)
+        try {
+            // Ensure we have a signer (e.g., after page reload)
+            const hasSigner = await ensureSigner()
+            if (!hasSigner) {
+                alert('A Nostr signer (NIP-07 extension) is required to publish your relay list. Please log in or enable your extension and try again.')
+                return
+            }
+
+            const event = new NDKEvent(ndk)
+            event.kind = 10002 as any
+            event.content = ''
+            const tags: string[][] = []
+            for (const r of sourceDrafts) {
+                const url = normalizeRelayUrl(r.url)
+                if (!url) continue
+                const markers: string[] = []
+                if (r.read) markers.push('read')
+                if (r.write) markers.push('write')
+                if (r.inbox) markers.push('inbox')
+                tags.push(['r', url, ...markers])
+            }
+            event.tags = tags
+            await event.publish()
+            // Print the relay list event in the console when it is published
+            try {
+                const raw = typeof (event as any).rawEvent === 'function' ? (event as any).rawEvent() : {
+                    kind: event.kind,
+                    content: event.content,
+                    tags: event.tags,
+                    created_at: event.created_at,
+                    pubkey: (event as any).pubkey,
+                    id: event.id,
+                }
+                console.log('Published relay list event:', raw)
+            } catch {
+                console.log('Published relay list event:', { kind: event.kind, tags: event.tags })
+            }
+            // Refetch and sync drafts to latest
+            await relaysQuery.refetch()
+        } catch (e) {
+            console.error('Failed to publish relay list', e)
+            alert('Failed to publish relay list. See console for details.')
+        } finally {
+            setIsPublishingRelays(false)
+        }
+    }
+
     // Utility to chunk an array
     function chunk<T>(arr: T[], size: number): T[][] {
         const out: T[][] = []
@@ -2248,6 +2390,7 @@ function Home() {
         else if (mode === 'follows') label = 'Follows'
         else if (mode === 'notifications') label = 'Notifications'
         else if (mode === 'relays') label = 'Relays'
+        else if (mode === 'relay-view') label = currentRelayUrl ? `Relay: ${(() => { try { const u = new URL(currentRelayUrl); return u.host } catch { return currentRelayUrl } })()}` : 'Relay'
         else if (mode === 'user') label = 'Me'
         else if (mode === 'profile') {
             if (profilePubkey && user?.pubkey && profilePubkey === user.pubkey) label = 'Me'
@@ -2265,22 +2408,24 @@ function Home() {
         queryKey:
             mode === 'global'
                 ? ['global-feed']
-                : mode === 'user'
-                    ? ['user-feed', user?.pubkey ?? 'anon']
-                    : mode === 'profile'
-                        ? ['profile-feed', profilePubkey ?? 'none']
-                        : mode === 'hashtag'
-                            ? ['hashtag-feed', currentHashtag || 'none']
-                            : mode === 'notifications'
-                                ? ['notifications-feed', user?.pubkey ?? 'anon']
-                                : ['follows-feed', user?.pubkey ?? 'anon', (followsQuery.data || []).length],
+                : mode === 'relay-view'
+                    ? ['relay-view', currentRelayUrl || 'none']
+                    : mode === 'user'
+                        ? ['user-feed', user?.pubkey ?? 'anon']
+                        : mode === 'profile'
+                            ? ['profile-feed', profilePubkey ?? 'none']
+                            : mode === 'hashtag'
+                                ? ['hashtag-feed', currentHashtag || 'none']
+                                : mode === 'notifications'
+                                    ? ['notifications-feed', user?.pubkey ?? 'anon']
+                                    : ['follows-feed', user?.pubkey ?? 'anon', (followsQuery.data || []).length],
         retry: (failureCount: number) => mode === 'hashtag' ? false : failureCount < 2,
         initialPageParam: null as number | null, // until cursor (unix seconds)
         queryFn: async ({pageParam}) => {
-            // Global, user, profile, hashtag and notifications modes use a single filter
-            if (mode === 'global' || mode === 'user' || mode === 'profile' || mode === 'hashtag' || mode === 'notifications') {
+            // Global, relay-view, user, profile, hashtag and notifications modes use a single filter
+            if (mode === 'global' || mode === 'relay-view' || mode === 'user' || mode === 'profile' || mode === 'hashtag' || mode === 'notifications') {
                 const filter: NDKFilter = {
-                    kinds: (mode === 'hashtag' || mode === 'global') ? FEED_KINDS_NO_REACTIONS : FEED_KINDS,
+                    kinds: (mode === 'hashtag' || mode === 'global' || mode === 'relay-view') ? FEED_KINDS_NO_REACTIONS : FEED_KINDS,
                     limit: PAGE_SIZE,
                 }
                 if (mode === 'user' && user?.pubkey) {
@@ -2298,7 +2443,8 @@ function Home() {
                 if (pageParam) {
                     ;(filter as any).until = pageParam
                 }
-                const events = await withTimeout(ndk.fetchEvents(filter), 8000, 'fetch older events')
+                const relaySet = (mode === 'relay-view' && currentRelayUrl) ? NDKRelaySet.fromRelayUrls([currentRelayUrl], ndk as any) : undefined
+                                const events = await withTimeout(ndk.fetchEvents(filter as any, undefined, relaySet as any), 8000, 'fetch older events')
                 const list = Array.from(events).sort((a, b) => (b.created_at || 0) - (a.created_at || 0))
                 // Log when hashtag query hits EOSE with no results
                 if (mode === 'hashtag' && currentHashtag && list.length === 0) {
@@ -2335,7 +2481,7 @@ function Home() {
             return ts > 0 ? ts : null
         },
         refetchOnWindowFocus: false,
-        enabled: mode === 'global' || (mode === 'profile' ? !!profilePubkey : mode === 'hashtag' ? !!currentHashtag : mode === 'notifications' ? !!user?.pubkey : !!user?.pubkey),
+        enabled: mode === 'global' || mode === 'relay-view' || (mode === 'profile' ? !!profilePubkey : mode === 'hashtag' ? !!currentHashtag : mode === 'notifications' ? !!user?.pubkey : !!user?.pubkey),
     })
 
     // IntersectionObservers to trigger loading more (bottom) and fetching newer (top)
@@ -2394,9 +2540,9 @@ function Home() {
         lastTopFetchRef.current = now
         setIsFetchingNewer(true)
         try {
-            if (mode === 'global' || mode === 'user' || mode === 'profile' || mode === 'hashtag' || mode === 'notifications') {
+            if (mode === 'global' || mode === 'relay-view' || mode === 'user' || mode === 'profile' || mode === 'hashtag' || mode === 'notifications') {
                 const filter: NDKFilter = {
-                    kinds: (mode === 'hashtag' || mode === 'global') ? FEED_KINDS_NO_REACTIONS : FEED_KINDS,
+                    kinds: (mode === 'hashtag' || mode === 'global' || mode === 'relay-view') ? FEED_KINDS_NO_REACTIONS : FEED_KINDS,
                     limit: PAGE_SIZE,
                 }
                 if (mode === 'user' && user?.pubkey) {
@@ -2414,20 +2560,23 @@ function Home() {
                 if (newestTs > 0) {
                     ;(filter as any).since = newestTs + 1
                 }
-                const eventsSet = await withTimeout(ndk.fetchEvents(filter), 8000, 'fetch newer events')
+                const relaySetNewer = (mode === 'relay-view' && currentRelayUrl) ? NDKRelaySet.fromRelayUrls([currentRelayUrl], ndk as any) : undefined
+                                const eventsSet = await withTimeout(ndk.fetchEvents(filter as any, undefined, relaySetNewer as any), 8000, 'fetch newer events')
                 const fresh = Array.from(eventsSet).sort((a, b) => (b.created_at || 0) - (a.created_at || 0))
                 // Thread processing removed - threads now load on demand only
 
                 if (fresh.length > 0) {
                     const key: any = mode === 'global'
                         ? ['global-feed']
-                        : mode === 'profile'
-                            ? ['profile-feed', profilePubkey ?? 'none']
-                            : mode === 'hashtag'
-                                ? ['hashtag-feed', currentHashtag ?? '']
-                                : mode === 'notifications'
-                                    ? ['notifications-feed', user?.pubkey ?? 'anon']
-                                    : ['user-feed', user?.pubkey ?? 'anon']
+                        : mode === 'relay-view'
+                            ? ['relay-view', currentRelayUrl || 'none']
+                            : mode === 'profile'
+                                ? ['profile-feed', profilePubkey ?? 'none']
+                                : mode === 'hashtag'
+                                    ? ['hashtag-feed', currentHashtag ?? '']
+                                    : mode === 'notifications'
+                                        ? ['notifications-feed', user?.pubkey ?? 'anon']
+                                        : ['user-feed', user?.pubkey ?? 'anon']
                     queryClient.setQueryData<any>(key, (oldData: any) => {
                         if (!oldData) return {
                             pages: [fresh],
@@ -2596,12 +2745,12 @@ function Home() {
         for (const page of feedQuery.data?.pages || []) {
             for (const ev of page) {
                 if (ev.id && !map.has(ev.id)) {
-                    // Filter out events from muted users for follows and notifications feeds
-                    if ((mode === 'follows' || mode === 'notifications') && ev.pubkey && muteList.has(ev.pubkey)) {
+                    // Filter out events from muted users for follows, notifications, and relay-view feeds
+                    if ((mode === 'follows' || mode === 'notifications' || mode === 'relay-view') && ev.pubkey && muteList.has(ev.pubkey)) {
                         continue
                     }
-                    // Filter out events that mention muted users for follows and notifications feeds
-                    if ((mode === 'follows' || mode === 'notifications') && ev.tags) {
+                    // Filter out events that mention muted users for follows, notifications, and relay-view feeds
+                    if ((mode === 'follows' || mode === 'notifications' || mode === 'relay-view') && ev.tags) {
                         const mentionsMutedUser = ev.tags.some(tag =>
                             tag[0] === 'p' && tag[1] && muteList.has(tag[1])
                         )
@@ -2731,6 +2880,46 @@ function Home() {
             return
         }
         setOpenedProfiles(prev => prev.filter(p => p.pubkey !== pub))
+    }
+
+    // Close the current relay-view and restore previous or default view
+    const closeCurrentRelayAndRestore = () => {
+        const current = currentRelayUrl
+        if (!current) return
+        const after = openedRelays.filter(u => u !== current)
+        setOpenedRelays(after)
+
+        // Restore previous view if available
+        const restore = prevView
+        if (restore) {
+            if (restore.mode === 'relay-view' && restore.noteId && after.some(u => u === restore.noteId)) {
+                // not really applicable; keep for symmetry
+            }
+            setCurrentRelayUrl(null)
+            if (restore.mode === 'profile' && restore.profilePubkey) {
+                setProfilePubkey(restore.profilePubkey)
+            }
+            setMode(restore.mode)
+            setPrevView(null)
+            return
+        }
+
+        if (after.length > 0) {
+            setCurrentRelayUrl(after[0])
+            setMode('relay-view')
+        } else {
+            setCurrentRelayUrl(null)
+            setMode('global')
+        }
+    }
+
+    // Remove a specific relay tab (if it's active, use the full close-and-restore flow)
+    const removeRelayTab = (url: string) => {
+        if (url === currentRelayUrl) {
+            closeCurrentRelayAndRestore()
+            return
+        }
+        setOpenedRelays(prev => prev.filter(u => u !== url))
     }
 
     return (
@@ -2864,6 +3053,39 @@ function Home() {
                             </button>
                         </div>
                     ))}
+                    {/* Opened relay tabs */}
+                    {openedRelays.map((u) => {
+                        let label = u
+                        try { const url = new URL(u); label = url.host } catch {}
+                        return (
+                            <div key={`relay-${u}`} className="relative inline-block group">
+                                <button
+                                    aria-label={`Relay ${label}`}
+                                    onClick={() => {
+                                        if (!(mode === 'relay-view' && currentRelayUrl === u)) {
+                                            setPrevView({ mode, profilePubkey, noteId: currentNoteId })
+                                        }
+                                        setCurrentRelayUrl(u);
+                                        setMode('relay-view')
+                                    }}
+                                    className={`w-12 lg:w-40 h-12 ${mode === 'relay-view' && currentRelayUrl === u ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-start px-3 relative overflow-hidden`}
+                                    title={`Open relay ${label}`}
+                                >
+                                    <span className="text-[#cccccc] select-none whitespace-nowrap">{label}</span>
+                                    <div className={`absolute right-0 top-0 w-3 h-full bg-gradient-to-l ${mode === 'relay-view' && currentRelayUrl === u ? 'from-[#162a2f]' : 'from-black group-hover:from-[#1b3a40]'} to-transparent pointer-events-none`}></div>
+                                </button>
+                                <button
+                                    type="button"
+                                    aria-label="Close relay tab"
+                                    className="flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-black/60 text-white hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeRelayTab(u) }}
+                                    title="Close tab"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        )
+                    })}
                     {user && (
                         <div className="relative inline-block group">
                             <button
@@ -3016,37 +3238,153 @@ function Home() {
                                 <div className="p-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <h2 className="text-[#f0f0f0] text-lg font-semibold">Your Relays</h2>
-                                        <div className="text-xs text-[#9aa8ad]">{(relaysQuery.data?.length || 0)} total</div>
+                                        <div className="text-xs text-[#9aa8ad]">{(relayDrafts?.length || 0)} total</div>
                                     </div>
-                                    {relaysQuery.isLoading ? (
+                                    {relaysQuery.isLoading && (
                                         <div className="text-[#9aa8ad]">Loading relays…</div>
-                                    ) : (relaysQuery.data && relaysQuery.data.length > 0 ? (
-                                        <ul className="divide-y divide-[#37474f] rounded-lg overflow-hidden border border-[#37474f]">
-                                            {relaysQuery.data.map((r) => (
-                                                <li key={r.url} className="p-3 bg-[#1a2529]">
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`inline-block w-2 h-2 rounded-full ${r.connected ? 'bg-green-400' : 'bg-gray-500'}`} title={r.connected ? 'Connected' : 'Disconnected'}></span>
-                                                                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[#9ecfff] hover:text-white truncate inline-block max-w-full">{r.url}</a>
+                                    )}
+                                    {!relaysQuery.isLoading && (
+                                        <>
+                                            {relayDrafts && relayDrafts.length > 0 ? (
+                                                <ul className="divide-y divide-[#37474f] rounded-lg overflow-hidden border border-[#37474f]">
+                                                    {relayDrafts.map((r) => (
+                                                        <li key={r.url} className="p-3 bg-[#1a2529]">
+                                                            <div className="flex items-center justify-between gap-3">
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className={`inline-block w-2 h-2 rounded-full ${r.connected ? 'bg-green-400' : 'bg-gray-500'}`} title={r.connected ? 'Connected' : 'Disconnected'}></span>
+                                                                        <button type="button" onClick={() => { 
+                                                                                                                                                if (!(mode === 'relay-view' && currentRelayUrl === r.url)) {
+                                                                                                                                                    setPrevView({ mode, profilePubkey, noteId: currentNoteId })
+                                                                                                                                                }
+                                                                                                                                                setOpenedRelays(prev => prev.includes(r.url) ? prev : [r.url, ...prev])
+                                                                                                                                                setCurrentRelayUrl(r.url); 
+                                                                                                                                                setMode('relay-view') 
+                                                                                                                                            }} className="text-[#9ecfff] hover:text-white truncate inline-block max-w-full" title="Open relay view">
+                                                                            {r.url}
+                                                                        </button>
+                                                                        <a href={relayToHttpUrl(r.url)} target="_blank" rel="noopener noreferrer" className="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/40 hover:bg-black/60 border border-[#37474f] text-[#cccccc]" title="Open relay website">
+                                                                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5">
+                                                                                <path d="M14 3h7v7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                                <path d="M21 3l-9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                                <path d="M7 7H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                                                            </svg>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 flex-wrap">
+                                                                    <button type="button"
+                                                                        disabled={isPublishingRelays}
+                                                                        onClick={() => {
+                                                                            setRelayDrafts(prev => {
+                                                                                const list = [...(prev || [])]
+                                                                                const idx = list.findIndex(x => x.url === r.url)
+                                                                                const base = idx >= 0 ? list[idx] : { url: r.url, read: false, write: false, inbox: false, outbox: false }
+                                                                                const next = { ...base, read: !base.read }
+                                                                                if (idx >= 0) list[idx] = next; else list.push(next)
+                                                                                publishRelayList(list)
+                                                                                return list
+                                                                            })
+                                                                        }}
+                                                                        className={`${r.read ? 'bg-[#0e2a2f] text-[#9bd7ff] border-[#27444b]' : 'bg-black/40 text-[#cccccc] border-[#37474f] hover:bg-black/60'} text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border`}
+                                                                        title="Toggle Read">
+                                                                        Read
+                                                                    </button>
+                                                                    <button type="button"
+                                                                        disabled={isPublishingRelays}
+                                                                        onClick={() => {
+                                                                            setRelayDrafts(prev => {
+                                                                                const list = [...(prev || [])]
+                                                                                const idx = list.findIndex(x => x.url === r.url)
+                                                                                const base = idx >= 0 ? list[idx] : { url: r.url, read: false, write: false, inbox: false, outbox: false }
+                                                                                const next = { ...base, write: !base.write }
+                                                                                if (idx >= 0) list[idx] = next; else list.push(next)
+                                                                                publishRelayList(list)
+                                                                                return list
+                                                                            })
+                                                                        }}
+                                                                        className={`${r.write ? 'bg-[#2a1f0e] text-[#ffd29b] border-[#4b3b27]' : 'bg-black/40 text-[#cccccc] border-[#37474f] hover:bg-black/60'} text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border`}
+                                                                        title="Toggle Write">
+                                                                        Write
+                                                                    </button>
+                                                                    <button type="button"
+                                                                        disabled={isPublishingRelays}
+                                                                        onClick={() => {
+                                                                            setRelayDrafts(prev => {
+                                                                                const list = [...(prev || [])]
+                                                                                const idx = list.findIndex(x => x.url === r.url)
+                                                                                const base = idx >= 0 ? list[idx] : { url: r.url, read: false, write: false, inbox: false, outbox: false }
+                                                                                const next = { ...base, inbox: !base.inbox }
+                                                                                if (idx >= 0) list[idx] = next; else list.push(next)
+                                                                                publishRelayList(list)
+                                                                                return list
+                                                                            })
+                                                                        }}
+                                                                        className={`${r.inbox ? 'bg-[#0e2f13] text-[#9bffb5] border-[#274b33]' : 'bg-black/40 text-[#cccccc] border-[#37474f] hover:bg-black/60'} text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border`}
+                                                                        title="Toggle Inbox">
+                                                                        Inbox
+                                                                    </button>
+                                                                    <button type="button"
+                                                                        disabled={isPublishingRelays}
+                                                                        onClick={() => {
+                                                                            setRelayDrafts(prev => {
+                                                                                const list = (prev || []).filter(x => x.url !== r.url)
+                                                                                publishRelayList(list)
+                                                                                return list
+                                                                            })
+                                                                        }}
+                                                                        className={`ml-2 w-8 h-8 rounded-full bg-black/50 text-white hover:bg-black/70 flex items-center justify-center border border-[#37474f]`}
+                                                                        title="Remove relay">
+                                                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4">
+                                                                            <path d="M3 6h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                                                                            <path d="M8 6V4h8v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" strokeWidth="1.5"/>
+                                                                            <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="1.5"/>
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            {r.read && <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#0e2a2f] text-[#9bd7ff] border border-[#27444b]">Read</span>}
-                                                            {r.write && <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#2a1f0e] text-[#ffd29b] border border-[#4b3b27]">Write</span>}
-                                                            {r.inbox && <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#0e2f13] text-[#9bffb5] border border-[#274b33]">Inbox</span>}
-                                                            {r.outbox && <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#2f0e1f] text-[#ff9bbd] border border-[#4b273b]">Outbox</span>}
-                                                            {!r.read && !r.write && !r.inbox && !r.outbox && (
-                                                                <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-black/40 text-[#cccccc] border border-[#37474f]">Unspecified</span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    ) : (
-                                        <div className="text-[#9aa8ad]">No relays found. Add some in your client settings.</div>
-                                    ))}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <div className="text-[#9aa8ad]">No relays found.</div>
+                                            )}
+
+                                            {/* Add relay */}
+                                            <div className="mt-4 flex items-center gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={newRelayUrl}
+                                                    onChange={(e) => setNewRelayUrl(e.target.value)}
+                                                    placeholder="wss://your-relay.example"
+                                                    className="flex-1 bg-[#0e1518] text-[#e0e0e0] px-3 py-2 rounded border border-[#27444b] outline-none"
+                                                    disabled={isPublishingRelays}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    disabled={isPublishingRelays || !newRelayUrl.trim()}
+                                                    onClick={() => {
+                                                        const u = normalizeRelayUrl(newRelayUrl)
+                                                        if (!u) return
+                                                        setRelayDrafts(prev => {
+                                                            const list = [...(prev || [])]
+                                                            const idx = list.findIndex(x => x.url === u)
+                                                            const next = { url: u, read: true, write: true, inbox: false, outbox: false }
+                                                            if (idx >= 0) list[idx] = next; else list.push(next)
+                                                            publishRelayList(list)
+                                                            return list
+                                                        })
+                                                        setNewRelayUrl('')
+                                                    }}
+                                                    className={`px-3 py-2 rounded bg-[#1b3a40] text-white hover:bg-[#215059] disabled:opacity-60`}>
+                                                    Add relay
+                                                </button>
+                                            </div>
+                                            {isPublishingRelays && (
+                                                <div className="mt-2 text-xs text-[#9aa8ad]">Publishing updated relay list…</div>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                             )}
                             {mode === 'profile' && (
@@ -3878,6 +4216,39 @@ function Home() {
                                         </button>
                                     </div>
                                 ))}
+                                {/* Opened relay tabs */}
+                                {openedRelays.map((u) => {
+                                    let label = u
+                                    try { const url = new URL(u); label = url.host } catch {}
+                                    return (
+                                        <div key={`relay-${u}`} className="relative group">
+                                            <button
+                                                aria-label={`Relay ${label}`}
+                                                onClick={() => {
+                                                    if (!(mode === 'relay-view' && currentRelayUrl === u)) {
+                                                        setPrevView({ mode, profilePubkey, noteId: currentNoteId })
+                                                    }
+                                                    setCurrentRelayUrl(u);
+                                                    setMode('relay-view');
+                                                    setIsSidebarDrawerOpen(false);
+                                                }}
+                                                className={`w-full h-12 ${mode === 'relay-view' && currentRelayUrl === u ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-start px-3 rounded`}
+                                                title={`Open relay ${label}`}
+                                            >
+                                                <span className="text-[#cccccc] select-none truncate">{label}</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                aria-label="Close relay tab"
+                                                className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-black/60 text-white hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeRelayTab(u) }}
+                                                title="Close tab"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    )
+                                })}
                                 {/* Feed mode buttons */}
                                 {user && (
                                     <button
