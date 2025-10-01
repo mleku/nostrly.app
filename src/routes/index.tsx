@@ -29,6 +29,7 @@ type FeedMode =
     | 'note'
     | 'hashtag'
     | 'notifications'
+    | 'relays'
 
 // Event kinds to include in feeds (global and user)
 const FEED_KINDS: number[] = [1, 1111, 6, 7, 30023, 9802, 1068, 1222, 1244, 20, 21, 22]
@@ -1169,6 +1170,50 @@ function Home() {
     const [quoteOpen, setQuoteOpen] = useState<Record<string, boolean>>({})
     const [quoteBuffers, setQuoteBuffers] = useState<Record<string, string>>({})
 
+    // Repost mode state (moved here to avoid temporal dead zone)
+    const [repostMode, setRepostMode] = useState<Record<string, boolean>>({})
+    const toggleRepostMode = (ev: NDKEvent) => {
+        const id = ev.id || ''
+        if (!id) return
+        setRepostMode(prev => ({...prev, [id]: !prev[id]}))
+    }
+    const cancelRepost = (ev: NDKEvent) => {
+        const id = ev.id || ''
+        if (!id) return
+        setRepostMode(prev => ({...prev, [id]: false}))
+    }
+
+    // Scoped repost toggles: maintain separate states per scope (e.g., feed vs preview)
+    const onRepostScoped = (scopeId: string) => (ev: NDKEvent) => {
+        const id = ev.id || ''
+        if (!id) return
+        const key = `${scopeId}|${id}`
+        setRepostMode(prev => ({...prev, [key]: !prev[key]}))
+    }
+    const cancelRepostScoped = (scopeId: string) => (ev: NDKEvent) => {
+        const id = ev.id || ''
+        if (!id) return
+        const key = `${scopeId}|${id}`
+        setRepostMode(prev => ({...prev, [key]: false}))
+    }
+
+    // Action message state: per-event label to show in-note (moved here to avoid temporal dead zone)
+    const [actionMessages, setActionMessages] = useState<Record<string, string>>({})
+    // Unused but keeping for potential future use
+    const _showActionMessage = (ev: NDKEvent, label: string) => {
+        const id = ev.id || ''
+        if (!id) return
+        setActionMessages(prev => ({...prev, [id]: label}))
+        // Auto-clear after 3 seconds
+        setTimeout(() => {
+            setActionMessages(prev => {
+                const copy = {...prev}
+                if (copy[id] === label) delete copy[id]
+                return copy
+            })
+        }, 3000)
+    }
+
     // --- UI state persistence using comprehensive database storage ---
     const saveUIState = async (immediate: boolean = false) => {
         try {
@@ -1553,49 +1598,7 @@ function Home() {
         }
     }, [threadTriggerNotes])
 
-    // Action message state: per-event label to show in-note
-    const [actionMessages, setActionMessages] = useState<Record<string, string>>({})
-    // Unused but keeping for potential future use
-    const _showActionMessage = (ev: NDKEvent, label: string) => {
-        const id = ev.id || ''
-        if (!id) return
-        setActionMessages(prev => ({...prev, [id]: label}))
-        // Auto-clear after 3 seconds
-        setTimeout(() => {
-            setActionMessages(prev => {
-                const copy = {...prev}
-                if (copy[id] === label) delete copy[id]
-                return copy
-            })
-        }, 3000)
-    }
 
-    // Repost mode state: per-event toggle for repost confirmation
-    const [repostMode, setRepostMode] = useState<Record<string, boolean>>({})
-    const toggleRepostMode = (ev: NDKEvent) => {
-        const id = ev.id || ''
-        if (!id) return
-        setRepostMode(prev => ({...prev, [id]: !prev[id]}))
-    }
-    const cancelRepost = (ev: NDKEvent) => {
-        const id = ev.id || ''
-        if (!id) return
-        setRepostMode(prev => ({...prev, [id]: false}))
-    }
-
-    // Scoped repost toggles: maintain separate states per scope (e.g., feed vs preview)
-    const onRepostScoped = (scopeId: string) => (ev: NDKEvent) => {
-        const id = ev.id || ''
-        if (!id) return
-        const key = `${scopeId}|${id}`
-        setRepostMode(prev => ({...prev, [key]: !prev[key]}))
-    }
-    const cancelRepostScoped = (scopeId: string) => (ev: NDKEvent) => {
-        const id = ev.id || ''
-        if (!id) return
-        const key = `${scopeId}|${id}`
-        setRepostMode(prev => ({...prev, [key]: false}))
-    }
 
     // Reply composers: independent per-note open state and persistent buffers
     const [replyOpen, setReplyOpen] = useState<Record<string, boolean>>({})
@@ -2082,6 +2085,65 @@ function Home() {
         },
     })
 
+    // Relays list for relays mode
+    type RelayInfo = { url: string; read: boolean; write: boolean; inbox: boolean; outbox: boolean; connected?: boolean }
+    const relaysQuery = useQuery<RelayInfo[]>({
+        queryKey: ['relays-list', user?.pubkey || 'anon', mode],
+        enabled: mode === 'relays',
+        staleTime: 1000 * 60,
+        queryFn: async () => {
+            try {
+                const status = getConnectionStatus()
+                const connectedMap = new Map<string, boolean>(
+                    (status.relays || []).map((r: any) => [r.url, !!r.connected])
+                )
+
+                // If we have a logged-in user, attempt to fetch their NIP-65 relay list (kind 10002)
+                if (user?.pubkey) {
+                    const filter: NDKFilter = { kinds: [10002 as any], authors: [user.pubkey], limit: 1 }
+                    const set = await withTimeout(ndk.fetchEvents(filter), 7000, 'fetch relay list')
+                    const latest = Array.from(set).sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0]
+                    if (latest) {
+                        const map = new Map<string, RelayInfo>()
+                        for (const t of latest.tags || []) {
+                            if (!t || (t[0] !== 'r' && t[0] !== 'relay')) continue
+                            const url = String(t[1] || '').trim()
+                            if (!url) continue
+                            const markers = (t.slice(2) || []).map(x => String(x).toLowerCase())
+                            const prev = map.get(url) || { url, read: false, write: false, inbox: false, outbox: false }
+                            if (markers.length === 0) {
+                                prev.read = true; prev.write = true
+                            }
+                            for (const m of markers) {
+                                if (m === 'read') prev.read = true
+                                else if (m === 'write') prev.write = true
+                                else if (m === 'inbox') prev.inbox = true
+                                else if (m === 'outbox') prev.outbox = true
+                                else if (m === 'both') { prev.read = true; prev.write = true }
+                            }
+                            map.set(url, prev)
+                        }
+                        const list = Array.from(map.values()).map(it => ({
+                            ...it,
+                            connected: connectedMap.get(it.url)
+                        }))
+                        if (list.length > 0) return list
+                    }
+                }
+
+                // Fallback to current connected relays
+                const fallbacks: RelayInfo[] = Array.from(connectedMap.entries()).map(([url, connected]) => ({
+                    url, read: true, write: true, inbox: false, outbox: false, connected
+                }))
+                // If no relays known at all, return a placeholder to avoid empty UI
+                return fallbacks
+            } catch (e) {
+                console.warn('Failed to load relay list', e)
+                return []
+            }
+        }
+    })
+
     // Utility to chunk an array
     function chunk<T>(arr: T[], size: number): T[][] {
         const out: T[][] = []
@@ -2185,6 +2247,7 @@ function Home() {
         if (mode === 'global') label = 'Global'
         else if (mode === 'follows') label = 'Follows'
         else if (mode === 'notifications') label = 'Notifications'
+        else if (mode === 'relays') label = 'Relays'
         else if (mode === 'user') label = 'Me'
         else if (mode === 'profile') {
             if (profilePubkey && user?.pubkey && profilePubkey === user.pubkey) label = 'Me'
@@ -2823,12 +2886,26 @@ function Home() {
                                 className={`w-12 lg:w-40 h-12 ${mode === 'notifications' ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center lg:justify-start lg:px-3`}
                                 title={'Show notifications and mentions'}
                             >
-
+                                
                                 <BellIcon className="w-6 h-6 text-[#cccccc]" />
                                 <span className="hidden lg:inline ml-2 text-[#cccccc] select-none truncate">Notifications</span>
                             </button>
                         </div>
                     )}
+                    <div className="relative inline-block group">
+                        <button
+                            aria-label="Relays"
+                            onClick={() => setMode('relays')}
+                            className={`w-12 lg:w-40 h-12 ${mode === 'relays' ? 'bg-[#162a2f]' : 'bg-black hover:bg-[#1b3a40]'} flex items-center justify-center lg:justify-start lg:px-3`}
+                            title={'Show your relay list'}
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" className="w-6 h-6 text-[#cccccc]">
+                                <path d="M5 12a4 4 0 0 1 4-4h6a4 4 0 1 1 0 8H9a4 4 0 1 1-4-4z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                                <path d="M9 8V4m6 16v-4" stroke="currentColor" strokeWidth="1.5"/>
+                            </svg>
+                            <span className="hidden lg:inline ml-2 text-[#cccccc] select-none">Relays</span>
+                        </button>
+                    </div>
                     <div className="relative inline-block group">
                         <button
                             aria-label="Global feed"
@@ -2873,7 +2950,7 @@ function Home() {
                      className="w-full max-w-2xl flex-shrink-0 relative">
                     
                     {/* Write panel overlay on note view */}
-                    {isNewNoteOpen && (
+                    {isNewNoteOpen && mode !== 'relays' && (
                         <div className="fixed left-[3rem] lg:left-[10rem] top-12 w-full max-w-2xl z-50 p-4 bg-[#162a2f] rounded-lg shadow-xl border border-[#37474f]">
                             <div className="flex items-stretch gap-2">
                                 <textarea
@@ -2935,6 +3012,43 @@ function Home() {
                         <div
                             className="relative bg-[#162a2f] divide-y divide-[#37474f] overflow-visible shadow-lg">
                             {/* Profile header */}
+                            {mode === 'relays' && (
+                                <div className="p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h2 className="text-[#f0f0f0] text-lg font-semibold">Your Relays</h2>
+                                        <div className="text-xs text-[#9aa8ad]">{(relaysQuery.data?.length || 0)} total</div>
+                                    </div>
+                                    {relaysQuery.isLoading ? (
+                                        <div className="text-[#9aa8ad]">Loading relays…</div>
+                                    ) : (relaysQuery.data && relaysQuery.data.length > 0 ? (
+                                        <ul className="divide-y divide-[#37474f] rounded-lg overflow-hidden border border-[#37474f]">
+                                            {relaysQuery.data.map((r) => (
+                                                <li key={r.url} className="p-3 bg-[#1a2529]">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`inline-block w-2 h-2 rounded-full ${r.connected ? 'bg-green-400' : 'bg-gray-500'}`} title={r.connected ? 'Connected' : 'Disconnected'}></span>
+                                                                <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[#9ecfff] hover:text-white truncate inline-block max-w-full">{r.url}</a>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            {r.read && <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#0e2a2f] text-[#9bd7ff] border border-[#27444b]">Read</span>}
+                                                            {r.write && <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#2a1f0e] text-[#ffd29b] border border-[#4b3b27]">Write</span>}
+                                                            {r.inbox && <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#0e2f13] text-[#9bffb5] border border-[#274b33]">Inbox</span>}
+                                                            {r.outbox && <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-[#2f0e1f] text-[#ff9bbd] border border-[#4b273b]">Outbox</span>}
+                                                            {!r.read && !r.write && !r.inbox && !r.outbox && (
+                                                                <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-black/40 text-[#cccccc] border border-[#37474f]">Unspecified</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <div className="text-[#9aa8ad]">No relays found. Add some in your client settings.</div>
+                                    ))}
+                                </div>
+                            )}
                             {mode === 'profile' && (
                                 <div
                                     ref={profileHeaderRef}
@@ -3058,7 +3172,7 @@ function Home() {
                                     </div>
                                 </div>
                             )}
-                            {mode !== 'note' && (
+                            {mode !== 'note' && mode !== 'relays' && (
                                 <>
                                     {/* Pull-to-refresh area (appears when pulling or fetching newer) */}
                                     <div
@@ -3171,9 +3285,9 @@ function Home() {
                                         />
                                     </div>
                                 </div>
-                            ) : events.length === 0 && feedQuery.isLoading ? (
+                            ) : (mode !== 'relays' && events.length === 0 && feedQuery.isLoading) ? (
                                 <div className="p-6">Loading feed…</div>
-                            ) : (
+                            ) : (mode === 'relays' ? null : (
                                 <div className={hoverPreviewId ? 'grid grid-cols-2 gap-4 w-[200%]' : ''}>
                                     <div className={isNewNoteOpen ? 'mt-48' : ''}>
                                         {events.map((ev) => {
@@ -3341,13 +3455,13 @@ function Home() {
                                         </div>
                                     )}
                                 </div>
-                            )}
-                            {mode !== 'note' && !feedQuery.hasNextPage && events.length > 0 && (
+                            ))}
+                            {mode !== 'note' && mode !== 'relays' && !feedQuery.hasNextPage && events.length > 0 && (
                                 <div className="p-4 text-sm opacity-60">No more
                                     results.</div>
                             )}
 
-                            {mode !== 'note' && (
+                            {mode !== 'note' && mode !== 'relays' && (
                                 <>
                                     {/* Bottom pull-to-load area (appears when pulling up or fetching next) */}
                                     <div
@@ -3371,7 +3485,7 @@ function Home() {
                                 </>
                             )}
 
-                            {threadRootId && (
+                            {mode !== 'relays' && threadRootId && (
                                 <ThreadModal
                                     rootId={threadRootId}
                                     seedId={threadOpenSeed || undefined}
@@ -3406,7 +3520,7 @@ function Home() {
                         </div>
                     )}
                 </div>
-                {openedThreads.length > 0 && canFitBoth && !isThreadsHiddenInWideMode && (
+                {mode !== 'relays' && openedThreads.length > 0 && canFitBoth && !isThreadsHiddenInWideMode && (
                     <div
                         className="w-full max-w-2xl flex-shrink-0 sticky top-[calc(3rem+1em)] self-start">
                         <div
@@ -3476,7 +3590,7 @@ function Home() {
             </div>
 
             {/* Floating threads button for narrow screens */}
-            {openedThreads.length > 0 && !canFitBoth && !isThreadsModalOpen && (
+            {mode !== 'relays' && openedThreads.length > 0 && !canFitBoth && !isThreadsModalOpen && (
                 <div className="fixed bottom-6 right-6 z-[100]">
                     <button
                         type="button"
@@ -3491,7 +3605,7 @@ function Home() {
             )}
 
             {/* Floating threads button for wide screens when threads are hidden */}
-            {openedThreads.length > 0 && canFitBoth && isThreadsHiddenInWideMode && (
+            {mode !== 'relays' && openedThreads.length > 0 && canFitBoth && isThreadsHiddenInWideMode && (
                 <div className="fixed bottom-6 right-6 z-[100]">
                     <button
                         type="button"
@@ -3510,7 +3624,7 @@ function Home() {
 
 
             {/* Threads Modal for narrow screens */}
-            {openedThreads.length > 0 && !canFitBoth && isThreadsModalOpen && (
+            {mode !== 'relays' && openedThreads.length > 0 && !canFitBoth && isThreadsModalOpen && (
                 <div
                     className="fixed inset-0 z-50 flex items-start justify-end bg-black/60">
                     {/* Modal backdrop - click to close */}
@@ -4865,8 +4979,22 @@ export function ReactionButtonRow({eventId, onReact, excludeEl}: {
         const MARGIN = 8 // ~0.5em
         if (reactButtonRef.current) {
             const rect = reactButtonRef.current.getBoundingClientRect()
-            // Position the modal directly below the React button
-            const top = rect.bottom + MARGIN
+            
+            // Check if there's room below for the modal
+            const spaceBelow = window.innerHeight - rect.bottom - MARGIN
+            const hasRoomBelow = spaceBelow >= MODAL_HEIGHT
+            
+            let top: number
+            if (hasRoomBelow) {
+                // Position below the button
+                top = rect.bottom + MARGIN
+            } else {
+                // Position above the button
+                top = rect.top - MODAL_HEIGHT - MARGIN
+                // Ensure we don't go above the top of the viewport
+                top = Math.max(MARGIN, top)
+            }
+            
             const maxLeft = Math.max(0, window.innerWidth - MODAL_WIDTH - MARGIN)
             const left = Math.min(Math.max(MARGIN, rect.left), maxLeft)
             setModalPosition({x: left, y: top})
@@ -4980,7 +5108,7 @@ function EmojiSelectorModal({
         }
     }, [onClose, anchorEl, excludeEl])
 
-    // Track anchor element position so modal stays under the button while scrolling/resizing
+    // Track anchor element position so modal stays properly positioned while scrolling/resizing
     const [pos, setPos] = useState(position)
     useEffect(() => {
         const update = () => {
@@ -4988,9 +5116,25 @@ function EmojiSelectorModal({
                 const rect = anchorEl.getBoundingClientRect()
                 const MARGIN = 8
                 const MODAL_WIDTH = 320
+                const MODAL_HEIGHT = 400
+                
+                // Check if there's room below for the modal
+                const spaceBelow = window.innerHeight - rect.bottom - MARGIN
+                const hasRoomBelow = spaceBelow >= MODAL_HEIGHT
+                
+                let top: number
+                if (hasRoomBelow) {
+                    // Position below the button
+                    top = rect.bottom + MARGIN
+                } else {
+                    // Position above the button
+                    top = rect.top - MODAL_HEIGHT - MARGIN
+                    // Ensure we don't go above the top of the viewport
+                    top = Math.max(MARGIN, top)
+                }
+                
                 const maxLeft = Math.max(0, window.innerWidth - MODAL_WIDTH - MARGIN)
                 const left = Math.min(Math.max(MARGIN, rect.left), maxLeft)
-                const top = rect.bottom + MARGIN
                 setPos({x: left, y: top})
             } else {
                 setPos(position)
