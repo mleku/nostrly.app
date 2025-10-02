@@ -2,115 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Theme base using Tailwind utilities via global element styles */
-html, body, #root {
-  height: 100%;
-}
-body {
-  background-color: #162a2f; /* bg-bg-app (updated) */
-  color: #cccccc; /* text-text-base */
-}
-
-/* Remove outlines and focus rings globally per prior requirement */
-*:focus,
-*:focus-visible,
-*:focus-within,
-:focus,
-:focus-visible,
-:focus-within {
-  outline: none !important;
-  box-shadow: none !important;
-}
-/* Ensure common interactive elements never show outlines/rings */
-a, button, input, textarea, select, summary, details, [tabindex] {
-  outline: none !important;
-  box-shadow: none !important;
-}
-a:focus, a:active,
-button:focus, button:active,
-input:focus, input:active,
-textarea:focus, textarea:active,
-select:focus, select:active,
-summary:focus, summary:active,
-[tabindex]:focus, [tabindex]:active {
-  outline: none !important;
-  box-shadow: none !important;
-}
-/* Remove Firefox inner focus border on buttons */
-button::-moz-focus-inner,
-input::-moz-focus-inner {
-  border: 0 !important;
-}
-/* Remove default platform appearance that can add focus visuals */
-input, textarea, select, button {
-  -webkit-appearance: none;
-  appearance: none;
-}
-/* Disable tap highlight on mobile (bright flash on first tap) */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Hover overlay for note content */
-.note-hover-target {
-  position: relative;
-  border-radius: inherit; /* match container radius (e.g., rounded-lg) */
-  cursor: auto; /* default cursor; will change on hover */
-}
-.note-hover-target:hover {
-  cursor: pointer;
-}
-.note-hover-target::after {
-  content: "";
-  position: absolute;
-  z-index: 40;
-  top: -0em;
-  right: -0em;
-  bottom: -0em;
-  left: -0em;
-  border-radius: inherit; /* match container radius */
-  /*background: rgba(255, 255, 255, 0.05); !* 20% white fill *!*/
-  opacity: 0;
-  transition: opacity 150ms ease;
-  pointer-events: none; /* allow interacting with content */
-}
-.note-hover-target:hover::after {
-  opacity: 1;
-  backdrop-filter: contrast(1.2) saturate(1.05) brightness(1.05);
-  -webkit-backdrop-filter: contrast(1.2) saturate(1.05) brightness(1.05);
-}
-
-/* Make note text full white when hover overlay is active */
-.note-hover-target:hover,
-.note-hover-target:hover .prose,
-.note-hover-target:hover .prose * {
-  color: #ffffff !important;
-}
-
-/* Ensure all note content breaks long words/URLs safely */
-.note-hover-target .prose,
-.note-hover-target .prose * {
-  /* Prefer modern wrapping behavior */
-  overflow-wrap: anywhere; /* allows breaking anywhere if needed */
-  word-break: break-word;  /* legacy-friendly fallback */
-  word-wrap: break-word;   /* older spec name */
-  min-width: 0;            /* prevent flex/min-width from forcing overflow */
-}
-
-/* Global word-breaking rules to prevent long URLs/media links from overflowing */
-.prose,
-.prose * {
-  overflow-wrap: anywhere; /* modern */
-  word-break: break-word;  /* fallback */
-  word-wrap: break-word;   /* older spec name */
-  min-width: 0;            /* prevent flex children from forcing overflow */
-}
-
-/* Ensure any area using Tailwind's break-words also breaks anywhere deeply */
-.break-words,
-.break-words * {
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  word-wrap: break-word;
-  min-width: 0;
+/* App base styles (kept minimal) */
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+  body {
+    @apply m-0 min-h-screen bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  }
+  button {
+    @apply cursor-pointer px-3 py-1.5 rounded border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800;
+  }
 }

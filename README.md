@@ -1,74 +1,65 @@
-# nostrly.app
+# Nostrly App Starter
 
-A simple nostr client focused on performance and user configurability.
+A minimal React app bootstrapped with Vite + TypeScript using:
 
-Built with:
-- React 18 with TypeScript
-- TanStack Router for routing
-- TanStack Query (React Query) for state management
-- NDK (Nostr Development Kit) for Nostr protocol integration
-- Vite for fast development and building
+- React 18
+- TanStack Router (programmatic routes)
+- TanStack React Query
+- IndexedDB for:
+  - Persisting React Query cache (via `@tanstack/query-persist-client-idb`)
+  - Storing simple app state (via `idb-keyval`)
 
-## Prerequisites
+## Getting Started
 
-- [Bun](https://bun.sh/) - Fast all-in-one JavaScript runtime & toolkit
-  ```bash
-  # Install bun (if not already installed)
-  curl -fsSL https://bun.sh/install | bash
-  ```
-
-## Development
-
-### Install Dependencies
+1. Install dependencies
 
 ```bash
-bun install
+npm install
 ```
 
-### Start Development Server
-
-Start the development server with hot reload:
+2. Start the dev server
 
 ```bash
-bun run dev
+npm run dev
 ```
 
-This will start the Vite development server on `http://localhost:5173` (or the next available port) with:
-- Hot module replacement (HMR) for instant updates
-- TypeScript compilation
-- React Fast Refresh
-
-### Other Development Commands
+3. Build for production
 
 ```bash
-# Type checking
-bun run type-check
+npm run build
+```
 
-# Build for production
-bun run build
+4. Preview the production build
 
-# Preview production build
-bun run preview
+```bash
+npm run preview
 ```
 
 ## Project Structure
 
-```
-src/
-├── components/     # React components
-├── lib/           # Utilities and configurations
-│   ├── ndk.ts     # NDK (Nostr) configuration
-│   └── query.ts   # React Query configuration
-├── routes/        # TanStack Router routes
-├── App.tsx        # Main application component
-├── main.tsx       # Application entry point
-└── index.css      # Global styles
-```
+- `src/main.tsx` – wires up React Query, Router, and IndexedDB persistence
+- `src/router.tsx` – defines routes (Home and About)
+- `src/lib/idbState.ts` – tiny helper + hook to persist app state to IndexedDB
+- `src/routes/Home.tsx` – demo of persisted app state and cached network data
+- `src/routes/About.tsx` – about page
 
-## Development Features
+## Notes
 
-- **Hot Reload**: Changes are reflected instantly in the browser
-- **TypeScript**: Full type safety and IntelliSense
-- **Router DevTools**: TanStack Router devtools available in development
-- **React Query DevTools**: Query inspection and debugging
-- **NDK Integration**: Ready-to-use Nostr protocol functionality
+- React Query cache is persisted to IndexedDB under database `nostrly-app-db` store `react-query-cache`.
+- App state is stored under key `nostrly-app-state` using `idb-keyval`.
+
+Feel free to extend this starter to your app's needs.
+
+## Tailwind CSS
+
+This project is configured with Tailwind CSS via PostCSS.
+
+- Config: `tailwind.config.js`
+- PostCSS: `postcss.config.js`
+- Entry CSS: `src/index.css` (contains `@tailwind base; @tailwind components; @tailwind utilities;`)
+
+Usage:
+- Apply utility classes directly in components, e.g. `<div className="p-3">`.
+- Dark mode uses the system preference by default (media). You can switch to class strategy by setting `darkMode: 'class'` in `tailwind.config.js`.
+
+No extra build steps needed: Vite processes Tailwind automatically during `dev` and `build`.
