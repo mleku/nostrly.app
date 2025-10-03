@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login Modal</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; background: #263238; color: #CFD8DC; }
+        .test-button { padding: 10px 20px; background: #00BCD4; color: white; border: none; cursor: pointer; }
+        .test-info { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>Login Modal Test</h1>
+    <div class="test-info">
+        <p>This page tests the current login modal behavior:</p>
+        <ul>
+            <li>Current: Semi-transparent background (bg-black/60)</li>
+            <li>Current: "Close" button to dismiss</li>
+            <li>Current: Click outside might close modal</li>
+        </ul>
+        <p>Expected changes:</p>
+        <ul>
+            <li>Solid black background</li>
+            <li>"Cancel" button instead of "Close"</li>
+            <li>Only "Cancel" button closes modal</li>
+        </ul>
+    </div>
+    <button class="test-button" onclick="window.open('http://localhost:5173', '_blank')">Open App to Test Login Modal</button>
+    
+    <div class="test-info">
+        <h3>Test Instructions:</h3>
+        <ol>
+            <li>Start the development server with: <code>npm run dev</code> or <code>bun dev</code></li>
+            <li>Click the "Open App" button above</li>
+            <li>Click the login button (arrow icon) in the header</li>
+            <li>Observe current modal behavior</li>
+            <li>Try clicking outside the modal</li>
+            <li>Try pressing Escape key</li>
+        </ol>
+    </div>
+</body>
+</html>
