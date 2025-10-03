@@ -7,9 +7,10 @@ import { NostrReference, fetchReferencedEvent } from '../utils/nostrUtils'
 interface NoteCardProps {
   event: NostrEvent
   userMetadata?: UserMetadata | null
+  onNoteClick?: (event: NostrEvent, metadata?: UserMetadata | null) => void
 }
 
-const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata }) => {
+const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick }) => {
   const [showJson, setShowJson] = useState(false)
   const [reactions, setReactions] = useState<NostrEvent[]>([])
   const [loadingReactions, setLoadingReactions] = useState(false)
@@ -224,6 +225,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata }) => {
       className="p-4 hover:bg-black/10 cursor-pointer transition-colors"
       onMouseEnter={(e) => e.stopPropagation()}
       onMouseLeave={(e) => e.stopPropagation()}
+      onClick={() => onNoteClick?.(event, userMetadata)}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
@@ -293,6 +295,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata }) => {
               <NoteCard 
                 event={repostedEvent} 
                 userMetadata={repostedEventMetadata} 
+                onNoteClick={onNoteClick}
               />
             </div>
           </div>
@@ -322,6 +325,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata }) => {
                       <NoteCard 
                         event={fetchedData.event} 
                         userMetadata={fetchedData.metadata} 
+                        onNoteClick={onNoteClick}
                       />
                     </div>
                   )}

@@ -5,9 +5,10 @@ import NoteCard from './NoteCard'
 
 interface EventFeedProps {
   feedType: 'global' | 'follows' | 'note' | 'hashtag' | 'user' | 'relay'
+  onNoteClick?: (event: NostrEvent, metadata?: UserMetadata | null) => void
 }
 
-const EventFeed: React.FC<EventFeedProps> = ({ feedType }) => {
+const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick }) => {
   const [userMetadataCache, setUserMetadataCache] = useState<Map<string, UserMetadata | null>>(new Map())
   const loadingRef = useRef<HTMLDivElement>(null)
 
@@ -143,6 +144,7 @@ const EventFeed: React.FC<EventFeedProps> = ({ feedType }) => {
           key={event.id}
           event={event}
           userMetadata={userMetadataCache.get(event.pubkey)}
+          onNoteClick={onNoteClick}
         />
       ))}
       

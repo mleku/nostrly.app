@@ -7,8 +7,9 @@ import {
 } from '@tanstack/react-router'
 import { Home } from './routes/Home'
 import orlyImg from '../docs/orly.png'
-import { nostrService, UserMetadata } from './lib/nostr'
+import { nostrService, UserMetadata, NostrEvent } from './lib/nostr'
 import EventFeed from './components/EventFeed'
+import NoteCard from './components/NoteCard'
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
 
@@ -65,6 +66,10 @@ const HeaderRoute = createRootRoute({
       }
     }, [leftPct])
 
+    // Selected note state for thread panel
+    const [selectedNote, setSelectedNote] = useState<NostrEvent | null>(null)
+    const [selectedNoteMetadata, setSelectedNoteMetadata] = useState<UserMetadata | null>(null)
+
     // Minimal auth UI state + NIP-07 integration
     const [isLoggedIn, setIsLoggedIn] = useState(false)
     const [pubkey, setPubkey] = useState<string | null>(null)
@@ -75,6 +80,29 @@ const HeaderRoute = createRootRoute({
 
     const username = userMetadata?.display_name || userMetadata?.name || (isLoggedIn ? 'you' : 'guest')
     const avatarEmoji = isLoggedIn ? '🙂' : '👤'
+
+    // Handle note click to show in thread panel
+    const handleNoteClick = useCallback(async (event: NostrEvent, metadata?: UserMetadata | null) => {
+      setSelectedNote(event)
+      setSelectedNoteMetadata(metadata || null)
+      
+      // If metadata is not provided, try to fetch it
+      if (!metadata && event.pubkey) {
+        try {
+          const fetchedMetadata = await nostrService.fetchUserMetadata(event.pubkey)
+          setSelectedNoteMetadata(fetchedMetadata)
+        } catch (error) {
+          console.warn('Failed to fetch metadata for selected note:', error)
+        }
+      }
+      
+      // Handle responsive behavior
+      if (isSmallScreen) {
+        setSmallScreenPanel('thread')
+      } else {
+        setLeftPct(50)
+      }
+    }, [isSmallScreen])
 
     // Check screen width on mount and resize
     useEffect(() => {
@@ -513,12 +541,12 @@ const HeaderRoute = createRootRoute({
         <section ref={containerRef} className="fixed top-14 left-0 right-0 bottom-0" style={{ ...gridStyle, left: sidebarWidth }}>
           {/* Left: main */}
           <div className="pane overflow-y-scroll">
-            {activeTab === 'Global' && <EventFeed feedType="global" />}
-            {activeTab === 'Follows' && <EventFeed feedType="follows" />}
-            {activeTab === 'Note' && <EventFeed feedType="note" />}
-            {activeTab === 'Hashtag' && <EventFeed feedType="hashtag" />}
-            {activeTab === 'User' && <EventFeed feedType="user" />}
-            {activeTab === 'Relay' && <EventFeed feedType="relay" />}
+            {activeTab === 'Global' && <EventFeed feedType="global" onNoteClick={handleNoteClick} />}
+            {activeTab === 'Follows' && <EventFeed feedType="follows" onNoteClick={handleNoteClick} />}
+            {activeTab === 'Note' && <EventFeed feedType="note" onNoteClick={handleNoteClick} />}
+            {activeTab === 'Hashtag' && <EventFeed feedType="hashtag" onNoteClick={handleNoteClick} />}
+            {activeTab === 'User' && <EventFeed feedType="user" onNoteClick={handleNoteClick} />}
+            {activeTab === 'Relay' && <EventFeed feedType="relay" onNoteClick={handleNoteClick} />}
             {activeTab === 'Write' && (
               <div className="h-full flex items-center justify-center">
                 <span className="text-xl tracking-wide">Write new note</span>
@@ -608,9 +636,17 @@ const HeaderRoute = createRootRoute({
 
           {/* Right: thread */}
           <div className="pane overflow-y-scroll bg-[#263238]">
-            {activeTab === 'Global' && (
+            {selectedNote ? (
+              <div className="max-w-2xl mx-auto">
+                <NoteCard
+                  event={selectedNote}
+                  userMetadata={selectedNoteMetadata}
+                  onNoteClick={handleNoteClick}
+                />
+              </div>
+            ) : (
               <div className="h-full flex items-center justify-center">
-                <span className="text-xl tracking-wide">thread</span>
+                <span className="text-xl tracking-wide text-gray-400">Select a note to view thread</span>
               </div>
             )}
           </div>
