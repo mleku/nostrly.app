@@ -12,11 +12,13 @@ import EventFeed from './components/EventFeed'
 import NoteCard from './components/NoteCard'
 import ThreadView from './components/ThreadView'
 import NotesFilterPanel, { FilterMode } from './components/NotesFilterPanel'
+import { useQueryClient } from '@tanstack/react-query'
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
 
 const HeaderRoute = createRootRoute({
   component: () => {
+    const queryClient = useQueryClient()
     const containerRef = useRef<HTMLDivElement | null>(null)
     const dividerRef = useRef<HTMLDivElement | null>(null)
     const [leftPct, setLeftPct] = useState<number>(() => {
@@ -85,6 +87,15 @@ const HeaderRoute = createRootRoute({
 
     const username = userMetadata?.display_name || userMetadata?.name || (isLoggedIn ? 'you' : 'guest')
     const avatarEmoji = isLoggedIn ? '🙂' : '👤'
+
+    // Custom handler to clear view before changing filter mode
+    const handleModeChange = useCallback((newMode: FilterMode) => {
+      // Clear all event queries to remove entries from view
+      queryClient.removeQueries({ queryKey: ['events'] })
+      
+      // Set new filter mode after clearing
+      setFilterMode(newMode)
+    }, [queryClient])
 
     // Auto-login with signer on mount
     useEffect(() => {
@@ -592,7 +603,7 @@ const HeaderRoute = createRootRoute({
         <section ref={containerRef} className="fixed top-14 left-0 right-0 bottom-0" style={{ ...gridStyle, left: sidebarWidth }}>
           {/* Left: main */}
           <div className="pane overflow-y-scroll">
-            <NotesFilterPanel activeMode={filterMode} onModeChange={setFilterMode} />
+            <NotesFilterPanel activeMode={filterMode} onModeChange={handleModeChange} />
             {activeTab === 'Global' && <EventFeed feedType="global" onNoteClick={handleNoteClick} filterMode={filterMode} />}
             {activeTab === 'Follows' && <EventFeed feedType="follows" onNoteClick={handleNoteClick} userPubkey={pubkey} filterMode={filterMode} />}
             {activeTab === 'Note' && <EventFeed feedType="note" onNoteClick={handleNoteClick} filterMode={filterMode} />}
