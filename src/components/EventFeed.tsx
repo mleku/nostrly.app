@@ -6,9 +6,10 @@ import NoteCard from './NoteCard'
 interface EventFeedProps {
   feedType: 'global' | 'follows' | 'note' | 'hashtag' | 'user' | 'relay'
   onNoteClick?: (event: NostrEvent, metadata?: UserMetadata | null) => void
+  userPubkey?: string | null
 }
 
-const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick }) => {
+const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, userPubkey }) => {
   const [userMetadataCache, setUserMetadataCache] = useState<Map<string, UserMetadata | null>>(new Map())
   const loadingRef = useRef<HTMLDivElement>(null)
 
@@ -31,9 +32,14 @@ const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick }) => {
 
       // Add feed-specific filters
       if (feedType === 'follows') {
-        // For follows feed, you would typically filter by followed pubkeys
-        // This is a placeholder - implement based on your follow list logic
-        fetchParams.authors = [] // Add followed pubkey list here
+        // For follows feed, fetch the user's follow list first
+        if (userPubkey) {
+          const followedPubkeys = await nostrService.fetchFollowList(userPubkey)
+          fetchParams.authors = followedPubkeys
+        } else {
+          // If no user is logged in, return empty results
+          return []
+        }
       } else if (feedType === 'note') {
         // Filter for text notes only (kind 1)
         fetchParams.kinds = [1]

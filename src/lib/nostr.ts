@@ -205,6 +205,69 @@ class NostrService {
   }
 
   /**
+   * Fetch replies to a specific event
+   */
+  async fetchReplies(eventId: string): Promise<NostrEvent[]> {
+    try {
+      const filter: Filter = {
+        kinds: [1], // Text notes (replies)
+        '#e': [eventId], // Events that reference this event
+        limit: 100
+      }
+
+      const events = await this.pool.querySync(this.relays, filter)
+      const replies = events as NostrEvent[]
+      
+      // Cache the replies
+      if (replies.length > 0) {
+        await this.cacheEvents(replies)
+      }
+      
+      return replies
+    } catch (error) {
+      console.error('Failed to fetch replies:', error)
+      return []
+    }
+  }
+
+  /**
+   * Fetch follow list (kind 3) for a given pubkey
+   */
+  async fetchFollowList(pubkey: string): Promise<string[]> {
+    try {
+      const filter: Filter = {
+        kinds: [3], // Follow list
+        authors: [pubkey],
+        limit: 1
+      }
+
+      const events = await this.pool.querySync(this.relays, filter)
+      
+      if (events.length === 0) {
+        return []
+      }
+
+      // Get the most recent follow list event
+      const event = events[0]
+      
+      // Extract pubkeys from 'p' tags
+      const followedPubkeys: string[] = []
+      if (event.tags) {
+        for (const tag of event.tags) {
+          if (tag[0] === 'p' && tag[1]) {
+            followedPubkeys.push(tag[1])
+          }
+        }
+      }
+      
+      return followedPubkeys
+    } catch (error) {
+      console.error('Failed to fetch follow list:', error)
+      return []
+    }
+  }
+
+  /**
    * Close all relay connections
    */
   close() {

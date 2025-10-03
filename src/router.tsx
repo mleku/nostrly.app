@@ -10,6 +10,7 @@ import orlyImg from '../docs/orly.png'
 import { nostrService, UserMetadata, NostrEvent } from './lib/nostr'
 import EventFeed from './components/EventFeed'
 import NoteCard from './components/NoteCard'
+import ThreadView from './components/ThreadView'
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
 
@@ -542,7 +543,7 @@ const HeaderRoute = createRootRoute({
           {/* Left: main */}
           <div className="pane overflow-y-scroll">
             {activeTab === 'Global' && <EventFeed feedType="global" onNoteClick={handleNoteClick} />}
-            {activeTab === 'Follows' && <EventFeed feedType="follows" onNoteClick={handleNoteClick} />}
+            {activeTab === 'Follows' && <EventFeed feedType="follows" onNoteClick={handleNoteClick} userPubkey={pubkey} />}
             {activeTab === 'Note' && <EventFeed feedType="note" onNoteClick={handleNoteClick} />}
             {activeTab === 'Hashtag' && <EventFeed feedType="hashtag" onNoteClick={handleNoteClick} />}
             {activeTab === 'User' && <EventFeed feedType="user" onNoteClick={handleNoteClick} />}
@@ -637,13 +638,11 @@ const HeaderRoute = createRootRoute({
           {/* Right: thread */}
           <div className="pane overflow-y-scroll bg-[#263238]">
             {selectedNote ? (
-              <div className="max-w-2xl mx-auto">
-                <NoteCard
-                  event={selectedNote}
-                  userMetadata={selectedNoteMetadata}
-                  onNoteClick={handleNoteClick}
-                />
-              </div>
+              <ThreadView
+                focusedEvent={selectedNote}
+                focusedEventMetadata={selectedNoteMetadata}
+                onNoteClick={handleNoteClick}
+              />
             ) : (
               <div className="h-full flex items-center justify-center">
                 <span className="text-xl tracking-wide text-gray-400">Select a note to view thread</span>

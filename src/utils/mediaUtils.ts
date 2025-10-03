@@ -423,9 +423,15 @@ const EmbeddedNote: React.FC<{ reference: NostrReference; index: number }> = ({ 
       {
         className: 'text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words mb-3'
       },
-      noteEvent.content.length > 200 ? 
-        noteEvent.content.slice(0, 200) + '...' : 
-        noteEvent.content
+      ...linkifyContent(
+        noteEvent.content,
+        (url: string, type: MediaType) => {
+          console.log('Media clicked in embedded note:', url, type)
+        },
+        (reference: NostrReference) => {
+          console.log('Nostr reference clicked in embedded note:', reference)
+        }
+      )
     ),
     // Reaction buttons row
     React.createElement(
