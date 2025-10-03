@@ -7,13 +7,17 @@ interface ThreadViewProps {
   focusedEventMetadata?: UserMetadata | null
   onNoteClick?: (event: NostrEvent, metadata?: UserMetadata | null) => void
   onClose?: () => void
+  headerLeft?: string
+  headerWidth?: string
 }
 
 const ThreadView: React.FC<ThreadViewProps> = ({ 
   focusedEvent, 
   focusedEventMetadata, 
   onNoteClick,
-  onClose
+  onClose,
+  headerLeft,
+  headerWidth
 }) => {
   const [threadEvents, setThreadEvents] = useState<NostrEvent[]>([])
   const [eventMetadata, setEventMetadata] = useState<Record<string, UserMetadata | null>>({})
@@ -176,24 +180,30 @@ const ThreadView: React.FC<ThreadViewProps> = ({
 
   return (
     <div ref={containerRef} className="max-w-2xl mx-auto relative">
-      {/* Floating X button */}
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-50 bg-black bg-opacity-70 text-white hover:bg-opacity-90 transition-colors rounded-full flex items-center justify-center"
-          style={{ width: '2.5em', height: '2.5em', marginRight: '1em' }}
-          title="Close thread view"
-          aria-label="Close thread view"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      )}
-      
-      <div className="mb-4 px-4 py-2 text-sm text-gray-400">
+      {/* Fixed header bar that sticks to the bottom of the header panel - right side only */}
+      <div className="fixed z-50 bg-[#263238] border-b border-gray-600 px-4 py-2 text-sm text-gray-400 flex items-center justify-between" style={{ 
+        top: '3.5rem', 
+        height: '2.5rem',
+        left: headerLeft || '0',
+        width: headerWidth || '100%'
+      }}>
         <span>Thread • {threadEvents.length} {threadEvents.length === 1 ? 'note' : 'notes'}</span>
+        {/* X button moved into header bar */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="bg-black bg-opacity-70 text-white hover:bg-opacity-90 transition-colors rounded-full flex items-center justify-center"
+            style={{ width: '2em', height: '2em' }}
+            title="Close thread view"
+            aria-label="Close thread view"
+          >
+            X
+          </button>
+        )}
       </div>
+      
+      {/* Add top padding to account for fixed header obscuration */}
+      <div className="pt-10">
       
       {threadEvents.map((event, index) => {
         const isFocused = event.id === focusedEventId
@@ -229,6 +239,7 @@ const ThreadView: React.FC<ThreadViewProps> = ({
           </div>
         )
       })}
+      </div>
     </div>
   )
 }

@@ -650,6 +650,8 @@ const HeaderRoute = createRootRoute({
                     setSelectedNoteMetadata(null)
                   }
                 }}
+                headerLeft={isSmallScreen ? '0' : `calc(${sidebarWidthEm}em + ${leftPct}vw - ${sidebarWidthEm * leftPct / 100}em + ${isSmallScreen ? '0em' : '2em'})`}
+                headerWidth={isSmallScreen ? '100vw' : `calc(${100 - leftPct}vw - ${sidebarWidthEm * (100 - leftPct) / 100}em - ${isSmallScreen ? '0em' : '2em'})`}
               />
             ) : (
               <div className="h-full flex items-center justify-center">
