@@ -11,6 +11,7 @@ import { nostrService, UserMetadata, NostrEvent } from './lib/nostr'
 import EventFeed from './components/EventFeed'
 import NoteCard from './components/NoteCard'
 import ThreadView from './components/ThreadView'
+import NotesFilterPanel, { FilterMode } from './components/NotesFilterPanel'
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
 
@@ -34,6 +35,9 @@ const HeaderRoute = createRootRoute({
 
     // Active tab state for radio button behavior
     const [activeTab, setActiveTab] = useState<string>('Global')
+    
+    // Filter mode state for notes/replies filtering
+    const [filterMode, setFilterMode] = useState<FilterMode>('replies')
 
     // Responsive divider width state
     const [isSmallScreen, setIsSmallScreen] = useState(false)
@@ -82,6 +86,43 @@ const HeaderRoute = createRootRoute({
     const username = userMetadata?.display_name || userMetadata?.name || (isLoggedIn ? 'you' : 'guest')
     const avatarEmoji = isLoggedIn ? '🙂' : '👤'
 
+    // Auto-login with signer on mount
+    useEffect(() => {
+      const attemptAutoLogin = async () => {
+        // Don't auto-login if already logged in
+        if (isLoggedIn) return
+
+        // Check for NIP-07 signer
+        const nostr = (window as any).nostr as { getPublicKey?: () => Promise<string> } | undefined
+        if (!nostr || typeof nostr.getPublicKey !== 'function') {
+          return // No signer available, skip auto-login
+        }
+
+        try {
+          // Attempt to get public key without showing any UI
+          const pk = await nostr.getPublicKey!()
+          setPubkey(pk)
+          setIsLoggedIn(true)
+          
+          // Fetch user metadata in background
+          setLoadingMetadata(true)
+          try {
+            const metadata = await nostrService.fetchUserMetadata(pk)
+            setUserMetadata(metadata)
+          } catch (metadataError) {
+            console.warn('Failed to fetch user metadata during auto-login:', metadataError)
+          } finally {
+            setLoadingMetadata(false)
+          }
+        } catch (err: any) {
+          // Auto-login failed silently - user can still manually log in
+          console.log('Auto-login failed:', err?.message || 'Unknown error')
+        }
+      }
+
+      attemptAutoLogin()
+    }, [isLoggedIn])
+
     // Handle note click to show in thread panel
     const handleNoteClick = useCallback(async (event: NostrEvent, metadata?: UserMetadata | null) => {
       setSelectedNote(event)
@@ -113,7 +154,12 @@ const HeaderRoute = createRootRoute({
         
         if (wasSmallScreen && !nowSmallScreen) {
           // Transitioning from small to large screen - restore previous panel split and sidebar state
-          setLeftPct(largeScreenLeftPct)
+          // If no thread is open, fold the thread panel closed
+          if (!selectedNote) {
+            setLeftPct(100)
+          } else {
+            setLeftPct(largeScreenLeftPct)
+          }
           setSidebarCollapsed(largeScreenSidebarCollapsed)
         } else if (!wasSmallScreen && nowSmallScreen) {
           // Transitioning from large to small screen - save current states and apply small screen defaults
@@ -126,6 +172,10 @@ const HeaderRoute = createRootRoute({
           setSidebarCollapsed(smallScreenSidebarCollapsed)
         } else {
           // Already in large screen mode - apply the saved sidebar state
+          // If no thread is open, fold the thread panel closed
+          if (!selectedNote) {
+            setLeftPct(100)
+          }
           setSidebarCollapsed(largeScreenSidebarCollapsed)
         }
         
@@ -136,7 +186,7 @@ const HeaderRoute = createRootRoute({
       window.addEventListener('resize', checkScreenWidth)
       
       return () => window.removeEventListener('resize', checkScreenWidth)
-    }, [isSmallScreen, leftPct, largeScreenLeftPct, smallScreenPanel, sidebarCollapsed, smallScreenSidebarCollapsed, largeScreenSidebarCollapsed])
+    }, [isSmallScreen, leftPct, largeScreenLeftPct, smallScreenPanel, sidebarCollapsed, smallScreenSidebarCollapsed, largeScreenSidebarCollapsed, selectedNote])
 
     const handleLoginClick = useCallback(async () => {
       if (isLoggedIn) {
@@ -542,12 +592,13 @@ const HeaderRoute = createRootRoute({
         <section ref={containerRef} className="fixed top-14 left-0 right-0 bottom-0" style={{ ...gridStyle, left: sidebarWidth }}>
           {/* Left: main */}
           <div className="pane overflow-y-scroll">
-            {activeTab === 'Global' && <EventFeed feedType="global" onNoteClick={handleNoteClick} />}
-            {activeTab === 'Follows' && <EventFeed feedType="follows" onNoteClick={handleNoteClick} userPubkey={pubkey} />}
-            {activeTab === 'Note' && <EventFeed feedType="note" onNoteClick={handleNoteClick} />}
-            {activeTab === 'Hashtag' && <EventFeed feedType="hashtag" onNoteClick={handleNoteClick} />}
-            {activeTab === 'User' && <EventFeed feedType="user" onNoteClick={handleNoteClick} />}
-            {activeTab === 'Relay' && <EventFeed feedType="relay" onNoteClick={handleNoteClick} />}
+            <NotesFilterPanel activeMode={filterMode} onModeChange={setFilterMode} />
+            {activeTab === 'Global' && <EventFeed feedType="global" onNoteClick={handleNoteClick} filterMode={filterMode} />}
+            {activeTab === 'Follows' && <EventFeed feedType="follows" onNoteClick={handleNoteClick} userPubkey={pubkey} filterMode={filterMode} />}
+            {activeTab === 'Note' && <EventFeed feedType="note" onNoteClick={handleNoteClick} filterMode={filterMode} />}
+            {activeTab === 'Hashtag' && <EventFeed feedType="hashtag" onNoteClick={handleNoteClick} filterMode={filterMode} />}
+            {activeTab === 'User' && <EventFeed feedType="user" onNoteClick={handleNoteClick} filterMode={filterMode} />}
+            {activeTab === 'Relay' && <EventFeed feedType="relay" onNoteClick={handleNoteClick} filterMode={filterMode} />}
             {activeTab === 'Write' && (
               <div className="h-full flex items-center justify-center">
                 <span className="text-xl tracking-wide">Write new note</span>
@@ -570,7 +621,7 @@ const HeaderRoute = createRootRoute({
             {!isSmallScreen && (
               <button
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40"
-                style={{ width: '2em', height: '2em', background: 'transparent', border: 'none', padding: 0, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25em' }}
+                style={{ width: '2em', height: '2em', background: 'transparent', border: 'none', padding: 0, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25em', opacity: 0.5 }}
                 aria-label="Restore 50-50 split"
                 title="Restore 50-50 split"
                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); setLeftPct(50); }}
@@ -586,7 +637,7 @@ const HeaderRoute = createRootRoute({
             {/* Floating maximize-left tab (2em transparent square) on the right side, centered */}
             <button
               className="absolute top-1/2 -translate-y-1/2 left-full z-50"
-              style={{ width: '2em', height: '2em', background: 'transparent', border: 'none', padding: 0, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: '2em', height: '2em', background: 'transparent', border: 'none', padding: 0, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}
               aria-label="Maximize left panel"
               title="Maximize left panel"
               onClick={(e) => { 
@@ -608,7 +659,7 @@ const HeaderRoute = createRootRoute({
             {/* Floating maximize-right tab (2em transparent square) on the left side, centered */}
             <button
               className="absolute top-1/2 -translate-y-1/2 right-full z-50"
-              style={{ width: '2em', height: '2em', background: 'transparent', border: 'none', padding: 0, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: '2em', height: '2em', background: 'transparent', border: 'none', padding: 0, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}
               aria-label="Maximize right panel"
               title="Maximize right panel"
               onClick={(e) => { 
@@ -646,6 +697,7 @@ const HeaderRoute = createRootRoute({
                   if (isSmallScreen) {
                     setSmallScreenPanel('main')
                   } else {
+                    setLeftPct(100)
                     setSelectedNote(null)
                     setSelectedNoteMetadata(null)
                   }

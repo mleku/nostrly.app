@@ -3,13 +3,16 @@ import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
 import { nostrService, NostrEvent, UserMetadata } from '../lib/nostr'
 import NoteCard from './NoteCard'
 
+export type FilterMode = 'notes' | 'replies' | 'reposts'
+
 interface EventFeedProps {
   feedType: 'global' | 'follows' | 'note' | 'hashtag' | 'user' | 'relay'
   onNoteClick?: (event: NostrEvent, metadata?: UserMetadata | null) => void
   userPubkey?: string | null
+  filterMode?: FilterMode
 }
 
-const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, userPubkey }) => {
+const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, userPubkey, filterMode = 'replies' }) => {
   const [userMetadataCache, setUserMetadataCache] = useState<Map<string, UserMetadata | null>>(new Map())
   const loadingRef = useRef<HTMLDivElement>(null)
 
@@ -22,7 +25,7 @@ const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, userPubkey
     isLoading,
     error
   } = useInfiniteQuery({
-    queryKey: ['events', feedType],
+    queryKey: ['events', feedType, filterMode],
     queryFn: async ({ pageParam = undefined }) => {
       // Different fetch parameters based on feed type
       const fetchParams: any = {
@@ -56,7 +59,33 @@ const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, userPubkey
       }
       // For 'global' feedType, no additional filters (show everything)
 
-      const events = await nostrService.fetchEvents(fetchParams)
+      let events = await nostrService.fetchEvents(fetchParams)
+      
+      // Apply filterMode filtering
+      if (filterMode === 'notes') {
+        // In "notes" mode, exclude reposts (kind 6) and replies (events with "e" tags)
+        events = events.filter(event => {
+          // Exclude reposts
+          if (event.kind === 6) return false
+          
+          // Exclude replies (events that have "e" tags referencing other events)
+          const hasETags = event.tags.some(tag => tag[0] === 'e')
+          if (hasETags) return false
+          
+          // Additionally, for kind 1 events, exclude those with "e" tags that have "reply" marker
+          if (event.kind === 1) {
+            const hasReplyMarker = event.tags.some(tag => 
+              tag[0] === 'e' && tag[3] === 'reply'
+            )
+            if (hasReplyMarker) return false
+          }
+          
+          return true
+        })
+      } else if (filterMode === 'reposts') {
+        // In "reposts" mode, only show kind 6 repost events
+        events = events.filter(event => event.kind === 6)
+      }
       
       // Fetch metadata for all unique authors in this batch
       const uniqueAuthors = [...new Set(events.map(e => e.pubkey))]

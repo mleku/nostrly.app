@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { NostrEvent, UserMetadata, nostrService } from '../lib/nostr'
 import NoteCard from './NoteCard'
 
+export type ThreadFilterMode = 'all' | 'reposts'
+
 interface ThreadViewProps {
   focusedEvent: NostrEvent
   focusedEventMetadata?: UserMetadata | null
@@ -23,6 +25,7 @@ const ThreadView: React.FC<ThreadViewProps> = ({
   const [eventMetadata, setEventMetadata] = useState<Record<string, UserMetadata | null>>({})
   const [loading, setLoading] = useState(true)
   const [focusedEventId, setFocusedEventId] = useState(focusedEvent.id)
+  const [filterMode, setFilterMode] = useState<ThreadFilterMode>('all')
   const containerRef = useRef<HTMLDivElement>(null)
   const focusedNoteRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
@@ -167,6 +170,17 @@ const ThreadView: React.FC<ThreadViewProps> = ({
     setFocusedEventId(eventId)
   }
 
+  // Handle scroll to top when header is clicked
+  const handleScrollToTop = () => {
+    const container = containerRef.current?.closest('.pane') as HTMLElement // Find the scrollable parent
+    if (container) {
+      container.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      })
+    }
+  }
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -178,37 +192,66 @@ const ThreadView: React.FC<ThreadViewProps> = ({
     )
   }
 
+  // Filter events based on selected mode
+  const filteredEvents = filterMode === 'reposts' 
+    ? threadEvents.filter(event => event.kind === 6)
+    : threadEvents
+
   return (
     <div ref={containerRef} className="max-w-2xl mx-auto relative">
-      {/* Fixed header bar that sticks to the bottom of the header panel - right side only */}
-      <div className="fixed z-50 bg-[#263238] border-b border-gray-600 px-4 py-2 text-sm text-gray-400 flex items-center justify-between" style={{ 
+      {/* Filter bar above the main thread view */}
+      <div className="fixed z-50 bg-[#263238] border-b border-gray-600 px-4 py-2 flex gap-2" style={{ 
         top: '3.5rem', 
         height: '2.5rem',
         left: headerLeft || '0',
         width: headerWidth || '100%'
       }}>
-        <span>Thread • {threadEvents.length} {threadEvents.length === 1 ? 'note' : 'notes'}</span>
-        {/* X button moved into header bar */}
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="bg-black bg-opacity-70 text-white hover:bg-opacity-90 transition-colors rounded-full flex items-center justify-center"
-            style={{ width: '2em', height: '2em' }}
-            title="Close thread view"
-            aria-label="Close thread view"
-          >
-            X
-          </button>
-        )}
+
       </div>
       
-      {/* Add top padding to account for fixed header obscuration */}
-      <div className="pt-10">
+      {/* Fixed header bar below filter bar */}
+      <div className="fixed z-50 bg-[#263238] border-b border-gray-600 px-4 py-2 text-sm text-gray-400 flex items-center justify-between" style={{ 
+        top: '6rem', 
+        height: '2.5rem',
+        left: headerLeft || '0',
+        width: headerWidth || '100%'
+      }}>
+        <span className="text-gray-300">
+          Thread • {filteredEvents.length} {filteredEvents.length === 1 ? 'note' : 'notes'}
+        </span>
+        <div className="flex items-center gap-2">
+          {/* Up arrow scroll to top button */}
+          <button
+            onClick={handleScrollToTop}
+            className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors rounded-full flex items-center justify-center"
+            style={{ width: '2em', height: '2em' }}
+            title="Scroll to top"
+            aria-label="Scroll to top"
+          >
+            ↑
+          </button>
+          {/* X button moved into header bar */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="bg-black bg-opacity-70 text-white hover:bg-opacity-90 transition-colors rounded-full flex items-center justify-center"
+              style={{ width: '2em', height: '2em' }}
+              title="Close thread view"
+              aria-label="Close thread view"
+            >
+              X
+            </button>
+          )}
+        </div>
+      </div>
       
-      {threadEvents.map((event, index) => {
+      {/* Add top padding to account for fixed headers (filter bar + header bar) */}
+      <div className="pt-20">
+      
+      {filteredEvents.map((event, index) => {
         const isFocused = event.id === focusedEventId
         const isFirstFocused = isFocused && index === 0
-        const isLastFocused = isFocused && index === threadEvents.length - 1
+        const isLastFocused = isFocused && index === filteredEvents.length - 1
         
         return (
           <div 
