@@ -642,6 +642,14 @@ const HeaderRoute = createRootRoute({
                 focusedEvent={selectedNote}
                 focusedEventMetadata={selectedNoteMetadata}
                 onNoteClick={handleNoteClick}
+                onClose={() => {
+                  if (isSmallScreen) {
+                    setSmallScreenPanel('main')
+                  } else {
+                    setSelectedNote(null)
+                    setSelectedNoteMetadata(null)
+                  }
+                }}
               />
             ) : (
               <div className="h-full flex items-center justify-center">

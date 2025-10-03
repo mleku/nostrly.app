@@ -186,10 +186,10 @@ const MediaModal: React.FC<MediaModalProps> = ({ src, alt, isOpen, onClose, medi
       />
       
       {/* Modal content */}
-      <div className="absolute bg-black-50 z-120 flex flex-col items-center justify-center h-full w-full">
+      <div className="absolute bg-black-50 z-120 flex flex-col items-center justify-center h-full w-full pointer-events-none">
         {/* Navigation arrows (top left) */}
         {hasMultipleMedia && (
-          <div className="absolute top-4 left-4 flex items-center space-x-2 z-20">
+          <div className="absolute top-4 left-4 flex items-center space-x-2 z-20 pointer-events-auto">
             <button
               onClick={goToPrevious}
               className="bg-black bg-opacity-70 text-white p-2 rounded-full hover:bg-opacity-90 transition-colors"
@@ -217,7 +217,7 @@ const MediaModal: React.FC<MediaModalProps> = ({ src, alt, isOpen, onClose, medi
         )}
         
         {/* Controls */}
-        <div className="absolute top-4 right-4 flex items-center space-x-2 z-20">
+        <div className="absolute top-4 right-4 flex items-center space-x-2 z-20 pointer-events-auto">
           {currentMedia.type === 'image' && (
             <>
               <button
@@ -265,7 +265,7 @@ const MediaModal: React.FC<MediaModalProps> = ({ src, alt, isOpen, onClose, medi
         </div>
         
         {/* Media content */}
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center pointer-events-auto">
           {renderMedia()}
         </div>
       </div>

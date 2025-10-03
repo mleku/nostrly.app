@@ -512,10 +512,36 @@ function getRelativeTime(date: Date): string {
 }
 
 export interface ContentLink {
-  type: 'media' | 'nostr'
+  type: 'media' | 'nostr' | 'url'
   startIndex: number
   endIndex: number
-  data: MediaLink | NostrReference
+  data: MediaLink | NostrReference | { url: string }
+}
+
+/**
+ * Extract regular web URLs that are not media URLs
+ */
+export function extractWebUrls(content: string): { url: string; startIndex: number; endIndex: number }[] {
+  const webUrls: { url: string; startIndex: number; endIndex: number }[] = []
+  
+  // Regular expression to match URLs
+  const urlRegex = /https?:\/\/[^\s<>"]+/gi
+  let match
+  
+  while ((match = urlRegex.exec(content)) !== null) {
+    const url = match[0]
+    
+    // Only include URLs that are not media URLs
+    if (!isMediaUrl(url)) {
+      webUrls.push({
+        url,
+        startIndex: match.index,
+        endIndex: match.index + url.length
+      })
+    }
+  }
+  
+  return webUrls
 }
 
 /**
@@ -524,6 +550,7 @@ export interface ContentLink {
 export function extractAllLinks(content: string): ContentLink[] {
   const mediaLinks = extractMediaLinks(content)
   const nostrRefs = extractNostrReferences(content)
+  const webUrls = extractWebUrls(content)
   
   const allLinks: ContentLink[] = [
     ...mediaLinks.map(link => ({
@@ -537,6 +564,12 @@ export function extractAllLinks(content: string): ContentLink[] {
       startIndex: ref.startIndex,
       endIndex: ref.endIndex,
       data: ref
+    })),
+    ...webUrls.map(url => ({
+      type: 'url' as const,
+      startIndex: url.startIndex,
+      endIndex: url.endIndex,
+      data: { url: url.url }
     }))
   ]
   
@@ -626,6 +659,26 @@ export function linkifyContent(
           )
         )
       }
+    } else if (link.type === 'url') {
+      const urlData = link.data as { url: string }
+      // Add regular URL as clickable link that opens in new tab
+      elements.push(
+        React.createElement(
+          'a',
+          {
+            key: `url-${index}`,
+            href: urlData.url,
+            target: '_blank',
+            rel: 'noopener noreferrer',
+            className: 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline',
+            onClick: (e: React.MouseEvent) => {
+              e.stopPropagation()
+            },
+            title: `Open link: ${urlData.url}`
+          },
+          urlData.url
+        )
+      )
     }
     
     lastIndex = link.endIndex
