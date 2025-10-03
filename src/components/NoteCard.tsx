@@ -8,9 +8,11 @@ interface NoteCardProps {
   event: NostrEvent
   userMetadata?: UserMetadata | null
   onNoteClick?: (event: NostrEvent, metadata?: UserMetadata | null) => void
+  isInThreadView?: boolean
+  onFocusNote?: (eventId: string) => void
 }
 
-const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick }) => {
+const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick, isInThreadView = false, onFocusNote }) => {
   const [showJson, setShowJson] = useState(false)
   const [reactions, setReactions] = useState<NostrEvent[]>([])
   const [loadingReactions, setLoadingReactions] = useState(false)
@@ -123,6 +125,28 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick })
       case 111: return 'Long-form Article'
       default: return `Kind ${kind}`
     }
+  }
+
+  // Check if this note is a reply and get the replied-to event ID
+  const getRepliedToEventId = (): string | null => {
+    // Look for e tags in the event
+    const eTags = event.tags.filter(tag => tag[0] === 'e' && tag[1])
+    if (eTags.length === 0) return null
+    
+    // For replies, typically the first e tag or the one marked as "reply" is the replied-to event
+    // If there's only one e tag, it's likely the replied-to event
+    if (eTags.length === 1) {
+      return eTags[0][1]
+    }
+    
+    // If multiple e tags, look for one marked as "reply" (NIP-10)
+    const replyTag = eTags.find(tag => tag[3] === 'reply')
+    if (replyTag) {
+      return replyTag[1]
+    }
+    
+    // Fallback to the last e tag (common convention for replies)
+    return eTags[eTags.length - 1][1]
   }
   
   const handleReact = () => {
@@ -262,13 +286,51 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick })
           </div>
         </div>
         
-        {/* JSON view button */}
-        <button
-          onClick={() => setShowJson(!showJson)}
-          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-        >
-          {showJson ? 'Hide' : '{}'}
-        </button>
+        <div className="flex items-center space-x-2">
+          {/* Replied to button */}
+          {getRepliedToEventId() && (
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                const repliedToId = getRepliedToEventId();
+                if (repliedToId) {
+                  if (isInThreadView && onFocusNote) {
+                    // In thread view, just focus on the replied-to note within current thread
+                    onFocusNote(repliedToId);
+                  } else if (onNoteClick) {
+                    // Outside thread view, open the thread for the replied-to event
+                    try {
+                      const repliedToEvent = await nostrService.fetchEventById(repliedToId);
+                      if (repliedToEvent) {
+                        const repliedToMetadata = await nostrService.fetchUserMetadata(repliedToEvent.pubkey);
+                        onNoteClick(repliedToEvent, repliedToMetadata);
+                      } else {
+                        console.warn('Could not fetch replied-to event:', repliedToId);
+                      }
+                    } catch (error) {
+                      console.error('Error fetching replied-to event:', error);
+                    }
+                  }
+                }
+              }}
+              className="text-sm text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 transition-colors px-2 py-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
+              title="View replied-to note"
+            >
+              ↳
+            </button>
+          )}
+          
+          {/* JSON view button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowJson(!showJson);
+            }}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 transition-colors px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+          >
+            {showJson ? 'Hide' : '{}'}
+          </button>
+        </div>
       </div>
       
       {/* JSON view */}
@@ -343,7 +405,10 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick })
           <button
             key={content}
             className="flex items-center space-x-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors p-0 rounded"
-            onClick={() => console.log('Reaction clicked:', content, reactionList)}
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('Reaction clicked:', content, reactionList);
+            }}
           >
             <span className="text-lg">{content}</span>
             {reactionList.length > 1 && (
@@ -356,28 +421,40 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick })
       {/* Quote, repost and reply buttons row - right justified */}
       <div className="flex items-center justify-end space-x-6 text-gray-500 dark:text-gray-400">
         <button
-            onClick={handleReact}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleReact();
+            }}
             className="flex items-center space-x-1 hover:text-red-500 transition-colors"
         >
           <span className="text-lg">❤️</span>
         </button>
 
         <button
-          onClick={handleQuote}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleQuote();
+          }}
           className="flex items-center space-x-1 hover:text-blue-500 transition-colors"
         >
           <span className="text-lg">💬</span>
         </button>
         
         <button
-          onClick={handleRepost}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRepost();
+          }}
           className="flex items-center space-x-1 hover:text-green-500 transition-colors"
         >
           <span className="text-lg">🔄</span>
         </button>
         
         <button
-          onClick={handleReply}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleReply();
+          }}
           className="flex items-center space-x-1 hover:text-blue-500 transition-colors"
         >
           <span className="text-lg">↩️</span>

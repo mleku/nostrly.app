@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Replied To Button</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .note-mock {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #666;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .replied-to-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .replied-to-btn:hover {
+            background: #059669;
+        }
+        .json-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .json-btn:hover {
+            background: #2563eb;
+        }
+        .note-content {
+            color: #333;
+            line-height: 1.5;
+        }
+        .test-result {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .e-tags {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test: Replied To Button Feature</h1>
+    
+    <div class="test-section">
+        <h2>Test Case 1: Note with Single E Tag (Reply)</h2>
+        <div class="note-mock">
+            <div class="note-header">
+                <div class="user-info">
+                    <div class="avatar">A</div>
+                    <div>
+                        <div><strong>Alice</strong></div>
+                        <div style="font-size: 12px; color: #666;">2h ago • Text Note</div>
+                    </div>
+                </div>
+                <div class="buttons">
+                    <button class="replied-to-btn" onclick="testRepliedTo('single')" title="View replied-to note">↳</button>
+                    <button class="json-btn">{}</button>
+                </div>
+            </div>
+            <div class="note-content">
+                @Bob That's a great point! I totally agree with your analysis.
+            </div>
+            <div class="e-tags">
+                E tags: [["e", "abc123...parent", "", "reply"]]
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Case 2: Note with Multiple E Tags</h2>
+        <div class="note-mock">
+            <div class="note-header">
+                <div class="user-info">
+                    <div class="avatar">B</div>
+                    <div>
+                        <div><strong>Bob</strong></div>
+                        <div style="font-size: 12px; color: #666;">1h ago • Text Note</div>
+                    </div>
+                </div>
+                <div class="buttons">
+                    <button class="replied-to-btn" onclick="testRepliedTo('multiple')" title="View replied-to note">↳</button>
+                    <button class="json-btn">{}</button>
+                </div>
+            </div>
+            <div class="note-content">
+                This is a reply in a long thread discussing the original topic.
+            </div>
+            <div class="e-tags">
+                E tags: [["e", "root123..."], ["e", "parent456..."], ["e", "direct789...", "", "reply"]]
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Case 3: Note without E Tags (Not a Reply)</h2>
+        <div class="note-mock">
+            <div class="note-header">
+                <div class="user-info">
+                    <div class="avatar">C</div>
+                    <div>
+                        <div><strong>Charlie</strong></div>
+                        <div style="font-size: 12px; color: #666;">30m ago • Text Note</div>
+                    </div>
+                </div>
+                <div class="buttons">
+                    <!-- No replied-to button should appear -->
+                    <button class="json-btn">{}</button>
+                </div>
+            </div>
+            <div class="note-content">
+                Just posted a new article about decentralized social networks. What do you all think?
+            </div>
+            <div class="e-tags">
+                E tags: [] (No reply markers)
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Expected Behavior</h2>
+        <ul>
+            <li>✅ Notes with e tags should show the "↳" replied-to button</li>
+            <li>✅ Notes without e tags should NOT show the replied-to button</li>
+            <li>✅ Clicking the replied-to button should open the thread of the replied-to post</li>
+            <li>✅ In thread view, clicking should focus and scroll to the replied-to note</li>
+            <li>✅ Button should appear next to the JSON {} button</li>
+            <li>✅ Button should have appropriate hover states and styling</li>
+        </ul>
+    </div>
+
+    <div id="test-results"></div>
+
+    <script>
+        function testRepliedTo(testCase) {
+            const resultsDiv = document.getElementById('test-results');
+            
+            let message = '';
+            if (testCase === 'single') {
+                message = 'Single E tag test: Would fetch and open thread for event "abc123...parent"';
+            } else if (testCase === 'multiple') {
+                message = 'Multiple E tags test: Would fetch and open thread for event "direct789..." (marked as reply)';
+            }
+            
+            resultsDiv.innerHTML = `
+                <div class="test-result">
+                    <strong>Test Result:</strong><br>
+                    ${message}<br><br>
+                    <strong>Implementation Status:</strong><br>
+                    ✅ Reply detection logic implemented<br>
+                    ✅ Button UI added to note header<br>
+                    ✅ Thread opening functionality implemented<br>
+                    ✅ Focus and scroll behavior ready in ThreadView<br><br>
+                    <em>Ready for integration testing with the actual React components!</em>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

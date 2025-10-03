@@ -156,6 +156,11 @@ const ThreadView: React.FC<ThreadViewProps> = ({
     onNoteClick?.(event, metadata)
   }
 
+  // Handle focus on specific note by event ID (for replied-to button)
+  const handleFocusNote = (eventId: string) => {
+    setFocusedEventId(eventId)
+  }
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -169,7 +174,7 @@ const ThreadView: React.FC<ThreadViewProps> = ({
 
   return (
     <div ref={containerRef} className="max-w-2xl mx-auto">
-      <div className="mb-4 px-4 py-2 text-sm text-gray-400 border-b border-gray-600">
+      <div className="mb-4 px-4 py-2 text-sm text-gray-400">
         <span>Thread • {threadEvents.length} {threadEvents.length === 1 ? 'note' : 'notes'}</span>
       </div>
       
@@ -188,19 +193,21 @@ const ThreadView: React.FC<ThreadViewProps> = ({
             }}
             className={`
               transition-all duration-200 
-              ${isFocused ? 'bg-blue-500/10 border-l-4 border-blue-500' : 'hover:bg-black/5'}
-              ${!isFirstFocused ? 'border-t border-gray-700/50' : ''}
+              ${isFocused ? 'bg-blue-500/10' : 'hover:bg-black/5'}
+              ${!isFirstFocused ? '' : ''}
             `}
           >
             <NoteCard
               event={event}
               userMetadata={eventMetadata[event.pubkey]}
               onNoteClick={handleThreadNoteClick}
+              isInThreadView={true}
+              onFocusNote={handleFocusNote}
             />
             
             {/* Thread connection line for non-last items */}
             {index < threadEvents.length - 1 && (
-              <div className="ml-8 border-l-2 border-gray-600/30 h-4 -mb-2"></div>
+              <div className="ml-8 h-4 -mb-2"></div>
             )}
           </div>
         )
