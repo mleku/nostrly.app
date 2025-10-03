@@ -220,7 +220,11 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata }) => {
   const repostedEvent = getRepostedEvent()
 
   return (
-    <div className="p-4 hover:bg-black/10 transition-colors">
+    <div 
+      className="p-4 hover:bg-black/10 cursor-pointer transition-colors"
+      onMouseEnter={(e) => e.stopPropagation()}
+      onMouseLeave={(e) => e.stopPropagation()}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
