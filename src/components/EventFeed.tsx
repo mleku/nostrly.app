@@ -3,7 +3,11 @@ import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
 import { nostrService, NostrEvent, UserMetadata } from '../lib/nostr'
 import NoteCard from './NoteCard'
 
-const EventFeed: React.FC = () => {
+interface EventFeedProps {
+  feedType: 'global' | 'follows' | 'note' | 'hashtag' | 'user' | 'relay'
+}
+
+const EventFeed: React.FC<EventFeedProps> = ({ feedType }) => {
   const [userMetadataCache, setUserMetadataCache] = useState<Map<string, UserMetadata | null>>(new Map())
   const loadingRef = useRef<HTMLDivElement>(null)
 
@@ -16,12 +20,36 @@ const EventFeed: React.FC = () => {
     isLoading,
     error
   } = useInfiniteQuery({
-    queryKey: ['events'],
+    queryKey: ['events', feedType],
     queryFn: async ({ pageParam = undefined }) => {
-      const events = await nostrService.fetchEvents({
+      // Different fetch parameters based on feed type
+      const fetchParams: any = {
         limit: 20,
         until: pageParam
-      })
+      }
+
+      // Add feed-specific filters
+      if (feedType === 'follows') {
+        // For follows feed, you would typically filter by followed pubkeys
+        // This is a placeholder - implement based on your follow list logic
+        fetchParams.authors = [] // Add followed pubkey list here
+      } else if (feedType === 'note') {
+        // Filter for text notes only (kind 1)
+        fetchParams.kinds = [1]
+      } else if (feedType === 'hashtag') {
+        // Filter for posts with hashtags
+        fetchParams.kinds = [1]
+        // You could add specific hashtag filtering here
+      } else if (feedType === 'user') {
+        // Filter for user-specific content
+        fetchParams.kinds = [0, 1] // Profile and notes
+      } else if (feedType === 'relay') {
+        // Filter for relay-specific content
+        fetchParams.kinds = [1]
+      }
+      // For 'global' feedType, no additional filters (show everything)
+
+      const events = await nostrService.fetchEvents(fetchParams)
       
       // Fetch metadata for all unique authors in this batch
       const uniqueAuthors = [...new Set(events.map(e => e.pubkey))]

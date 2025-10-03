@@ -513,7 +513,17 @@ const HeaderRoute = createRootRoute({
         <section ref={containerRef} className="fixed top-14 left-0 right-0 bottom-0" style={{ ...gridStyle, left: sidebarWidth }}>
           {/* Left: main */}
           <div className="pane overflow-y-scroll">
-            <EventFeed />
+            {activeTab === 'Global' && <EventFeed feedType="global" />}
+            {activeTab === 'Follows' && <EventFeed feedType="follows" />}
+            {activeTab === 'Note' && <EventFeed feedType="note" />}
+            {activeTab === 'Hashtag' && <EventFeed feedType="hashtag" />}
+            {activeTab === 'User' && <EventFeed feedType="user" />}
+            {activeTab === 'Relay' && <EventFeed feedType="relay" />}
+            {activeTab === 'Write' && (
+              <div className="h-full flex items-center justify-center">
+                <span className="text-xl tracking-wide">Write new note</span>
+              </div>
+            )}
           </div>
 
         {/* Divider / grabber */}
