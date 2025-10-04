@@ -604,7 +604,7 @@ const HeaderRoute = createRootRoute({
           </div>
 
           {/* Bottom control strip */}
-          <div className="bg-[#263238]">
+          <div className="bg-black">
             <div
               className="flex items-center justify-center bg-black text-white"
               style={{ width: '2.5em', height: '2.5em' }}
@@ -769,9 +769,9 @@ const HeaderRoute = createRootRoute({
                     setLeftPct(100)
                   }
                 }}
-                headerLeft={isSmallScreen ? `${sidebarWidthEm}em` : `calc(${sidebarWidthEm}em + ${leftPct}%)`}
+                headerLeft={isSmallScreen ? `${sidebarWidthEm}em` : `calc(${sidebarWidthEm}em + ${leftPct}% + ${dividerWidth})`}
                 headerWidth={isSmallScreen ? `calc(100vw - ${sidebarWidthEm}em)` : `calc(${100 - leftPct}% - ${dividerWidth})`}
-                hideHeader={isSmallScreen && hideThreadHeader}
+                hideHeader={isSmallScreen && hideThreadHeader || !selectedNote || (!isSmallScreen && leftPct === 100)}
               />
             ) : (
               <div className="h-full flex items-center justify-center">

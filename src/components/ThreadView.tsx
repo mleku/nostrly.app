@@ -219,11 +219,11 @@ const ThreadView: React.FC<ThreadViewProps> = ({
           <div className="fixed z-50 bg-[#263238] text-sm text-gray-400" style={{
             top: '3.5rem',
             height: '2.5rem',
-            left: headerLeft || '0',
+            // left: headerLeft || '0',
             right: '0'
           }}>
             <div className="max-w-2xl mx-auto px-4 py-2 flex items-center justify-between h-full">
-              <span className="text-gray-300">
+              <span className="text-gray-300 pl-0 pr-4">
                 Thread • {filteredEvents.length} {filteredEvents.length === 1 ? 'note' : 'notes'}
               </span>
               <div className="flex items-center gap-2">

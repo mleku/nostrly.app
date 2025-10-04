@@ -404,7 +404,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick, i
         {Object.entries(groupedReactions).map(([content, reactionList]) => (
           <button
             key={content}
-            className="flex items-center space-x-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors p-0 rounded"
+            className="flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors p-0 rounded"
             onClick={(e) => {
               e.stopPropagation();
               console.log('Reaction clicked:', content, reactionList);
@@ -419,13 +419,13 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick, i
       </div>
       
       {/* Quote, repost and reply buttons row - right justified */}
-      <div className="flex items-center justify-end space-x-6 text-gray-500 dark:text-gray-400">
+      <div className="flex items-center justify-end text-gray-500 dark:text-gray-400">
         <button
             onClick={(e) => {
               e.stopPropagation();
               handleReact();
             }}
-            className="flex items-center space-x-1 hover:text-red-500 transition-colors"
+            className="flex items-center hover:text-red-500 transition-colors"
         >
           <span className="text-lg">❤️</span>
         </button>
@@ -435,7 +435,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick, i
             e.stopPropagation();
             handleQuote();
           }}
-          className="flex items-center space-x-1 hover:text-blue-500 transition-colors"
+          className="flex items-center hover:text-blue-500 transition-colors"
         >
           <span className="text-lg">💬</span>
         </button>
@@ -445,7 +445,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick, i
             e.stopPropagation();
             handleRepost();
           }}
-          className="flex items-center space-x-1 hover:text-green-500 transition-colors"
+          className="flex items-center hover:text-green-500 transition-colors"
         >
           <span className="text-lg">🔄</span>
         </button>
@@ -455,7 +455,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick, i
             e.stopPropagation();
             handleReply();
           }}
-          className="flex items-center space-x-1 hover:text-blue-500 transition-colors"
+          className="flex items-center hover:text-blue-500 transition-colors"
         >
           <span className="text-lg">↩️</span>
         </button>
