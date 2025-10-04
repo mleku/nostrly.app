@@ -9,6 +9,7 @@ interface ProfileViewProps {
   onNoteClick: (event: NostrEvent, metadata?: UserMetadata | null) => void
   onUserClick?: (pubkey: string, metadata?: UserMetadata | null) => void
   filterMode: FilterMode
+  mutedPubkeys?: string[]
   onClose: () => void
 }
 
@@ -18,12 +19,20 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   onNoteClick,
   onUserClick,
   filterMode,
+  mutedPubkeys = [],
   onClose
 }) => {
   const [profileMetadata, setProfileMetadata] = useState<UserMetadata | null>(metadata)
   const [loading, setLoading] = useState(!metadata)
   const headerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // Scroll to top when profile opens or changes
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTo({ top: 0, behavior: 'instant' })
+    }
+  }, [pubkey])
 
   // Fetch profile metadata if not provided
   useEffect(() => {
@@ -137,6 +146,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
           onUserClick={onUserClick}
           userPubkey={pubkey}
           filterMode={filterMode}
+          mutedPubkeys={mutedPubkeys}
         />
       </div>
     </div>

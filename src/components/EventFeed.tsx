@@ -11,9 +11,10 @@ interface EventFeedProps {
   onUserClick?: (pubkey: string, metadata?: UserMetadata | null) => void
   userPubkey?: string | null
   filterMode?: FilterMode
+  mutedPubkeys?: string[]
 }
 
-const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, onUserClick, userPubkey, filterMode = 'replies' }) => {
+const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, onUserClick, userPubkey, filterMode = 'replies', mutedPubkeys = [] }) => {
   const [userMetadataCache, setUserMetadataCache] = useState<Map<string, UserMetadata | null>>(new Map())
   const loadingRef = useRef<HTMLDivElement>(null)
 
@@ -63,7 +64,7 @@ const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, onUserClic
       }
       // For 'global' feedType, no additional filters (show everything)
 
-      let events = await nostrService.fetchEvents(fetchParams)
+      let events = await nostrService.fetchEvents({ ...fetchParams, mutedPubkeys })
       
       // Apply filterMode filtering
       if (filterMode === 'notes') {
@@ -89,6 +90,26 @@ const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, onUserClic
       } else if (filterMode === 'reposts') {
         // In "reposts" mode, only show kind 6 repost events
         events = events.filter(event => event.kind === 6)
+      }
+
+      // Apply mute list filtering - exclude events from muted pubkeys and events mentioning muted pubkeys
+      if (mutedPubkeys.length > 0) {
+        events = events.filter(event => {
+          // Exclude events from muted authors
+          if (mutedPubkeys.includes(event.pubkey)) {
+            return false
+          }
+          
+          // Exclude events that mention muted pubkeys in 'p' tags
+          const mentionsMutedUser = event.tags.some(tag => 
+            tag[0] === 'p' && tag[1] && mutedPubkeys.includes(tag[1])
+          )
+          if (mentionsMutedUser) {
+            return false
+          }
+          
+          return true
+        })
       }
       
       // Fetch metadata for all unique authors in this batch

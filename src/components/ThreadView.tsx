@@ -14,6 +14,7 @@ interface ThreadViewProps {
   headerLeft?: string
   headerWidth?: string
   hideHeader?: boolean
+  mutedPubkeys?: string[]
 }
 
 const ThreadView: React.FC<ThreadViewProps> = ({ 
@@ -25,7 +26,8 @@ const ThreadView: React.FC<ThreadViewProps> = ({
   onMaximizeLeft,
   headerLeft,
   headerWidth,
-  hideHeader
+  hideHeader,
+  mutedPubkeys = []
 }) => {
   const [threadEvents, setThreadEvents] = useState<NostrEvent[]>([])
   const [eventMetadata, setEventMetadata] = useState<Record<string, UserMetadata | null>>({})
@@ -133,6 +135,26 @@ const ThreadView: React.FC<ThreadViewProps> = ({
 
         // Sort events chronologically
         events.sort((a, b) => a.created_at - b.created_at)
+
+        // Apply mute list filtering - exclude events from muted pubkeys and events mentioning muted pubkeys
+        if (mutedPubkeys.length > 0) {
+          events = events.filter(event => {
+            // Exclude events from muted authors
+            if (mutedPubkeys.includes(event.pubkey)) {
+              return false
+            }
+            
+            // Exclude events that mention muted pubkeys in 'p' tags
+            const mentionsMutedUser = event.tags.some(tag => 
+              tag[0] === 'p' && tag[1] && mutedPubkeys.includes(tag[1])
+            )
+            if (mentionsMutedUser) {
+              return false
+            }
+            
+            return true
+          })
+        }
 
         // Fetch metadata for all unique pubkeys
         const uniquePubkeys = [...new Set(events.map(event => event.pubkey))]

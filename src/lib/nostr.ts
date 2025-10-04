@@ -27,9 +27,21 @@ export interface UserMetadata {
   lud16?: string
 }
 
+export interface RelayInfo {
+  url: string
+  read: boolean
+  write: boolean
+}
+
+export interface UserRelayList {
+  relays: RelayInfo[]
+  lastUpdated: number
+}
+
 // Create IndexedDB stores for caching
 const eventsStore = createStore('nostr-events', 'events')
 const metadataStore = createStore('nostr-metadata', 'metadata')
+const relayListStore = createStore('nostr-relay-lists', 'relay-lists')
 
 export interface NostrEvent extends Event {
   id: string
@@ -44,6 +56,7 @@ export interface NostrEvent extends Event {
 class NostrService {
   private pool: SimplePool
   private relays: string[]
+  private userRelayLists: Map<string, UserRelayList> = new Map()
 
   constructor(relays: string[] = DEFAULT_RELAYS) {
     this.pool = new SimplePool()
@@ -51,10 +64,31 @@ class NostrService {
   }
 
   /**
-   * Cache events in IndexedDB
+   * Cache events in IndexedDB, excluding muted content
    */
-  private async cacheEvents(events: NostrEvent[]) {
-    const promises = events.map(event => 
+  private async cacheEvents(events: NostrEvent[], mutedPubkeys: string[] = []) {
+    // Filter out events from muted pubkeys and events mentioning muted pubkeys
+    let filteredEvents = events
+    if (mutedPubkeys.length > 0) {
+      filteredEvents = events.filter(event => {
+        // Exclude events from muted authors
+        if (mutedPubkeys.includes(event.pubkey)) {
+          return false
+        }
+        
+        // Exclude events that mention muted pubkeys in 'p' tags
+        const mentionsMutedUser = event.tags.some(tag => 
+          tag[0] === 'p' && tag[1] && mutedPubkeys.includes(tag[1])
+        )
+        if (mentionsMutedUser) {
+          return false
+        }
+        
+        return true
+      })
+    }
+
+    const promises = filteredEvents.map(event => 
       set(event.id, event, eventsStore)
     )
     await Promise.all(promises)
@@ -77,9 +111,10 @@ class NostrService {
     until?: number
     since?: number
     authors?: string[]
+    mutedPubkeys?: string[]
   } = {}): Promise<NostrEvent[]> {
     try {
-      const { limit = 20, until, since, authors } = options
+      const { limit = 20, until, since, authors, mutedPubkeys = [] } = options
       
       const filter: Filter = {
         kinds: [1, 111, 6], // Text notes, long-form articles, reposts (excluding reactions)
@@ -94,7 +129,7 @@ class NostrService {
       
       // Cache the events
       if (nostrEvents.length > 0) {
-        await this.cacheEvents(nostrEvents)
+        await this.cacheEvents(nostrEvents, mutedPubkeys)
       }
       
       // Also cache metadata for all authors
@@ -281,6 +316,70 @@ class NostrService {
   }
 
   /**
+   * Fetch user relay list (kind 10002) for a given pubkey
+   */
+  async fetchUserRelayList(pubkey: string): Promise<UserRelayList | null> {
+    try {
+      // First check cache
+      const cached = await get(pubkey, relayListStore) as UserRelayList | undefined
+      if (cached) {
+        return cached
+      }
+
+      const filter: Filter = {
+        kinds: [10002], // Relay list metadata
+        authors: [pubkey],
+        limit: 1
+      }
+
+      const events = await this.pool.querySync(this.relays, filter)
+      
+      if (events.length === 0) {
+        return null
+      }
+
+      // Get the most recent relay list event
+      const event = events[0]
+      
+      // Parse relay information from 'r' tags
+      const relays: RelayInfo[] = []
+      if (event.tags) {
+        for (const tag of event.tags) {
+          if (tag[0] === 'r' && tag[1]) {
+            const url = tag[1]
+            const marker = tag[2] // read, write, or undefined (both)
+            
+            let read = true
+            let write = true
+            
+            if (marker === 'read') {
+              write = false
+            } else if (marker === 'write') {
+              read = false
+            }
+            // If no marker, both read and write are true (default)
+            
+            relays.push({ url, read, write })
+          }
+        }
+      }
+      
+      const relayList: UserRelayList = {
+        relays,
+        lastUpdated: event.created_at
+      }
+      
+      // Cache the relay list
+      await set(pubkey, relayList, relayListStore)
+      
+      return relayList
+    } catch (error) {
+      console.error('Failed to fetch user relay list:', error)
+      return null
+    }
+  }
+
+  /**
    * Close all relay connections
    */
   close() {
@@ -300,6 +399,109 @@ class NostrService {
   setRelays(relays: string[]) {
     this.close()
     this.relays = relays
+  }
+
+  /**
+   * Get read relays for a specific user, falling back to default relays
+   */
+  async getReadRelaysForUser(pubkey: string): Promise<string[]> {
+    try {
+      // Try to get user's relay list
+      let relayList = this.userRelayLists.get(pubkey)
+      if (!relayList) {
+        relayList = await this.fetchUserRelayList(pubkey)
+        if (relayList) {
+          this.userRelayLists.set(pubkey, relayList)
+        }
+      }
+
+      if (relayList) {
+        // Return relays marked for reading
+        const readRelays = relayList.relays
+          .filter(relay => relay.read)
+          .map(relay => relay.url)
+        
+        if (readRelays.length > 0) {
+          return readRelays
+        }
+      }
+
+      // Fallback to default relays
+      return this.relays
+    } catch (error) {
+      console.error('Failed to get read relays for user:', error)
+      return this.relays
+    }
+  }
+
+  /**
+   * Get write relays for a specific user, falling back to default relays
+   */
+  async getWriteRelaysForUser(pubkey: string): Promise<string[]> {
+    try {
+      // Try to get user's relay list
+      let relayList = this.userRelayLists.get(pubkey)
+      if (!relayList) {
+        relayList = await this.fetchUserRelayList(pubkey)
+        if (relayList) {
+          this.userRelayLists.set(pubkey, relayList)
+        }
+      }
+
+      if (relayList) {
+        // Return relays marked for writing
+        const writeRelays = relayList.relays
+          .filter(relay => relay.write)
+          .map(relay => relay.url)
+        
+        if (writeRelays.length > 0) {
+          return writeRelays
+        }
+      }
+
+      // Fallback to default relays
+      return this.relays
+    } catch (error) {
+      console.error('Failed to get write relays for user:', error)
+      return this.relays
+    }
+  }
+
+  /**
+   * Fetch user mute list (kind 10000) for a given pubkey
+   */
+  async fetchUserMuteList(pubkey: string): Promise<string[]> {
+    try {
+      const filter: Filter = {
+        kinds: [10000], // Mute list
+        authors: [pubkey],
+        limit: 1
+      }
+
+      const events = await this.pool.querySync(this.relays, filter)
+      
+      if (events.length === 0) {
+        return []
+      }
+
+      // Get the most recent mute list event
+      const event = events[0]
+      
+      // Extract pubkeys from 'p' tags
+      const mutedPubkeys: string[] = []
+      if (event.tags) {
+        for (const tag of event.tags) {
+          if (tag[0] === 'p' && tag[1]) {
+            mutedPubkeys.push(tag[1])
+          }
+        }
+      }
+      
+      return mutedPubkeys
+    } catch (error) {
+      console.error('Failed to fetch mute list:', error)
+      return []
+    }
   }
 }
 

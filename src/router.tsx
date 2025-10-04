@@ -88,9 +88,32 @@ const HeaderRoute = createRootRoute({
       }
     }, [leftPct])
 
-    // Selected note state for thread panel
-    const [selectedNote, setSelectedNote] = useState<NostrEvent | null>(null)
-    const [selectedNoteMetadata, setSelectedNoteMetadata] = useState<UserMetadata | null>(null)
+    // Independent thread state for each tab type
+    interface ThreadState {
+      selectedNote: NostrEvent | null
+      selectedNoteMetadata: UserMetadata | null
+    }
+    
+    const [threadStores, setThreadStores] = useState<Record<string, ThreadState>>({
+      Global: { selectedNote: null, selectedNoteMetadata: null },
+      Follows: { selectedNote: null, selectedNoteMetadata: null },
+      Profile: { selectedNote: null, selectedNoteMetadata: null }
+    })
+    
+    // Thread stores for dynamic user tabs
+    const [userThreadStores, setUserThreadStores] = useState<Record<string, ThreadState>>({})
+    
+    // Get current thread state based on active tab
+    const getCurrentThreadStore = (): ThreadState => {
+      if (activeTab === 'UserProfile' && activeUserTabId) {
+        return userThreadStores[activeUserTabId] || { selectedNote: null, selectedNoteMetadata: null }
+      }
+      return threadStores[activeTab] || { selectedNote: null, selectedNoteMetadata: null }
+    }
+    
+    const currentThreadStore = getCurrentThreadStore()
+    const selectedNote = currentThreadStore.selectedNote
+    const selectedNoteMetadata = currentThreadStore.selectedNoteMetadata
 
     // Minimal auth UI state + NIP-07 integration
     const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -99,6 +122,8 @@ const HeaderRoute = createRootRoute({
     const [loginModalMsg, setLoginModalMsg] = useState<string>('')
     const [userMetadata, setUserMetadata] = useState<UserMetadata | null>(null)
     const [loadingMetadata, setLoadingMetadata] = useState(false)
+    const [mutedPubkeys, setMutedPubkeys] = useState<string[]>([])
+    const [loadingMuteList, setLoadingMuteList] = useState(false)
 
     const username = userMetadata?.display_name || userMetadata?.name || (isLoggedIn ? 'you' : 'guest')
     const avatarEmoji = isLoggedIn ? '🙂' : '👤'
@@ -119,6 +144,15 @@ const HeaderRoute = createRootRoute({
       setFilterMode(newMode)
     }, [queryClient])
 
+    // Custom handler to change tab and reload main note view
+    const handleTabChange = useCallback((newTab: string) => {
+      // Clear all event queries to reload the main note view
+      queryClient.removeQueries({ queryKey: ['events'] })
+      
+      // Set new active tab
+      setActiveTab(newTab)
+    }, [queryClient])
+
     // Auto-login with signer on mount
     useEffect(() => {
       const attemptAutoLogin = async () => {
@@ -137,15 +171,21 @@ const HeaderRoute = createRootRoute({
           setPubkey(pk)
           setIsLoggedIn(true)
 
-          // Fetch user metadata in background
+          // Fetch user metadata and mute list in background
           setLoadingMetadata(true)
+          setLoadingMuteList(true)
           try {
-            const metadata = await nostrService.fetchUserMetadata(pk)
+            const [metadata, muteList] = await Promise.all([
+              nostrService.fetchUserMetadata(pk),
+              nostrService.fetchUserMuteList(pk)
+            ])
             setUserMetadata(metadata)
-          } catch (metadataError) {
-            console.warn('Failed to fetch user metadata during auto-login:', metadataError)
+            setMutedPubkeys(muteList)
+          } catch (error) {
+            console.warn('Failed to fetch user data during auto-login:', error)
           } finally {
             setLoadingMetadata(false)
+            setLoadingMuteList(false)
           }
         } catch (err: any) {
           // Auto-login failed silently - user can still manually log in
@@ -158,8 +198,24 @@ const HeaderRoute = createRootRoute({
 
     // Handle note click to show in thread panel
     const handleNoteClick = useCallback(async (event: NostrEvent, metadata?: UserMetadata | null) => {
-      setSelectedNote(event)
-      setSelectedNoteMetadata(metadata || null)
+      // Store thread state in the appropriate tab's store
+      const updateThreadStore = (selectedNote: NostrEvent, selectedNoteMetadata: UserMetadata | null) => {
+        if (activeTab === 'UserProfile' && activeUserTabId) {
+          // Update user tab thread store
+          setUserThreadStores(prev => ({
+            ...prev,
+            [activeUserTabId]: { selectedNote, selectedNoteMetadata }
+          }))
+        } else {
+          // Update main thread store
+          setThreadStores(prev => ({
+            ...prev,
+            [activeTab]: { selectedNote, selectedNoteMetadata }
+          }))
+        }
+      }
+
+      updateThreadStore(event, metadata || null)
 
       // Reset thread header visibility when selecting a new note
       setHideThreadHeader(false)
@@ -168,7 +224,7 @@ const HeaderRoute = createRootRoute({
       if (!metadata && event.pubkey) {
         try {
           const fetchedMetadata = await nostrService.fetchUserMetadata(event.pubkey)
-          setSelectedNoteMetadata(fetchedMetadata)
+          updateThreadStore(event, fetchedMetadata)
         } catch (error) {
           console.warn('Failed to fetch metadata for selected note:', error)
         }
@@ -180,7 +236,7 @@ const HeaderRoute = createRootRoute({
       } else {
         setLeftPct(50)
       }
-    }, [isSmallScreen])
+    }, [isSmallScreen, activeTab, activeUserTabId])
 
     // Handle user click to open profile
     const handleUserClick = useCallback(async (pubkey: string, metadata?: UserMetadata | null) => {
@@ -236,6 +292,13 @@ const HeaderRoute = createRootRoute({
         }
         return newTabs
       })
+      
+      // Clean up the thread store for this user tab
+      setUserThreadStores(prev => {
+        const newStores = { ...prev }
+        delete newStores[tabId]
+        return newStores
+      })
     }, [activeUserTabId])
 
     // Check screen width on mount and resize
@@ -287,12 +350,18 @@ const HeaderRoute = createRootRoute({
         setPubkey(null)
         setUserMetadata(null)
         setLoadingMetadata(false)
+        setMutedPubkeys([])
+        setLoadingMuteList(false)
         setShowLoginModal(false)
         setLoginModalMsg('')
 
         // Clear any selected note/thread that might be user-specific
-        setSelectedNote(null)
-        setSelectedNoteMetadata(null)
+        setThreadStores({
+          Global: { selectedNote: null, selectedNoteMetadata: null },
+          Follows: { selectedNote: null, selectedNoteMetadata: null },
+          Profile: { selectedNote: null, selectedNoteMetadata: null }
+        })
+        setUserThreadStores({})
 
         // Clear all cached queries (including user-specific data like follows, metadata, etc.)
         queryClient.clear()
@@ -315,17 +384,23 @@ const HeaderRoute = createRootRoute({
         setIsLoggedIn(true)
         setLoginModalMsg('Login successful! Fetching your profile…')
 
-        // Fetch user metadata
+        // Fetch user metadata and mute list
         setLoadingMetadata(true)
+        setLoadingMuteList(true)
         try {
-          const metadata = await nostrService.fetchUserMetadata(pk)
+          const [metadata, muteList] = await Promise.all([
+            nostrService.fetchUserMetadata(pk),
+            nostrService.fetchUserMuteList(pk)
+          ])
           setUserMetadata(metadata)
+          setMutedPubkeys(muteList)
           setLoginModalMsg('Login successful! Your profile has been loaded.')
-        } catch (metadataError) {
-          console.warn('Failed to fetch user metadata:', metadataError)
-          setLoginModalMsg('Login successful! (Profile could not be loaded)')
+        } catch (error) {
+          console.warn('Failed to fetch user data:', error)
+          setLoginModalMsg('Login successful! (Some profile data could not be loaded)')
         } finally {
           setLoadingMetadata(false)
+          setLoadingMuteList(false)
         }
       } catch (err: any) {
         setLoginModalMsg(err?.message || 'Login was cancelled or failed. Please try again.')
@@ -448,7 +523,7 @@ const HeaderRoute = createRootRoute({
               <button
                 className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#263238] hover:bg-[#37474F] transition-colors"
                 title={`Profile: ${username}`}
-                onClick={() => setActiveTab('Profile')}
+                onClick={() => handleTabChange('Profile')}
               >
                 {/* Avatar Circle */}
                 <div
@@ -556,6 +631,8 @@ const HeaderRoute = createRootRoute({
                 aria-label={`User: ${tab.displayName}`}
                 title={`User: ${tab.displayName}`}
                 onClick={() => {
+                  // Clear all event queries to reload the main note view
+                  queryClient.removeQueries({ queryKey: ['events'] })
                   setActiveTab('UserProfile')
                   setActiveUserTabId(tab.id)
                 }}
@@ -604,7 +681,7 @@ const HeaderRoute = createRootRoute({
                   style={{ height: '2.5em' }}
                   aria-label="Follows"
                   title="Follows"
-                  onClick={() => setActiveTab('Follows')}
+                  onClick={() => handleTabChange('Follows')}
               >
               <span
                   className={sidebarCollapsed ? '' : 'mr-2'}
@@ -632,87 +709,13 @@ const HeaderRoute = createRootRoute({
               </span>
               {!sidebarCollapsed && <span>Global</span>}
             </div>
-              <div
-                  className={`flex items-center w-full cursor-pointer ${activeTab === 'Note' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
-                  style={{ height: '2.5em' }}
-                  aria-label="Note"
-                  title="Note"
-                  onClick={() => setActiveTab('Note')}
-              >
-
-              <span
-                  className={sidebarCollapsed ? '' : 'mr-2'}
-                  style={{ width: '2em', height: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                  aria-hidden
-              >
-                <span style={{ width: '1.5em', height: '1.5em', borderRadius: '9999px', background: '#455A64', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{avatarEmoji}</span>
-              </span>
-                  {!sidebarCollapsed && (
-                      <span className="flex items-center">
-                  <span aria-hidden className="mr-1">📝</span>
-                  note
-                </span>
-                  )}
-              </div>
-
-              <div
-                  className={`flex items-center w-full cursor-pointer ${activeTab === 'Hashtag' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
-                  style={{ height: '2.5em' }}
-                  aria-label="Hashtag"
-                  title="Hashtag"
-                  onClick={() => setActiveTab('Hashtag')}
-              >
-              <span
-                  className={sidebarCollapsed ? '' : 'mr-2'}
-                  style={{ width: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25em' }}
-                  aria-hidden
-              >
-                #
-              </span>
-                  {!sidebarCollapsed && <span>Hashtag</span>}
-              </div>
-
-              <div
-                  className={`flex items-center w-full cursor-pointer ${activeTab === 'User' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
-                  style={{ height: '2.5em' }}
-                  aria-label="User"
-                  title="User"
-                  onClick={() => setActiveTab('User')}
-              >
-                  {/* Avatar circle */}
-                  <span
-                      className={sidebarCollapsed ? '' : 'mr-2'}
-                      style={{ width: '2em', height: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                      aria-hidden
-                  >
-                <span style={{ width: '1.5em', height: '1.5em', borderRadius: '9999px', background: '#455A64', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>👤</span>
-              </span>
-                  {!sidebarCollapsed && <span>username</span>}
-              </div>
-
-              <div
-                  className={`flex items-center w-full cursor-pointer ${activeTab === 'Relay' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
-                  style={{ height: '2.5em' }}
-                  aria-label="Relay"
-                  title="example.com"
-                  onClick={() => setActiveTab('Relay')}
-              >
-              <span
-                  className={sidebarCollapsed ? '' : 'mr-2'}
-                  style={{ width: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                  aria-hidden
-              >
-                🖧
-              </span>
-                  {!sidebarCollapsed && <div className="overflow-hidden">wss://example.com</div>}
-              </div>
 
             <div
               className={`flex items-center w-full cursor-pointer ${activeTab === 'Write' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
               style={{ height: '2.5em' }}
               aria-label="Write"
               title="Write"
-              onClick={() => setActiveTab('Write')}
+              onClick={() => handleTabChange('Write')}
             >
               <span
                 className={sidebarCollapsed ? '' : 'mr-2'}
@@ -770,12 +773,12 @@ const HeaderRoute = createRootRoute({
                 }
               }}
             />
-            {activeTab === 'Global' && <EventFeed feedType="global" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
-            {activeTab === 'Follows' && <EventFeed feedType="follows" onNoteClick={handleNoteClick} onUserClick={handleUserClick} userPubkey={pubkey} filterMode={filterMode} />}
-            {activeTab === 'Note' && <EventFeed feedType="note" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
-            {activeTab === 'Hashtag' && <EventFeed feedType="hashtag" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
-            {activeTab === 'User' && <EventFeed feedType="user" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
-            {activeTab === 'Relay' && <EventFeed feedType="relay" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
+            {activeTab === 'Global' && <EventFeed feedType="global" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} mutedPubkeys={mutedPubkeys} />}
+            {activeTab === 'Follows' && <EventFeed feedType="follows" onNoteClick={handleNoteClick} onUserClick={handleUserClick} userPubkey={pubkey} filterMode={filterMode} mutedPubkeys={mutedPubkeys} />}
+            {activeTab === 'Note' && <EventFeed feedType="note" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} mutedPubkeys={mutedPubkeys} />}
+            {activeTab === 'Hashtag' && <EventFeed feedType="hashtag" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} mutedPubkeys={mutedPubkeys} />}
+            {activeTab === 'User' && <EventFeed feedType="user" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} mutedPubkeys={mutedPubkeys} />}
+            {activeTab === 'Relay' && <EventFeed feedType="relay" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} mutedPubkeys={mutedPubkeys} />}
             {activeTab === 'Profile' && isLoggedIn && pubkey && (
               <ProfileView
                 pubkey={pubkey}
@@ -783,6 +786,7 @@ const HeaderRoute = createRootRoute({
                 onNoteClick={handleNoteClick}
                 onUserClick={handleUserClick}
                 filterMode={filterMode}
+                mutedPubkeys={mutedPubkeys}
                 onClose={() => setActiveTab('Global')}
               />
             )}
@@ -795,6 +799,7 @@ const HeaderRoute = createRootRoute({
                   onNoteClick={handleNoteClick}
                   onUserClick={handleUserClick}
                   filterMode={filterMode}
+                  mutedPubkeys={mutedPubkeys}
                   onClose={() => closeUserTab(activeUserTab.id)}
                 />
               ) : null
@@ -898,6 +903,7 @@ const HeaderRoute = createRootRoute({
                 focusedEventMetadata={selectedNoteMetadata}
                 onNoteClick={handleNoteClick}
                 onUserClick={handleUserClick}
+                mutedPubkeys={mutedPubkeys}
                 onClose={() => {
                   if (isSmallScreen) {
                     setHideThreadHeader(false)
@@ -905,8 +911,19 @@ const HeaderRoute = createRootRoute({
                   } else {
                     setLeftPct(100)
                   }
-                  setSelectedNote(null)
-                  setSelectedNoteMetadata(null)
+                  
+                  // Clear thread state from the appropriate store
+                  if (activeTab === 'UserProfile' && activeUserTabId) {
+                    setUserThreadStores(prev => ({
+                      ...prev,
+                      [activeUserTabId]: { selectedNote: null, selectedNoteMetadata: null }
+                    }))
+                  } else {
+                    setThreadStores(prev => ({
+                      ...prev,
+                      [activeTab]: { selectedNote: null, selectedNoteMetadata: null }
+                    }))
+                  }
                 }}
                 onMaximizeLeft={() => {
                   if (isSmallScreen) {
