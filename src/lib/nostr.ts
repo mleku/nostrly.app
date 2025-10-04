@@ -142,6 +142,12 @@ class NostrService {
    */
   async fetchUserMetadata(pubkey: string): Promise<UserMetadata | null> {
     try {
+      // First check cache
+      const cached = await get(pubkey, metadataStore) as UserMetadata | undefined
+      if (cached) {
+        return cached
+      }
+
       const filter: Filter = {
         kinds: [0],
         authors: [pubkey],
@@ -157,8 +163,15 @@ class NostrService {
       // Get the most recent event (they should already be sorted by created_at desc)
       const event = events[0]
       
+      // Cache the kind 0 event itself
+      await this.cacheEvents([event as NostrEvent])
+      
       try {
         const metadata = JSON.parse(event.content) as UserMetadata
+        
+        // Cache the parsed metadata
+        await set(pubkey, metadata, metadataStore)
+        
         return metadata
       } catch (parseError) {
         console.warn('Failed to parse metadata JSON:', parseError)

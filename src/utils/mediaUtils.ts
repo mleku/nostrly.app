@@ -156,7 +156,11 @@ import { UserMetadata, NostrEvent, nostrService } from '../lib/nostr'
 /**
  * Component to render a user profile link with avatar and username
  */
-const UserProfileLink: React.FC<{ reference: NostrReference; index: number }> = ({ reference, index }) => {
+const UserProfileLink: React.FC<{ 
+  reference: NostrReference; 
+  index: number; 
+  onUserClick?: (pubkey: string, metadata?: UserMetadata | null) => void;
+}> = ({ reference, index, onUserClick }) => {
   const [metadata, setMetadata] = useState<UserMetadata | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -197,12 +201,21 @@ const UserProfileLink: React.FC<{ reference: NostrReference; index: number }> = 
   const username = metadata?.display_name || metadata?.name || (reference.pubkey ? `${reference.pubkey.slice(0, 8)}...` : 'Unknown')
   const avatarUrl = metadata?.picture
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (onUserClick && reference.pubkey) {
+      onUserClick(reference.pubkey, metadata)
+    }
+  }
+
   return React.createElement(
-    'span',
+    'button',
     {
       key: `profile-${index}`,
-      className: 'inline-flex items-center space-x-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200',
-      title: `Profile: ${username}`
+      className: 'inline-flex items-center space-x-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 cursor-pointer bg-transparent border-none p-0 font-inherit',
+      title: `Profile: ${username}`,
+      onClick: handleClick
     },
     React.createElement(
       'div',
@@ -583,7 +596,8 @@ export function extractAllLinks(content: string): ContentLink[] {
 export function linkifyContent(
   content: string,
   onMediaClick: (url: string, type: MediaType) => void,
-  onNostrClick: (reference: NostrReference) => void
+  onNostrClick: (reference: NostrReference) => void,
+  onUserClick?: (pubkey: string, metadata?: UserMetadata | null) => void
 ): React.ReactNode[] {
   const allLinks = extractAllLinks(content)
   
@@ -628,7 +642,8 @@ export function linkifyContent(
           React.createElement(UserProfileLink, {
             key: `profile-${index}`,
             reference: nostrRef,
-            index: index
+            index: index,
+            onUserClick: onUserClick
           })
         )
       } else if (nostrRef.type === 'note' || nostrRef.type === 'nevent') {

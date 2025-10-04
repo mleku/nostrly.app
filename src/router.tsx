@@ -12,6 +12,7 @@ import EventFeed from './components/EventFeed'
 import NoteCard from './components/NoteCard'
 import ThreadView from './components/ThreadView'
 import NotesFilterPanel, { FilterMode } from './components/NotesFilterPanel'
+import ProfileView from './components/ProfileView'
 import { useQueryClient } from '@tanstack/react-query'
 
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n))
@@ -38,6 +39,16 @@ const HeaderRoute = createRootRoute({
 
     // Active tab state for radio button behavior
     const [activeTab, setActiveTab] = useState<string>('Global')
+    
+    // User tabs state for dynamic user profiles
+    interface UserTab {
+      id: string
+      pubkey: string
+      metadata: UserMetadata | null
+      displayName: string
+    }
+    const [userTabs, setUserTabs] = useState<UserTab[]>([])
+    const [activeUserTabId, setActiveUserTabId] = useState<string | null>(null)
 
     // Filter mode state for notes/replies filtering
     const [filterMode, setFilterMode] = useState<FilterMode>('replies')
@@ -91,6 +102,13 @@ const HeaderRoute = createRootRoute({
 
     const username = userMetadata?.display_name || userMetadata?.name || (isLoggedIn ? 'you' : 'guest')
     const avatarEmoji = isLoggedIn ? '🙂' : '👤'
+
+    // Switch to Follows tab when user logs in
+    useEffect(() => {
+      if (isLoggedIn && activeTab === 'Global') {
+        setActiveTab('Follows')
+      }
+    }, [isLoggedIn, activeTab])
 
     // Custom handler to clear view before changing filter mode
     const handleModeChange = useCallback((newMode: FilterMode) => {
@@ -163,6 +181,62 @@ const HeaderRoute = createRootRoute({
         setLeftPct(50)
       }
     }, [isSmallScreen])
+
+    // Handle user click to open profile
+    const handleUserClick = useCallback(async (pubkey: string, metadata?: UserMetadata | null) => {
+      // Clear all event queries to refresh the note thread view (same as filter buttons)
+      queryClient.removeQueries({ queryKey: ['events'] })
+      
+      // Check if tab for this user already exists
+      const existingTab = userTabs.find(tab => tab.pubkey === pubkey)
+      
+      if (existingTab) {
+        // Switch to existing tab
+        setActiveTab('UserProfile')
+        setActiveUserTabId(existingTab.id)
+        return
+      }
+      
+      // Create new tab for this user
+      const tabId = `user-${pubkey.slice(0, 8)}-${Date.now()}`
+      let userMetadata = metadata
+      
+      // If we don't have metadata, try to fetch it
+      if (!metadata) {
+        try {
+          userMetadata = await nostrService.fetchUserMetadata(pubkey)
+        } catch (error) {
+          console.warn('Failed to fetch user metadata:', error)
+        }
+      }
+      
+      const displayName = userMetadata?.display_name || userMetadata?.name || `${pubkey.slice(0, 8)}...`
+      
+      const newTab: UserTab = {
+        id: tabId,
+        pubkey,
+        metadata: userMetadata,
+        displayName
+      }
+      
+      // Add new tab and switch to it
+      setUserTabs(prev => [...prev, newTab])
+      setActiveTab('UserProfile')
+      setActiveUserTabId(tabId)
+    }, [userTabs, queryClient])
+
+    // Function to close a user tab
+    const closeUserTab = useCallback((tabId: string) => {
+      setUserTabs(prev => {
+        const newTabs = prev.filter(tab => tab.id !== tabId)
+        // If we're closing the active tab, switch to Global
+        if (activeUserTabId === tabId) {
+          setActiveTab('Global')
+          setActiveUserTabId(null)
+        }
+        return newTabs
+      })
+    }, [activeUserTabId])
 
     // Check screen width on mount and resize
     useEffect(() => {
@@ -374,6 +448,7 @@ const HeaderRoute = createRootRoute({
               <button
                 className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#263238] hover:bg-[#37474F] transition-colors"
                 title={`Profile: ${username}`}
+                onClick={() => setActiveTab('Profile')}
               >
                 {/* Avatar Circle */}
                 <div
@@ -472,6 +547,59 @@ const HeaderRoute = createRootRoute({
         >
           {/* Tabs at the very top */}
           <div className="flex flex-col" style={{ gap: '0.5em' }}>
+            {/* Dynamic User Tabs - appear at the top */}
+            {userTabs.map((tab) => (
+              <div
+                key={tab.id}
+                className={`flex items-center w-full cursor-pointer ${activeTab === 'UserProfile' && activeUserTabId === tab.id ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
+                style={{ height: '2.5em' }}
+                aria-label={`User: ${tab.displayName}`}
+                title={`User: ${tab.displayName}`}
+                onClick={() => {
+                  setActiveTab('UserProfile')
+                  setActiveUserTabId(tab.id)
+                }}
+              >
+                {/* Avatar circle */}
+                <span
+                  className={sidebarCollapsed ? '' : 'mr-2'}
+                  style={{ width: '2em', height: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-hidden
+                >
+                  {tab.metadata?.picture ? (
+                    <img
+                      src={tab.metadata.picture}
+                      alt={tab.displayName}
+                      className="w-6 h-6 rounded-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  ) : (
+                    <span style={{ width: '1.5em', height: '1.5em', borderRadius: '9999px', background: '#455A64', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {tab.displayName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </span>
+                {!sidebarCollapsed && (
+                  <div className="flex items-center justify-between w-full">
+                    <span className="truncate max-w-[6em]">{tab.displayName}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        closeUserTab(tab.id)
+                      }}
+                      className="ml-1 w-4 h-4 rounded-full bg-[#37474F] hover:bg-[#455A64] flex items-center justify-center text-xs transition-colors"
+                      title="Close tab"
+                      aria-label="Close tab"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+
             {/* Note - very top */}
             <div
               className={`flex items-center w-full cursor-pointer ${activeTab === 'Note' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
@@ -601,6 +729,7 @@ const HeaderRoute = createRootRoute({
               </span>
               {!sidebarCollapsed && <span>Write</span>}
             </div>
+
           </div>
 
           {/* Bottom control strip */}
@@ -647,12 +776,33 @@ const HeaderRoute = createRootRoute({
                 }
               }}
             />
-            {activeTab === 'Global' && <EventFeed feedType="global" onNoteClick={handleNoteClick} filterMode={filterMode} />}
-            {activeTab === 'Follows' && <EventFeed feedType="follows" onNoteClick={handleNoteClick} userPubkey={pubkey} filterMode={filterMode} />}
-            {activeTab === 'Note' && <EventFeed feedType="note" onNoteClick={handleNoteClick} filterMode={filterMode} />}
-            {activeTab === 'Hashtag' && <EventFeed feedType="hashtag" onNoteClick={handleNoteClick} filterMode={filterMode} />}
-            {activeTab === 'User' && <EventFeed feedType="user" onNoteClick={handleNoteClick} filterMode={filterMode} />}
-            {activeTab === 'Relay' && <EventFeed feedType="relay" onNoteClick={handleNoteClick} filterMode={filterMode} />}
+            {activeTab === 'Global' && <EventFeed feedType="global" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
+            {activeTab === 'Follows' && <EventFeed feedType="follows" onNoteClick={handleNoteClick} onUserClick={handleUserClick} userPubkey={pubkey} filterMode={filterMode} />}
+            {activeTab === 'Note' && <EventFeed feedType="note" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
+            {activeTab === 'Hashtag' && <EventFeed feedType="hashtag" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
+            {activeTab === 'User' && <EventFeed feedType="user" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
+            {activeTab === 'Relay' && <EventFeed feedType="relay" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
+            {activeTab === 'Profile' && isLoggedIn && pubkey && (
+              <ProfileView 
+                pubkey={pubkey} 
+                metadata={userMetadata} 
+                onNoteClick={handleNoteClick}
+                filterMode={filterMode}
+                onClose={() => setActiveTab('Global')}
+              />
+            )}
+            {activeTab === 'UserProfile' && activeUserTabId && (() => {
+              const activeUserTab = userTabs.find(tab => tab.id === activeUserTabId)
+              return activeUserTab ? (
+                <ProfileView 
+                  pubkey={activeUserTab.pubkey} 
+                  metadata={activeUserTab.metadata} 
+                  onNoteClick={handleNoteClick}
+                  filterMode={filterMode}
+                  onClose={() => closeUserTab(activeUserTab.id)}
+                />
+              ) : null
+            })()}
             {activeTab === 'Write' && (
               <div className="h-full flex items-center justify-center">
                 <span className="text-xl tracking-wide">Write new note</span>

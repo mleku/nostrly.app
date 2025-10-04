@@ -8,11 +8,12 @@ interface NoteCardProps {
   event: NostrEvent
   userMetadata?: UserMetadata | null
   onNoteClick?: (event: NostrEvent, metadata?: UserMetadata | null) => void
+  onUserClick?: (pubkey: string, metadata?: UserMetadata | null) => void
   isInThreadView?: boolean
   onFocusNote?: (eventId: string) => void
 }
 
-const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick, isInThreadView = false, onFocusNote }) => {
+const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick, onUserClick, isInThreadView = false, onFocusNote }) => {
   const [showJson, setShowJson] = useState(false)
   const [reactions, setReactions] = useState<NostrEvent[]>([])
   const [loadingReactions, setLoadingReactions] = useState(false)
@@ -255,7 +256,13 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick, i
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
           {/* Avatar */}
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 dark:bg-gray-600 flex-shrink-0">
+          <div 
+            className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 dark:bg-gray-600 flex-shrink-0 cursor-pointer hover:opacity-80"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUserClick?.(event.pubkey, userMetadata);
+            }}
+          >
             {avatarUrl ? (
               <img 
                 src={avatarUrl} 
@@ -277,7 +284,13 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick, i
           
           {/* Username and timestamp */}
           <div>
-            <div className="font-semibold text-gray-900 dark:text-gray-100">
+            <div 
+              className="font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUserClick?.(event.pubkey, userMetadata);
+              }}
+            >
               {username}
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -363,7 +376,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ event, userMetadata, onNoteClick, i
           </div>
         ) : (
           <div>
-            {linkifyContent(event.content, handleMediaClick, handleNostrClick)}
+            {linkifyContent(event.content, handleMediaClick, handleNostrClick, onUserClick)}
             
             {/* Render embedded nostr events */}
             {Array.from(expandedNostrRefs).map(identifier => {

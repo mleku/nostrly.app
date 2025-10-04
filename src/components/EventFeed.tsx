@@ -8,11 +8,12 @@ export type FilterMode = 'notes' | 'replies' | 'reposts'
 interface EventFeedProps {
   feedType: 'global' | 'follows' | 'note' | 'hashtag' | 'user' | 'relay'
   onNoteClick?: (event: NostrEvent, metadata?: UserMetadata | null) => void
+  onUserClick?: (pubkey: string, metadata?: UserMetadata | null) => void
   userPubkey?: string | null
   filterMode?: FilterMode
 }
 
-const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, userPubkey, filterMode = 'replies' }) => {
+const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, onUserClick, userPubkey, filterMode = 'replies' }) => {
   const [userMetadataCache, setUserMetadataCache] = useState<Map<string, UserMetadata | null>>(new Map())
   const loadingRef = useRef<HTMLDivElement>(null)
 
@@ -51,8 +52,11 @@ const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, userPubkey
         fetchParams.kinds = [1]
         // You could add specific hashtag filtering here
       } else if (feedType === 'user') {
-        // Filter for user-specific content
-        fetchParams.kinds = [0, 1] // Profile and notes
+        // Filter for user-specific content with kinds 1, 111, 6
+        fetchParams.kinds = [1, 111, 6] // Text notes, long-form articles, reposts
+        if (userPubkey) {
+          fetchParams.authors = [userPubkey]
+        }
       } else if (feedType === 'relay') {
         // Filter for relay-specific content
         fetchParams.kinds = [1]
@@ -106,6 +110,22 @@ const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, userPubkey
         })
         return newCache
       })
+      
+      // For user feeds, fetch reactions for each note
+      if (feedType === 'user') {
+        const eventsWithReactions = await Promise.all(
+          events.map(async (event) => {
+            try {
+              const reactions = await nostrService.fetchReactions(event.id)
+              return { ...event, reactions }
+            } catch (error) {
+              console.warn(`Failed to fetch reactions for event ${event.id}:`, error)
+              return { ...event, reactions: [] }
+            }
+          })
+        )
+        return eventsWithReactions
+      }
       
       return events
     },
@@ -180,6 +200,7 @@ const EventFeed: React.FC<EventFeedProps> = ({ feedType, onNoteClick, userPubkey
           event={event}
           userMetadata={userMetadataCache.get(event.pubkey)}
           onNoteClick={onNoteClick}
+          onUserClick={onUserClick}
         />
       ))}
       
