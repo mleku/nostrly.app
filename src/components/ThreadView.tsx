@@ -9,8 +9,10 @@ interface ThreadViewProps {
   focusedEventMetadata?: UserMetadata | null
   onNoteClick?: (event: NostrEvent, metadata?: UserMetadata | null) => void
   onClose?: () => void
+  onMaximizeLeft?: () => void
   headerLeft?: string
   headerWidth?: string
+  hideHeader?: boolean
 }
 
 const ThreadView: React.FC<ThreadViewProps> = ({ 
@@ -18,8 +20,10 @@ const ThreadView: React.FC<ThreadViewProps> = ({
   focusedEventMetadata, 
   onNoteClick,
   onClose,
+  onMaximizeLeft,
   headerLeft,
-  headerWidth
+  headerWidth,
+  hideHeader
 }) => {
   const [threadEvents, setThreadEvents] = useState<NostrEvent[]>([])
   const [eventMetadata, setEventMetadata] = useState<Record<string, UserMetadata | null>>({})
@@ -199,54 +203,75 @@ const ThreadView: React.FC<ThreadViewProps> = ({
 
   return (
     <div ref={containerRef} className="max-w-2xl mx-auto relative">
-      {/* Filter bar above the main thread view */}
-      <div className="fixed z-50 bg-[#263238] border-b border-gray-600 px-4 py-2 flex gap-2" style={{ 
-        top: '3.5rem', 
-        height: '2.5rem',
-        left: headerLeft || '0',
-        width: headerWidth || '100%'
-      }}>
+      {!hideHeader && (
+        <>
+          {/* Filter bar above the main thread view */}
+          <div className="fixed z-50 bg-[#263238] p-0 flex" style={{
+            top: '0',
+            height: '2.5rem',
+            left: headerLeft || '0',
+            width: headerWidth || '100%'
+          }}>
 
-      </div>
-      
-      {/* Fixed header bar below filter bar */}
-      <div className="fixed z-50 bg-[#263238] border-b border-gray-600 px-4 py-2 text-sm text-gray-400 flex items-center justify-between" style={{ 
-        top: '6rem', 
-        height: '2.5rem',
-        left: headerLeft || '0',
-        width: headerWidth || '100%'
-      }}>
-        <span className="text-gray-300">
-          Thread • {filteredEvents.length} {filteredEvents.length === 1 ? 'note' : 'notes'}
-        </span>
-        <div className="flex items-center gap-2">
-          {/* Up arrow scroll to top button */}
-          <button
-            onClick={handleScrollToTop}
-            className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors rounded-full flex items-center justify-center"
-            style={{ width: '2em', height: '2em' }}
-            title="Scroll to top"
-            aria-label="Scroll to top"
-          >
-            ↑
-          </button>
-          {/* X button moved into header bar */}
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="bg-black bg-opacity-70 text-white hover:bg-opacity-90 transition-colors rounded-full flex items-center justify-center"
-              style={{ width: '2em', height: '2em' }}
-              title="Close thread view"
-              aria-label="Close thread view"
-            >
-              X
-            </button>
-          )}
-        </div>
-      </div>
+          </div>
+          
+          {/* Fixed header bar below filter bar */}
+          <div className="fixed z-50 bg-[#263238] text-sm text-gray-400" style={{
+            top: '3.5rem',
+            height: '2.5rem',
+            left: headerLeft || '0',
+            right: '0'
+          }}>
+            <div className="max-w-2xl mx-auto px-4 py-2 flex items-center justify-between h-full">
+              <span className="text-gray-300">
+                Thread • {filteredEvents.length} {filteredEvents.length === 1 ? 'note' : 'notes'}
+              </span>
+              <div className="flex items-center gap-2">
+                {/* Up arrow scroll to top button */}
+                <button
+                  onClick={handleScrollToTop}
+                  className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors rounded-full flex items-center justify-center"
+                  style={{ width: '2em', height: '2em' }}
+                  title="Scroll to top"
+                  aria-label="Scroll to top"
+                >
+                  ↑
+                </button>
+                {/* Maximize left panel button */}
+                <button
+                  className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors rounded-full flex items-center justify-center"
+                  style={{ width: '2em', height: '2em' }}
+                  aria-label="Maximize left panel"
+                  title="Maximize left panel"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onMaximizeLeft?.();
+                  }}
+                >
+                  {/* Left-pointing triangle */}
+                  <span aria-hidden style={{ display: 'block', width: 0, height: 0, borderStyle: 'solid', borderWidth: '0.5em 0 0.5em 0.75em', borderColor: 'transparent transparent transparent currentColor' }} />
+                </button>
+                {/* X button moved into header bar */}
+                {onClose && (
+                  <button
+                    onClick={onClose}
+                    className="bg-black bg-opacity-70 text-white hover:bg-opacity-90 transition-colors rounded-full flex items-center justify-center"
+                    style={{ width: '2em', height: '2em' }}
+                    title="Close thread view"
+                    aria-label="Close thread view"
+                  >
+                    X
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       
       {/* Add top padding to account for fixed headers (filter bar + header bar) */}
-      <div className="pt-20">
+      <div className={hideHeader ? "pt-0" : "pt-12"}>
       
       {filteredEvents.map((event, index) => {
         const isFocused = event.id === focusedEventId

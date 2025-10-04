@@ -21,6 +21,7 @@ const HeaderRoute = createRootRoute({
     const queryClient = useQueryClient()
     const containerRef = useRef<HTMLDivElement | null>(null)
     const dividerRef = useRef<HTMLDivElement | null>(null)
+    const leftPaneRef = useRef<HTMLDivElement | null>(null)
     const [leftPct, setLeftPct] = useState<number>(() => {
       // Load persisted position for wide screens
       const saved = localStorage.getItem('wideScreenLeftPct')
@@ -37,26 +38,29 @@ const HeaderRoute = createRootRoute({
 
     // Active tab state for radio button behavior
     const [activeTab, setActiveTab] = useState<string>('Global')
-    
+
     // Filter mode state for notes/replies filtering
     const [filterMode, setFilterMode] = useState<FilterMode>('replies')
 
     // Responsive divider width state
     const [isSmallScreen, setIsSmallScreen] = useState(false)
-    
+
     // State for which panel is open in small screen mode ('main' or 'thread')
     const [smallScreenPanel, setSmallScreenPanel] = useState<'main' | 'thread'>(() => {
       const saved = localStorage.getItem('smallScreenPanel')
       return (saved === 'main' || saved === 'thread') ? saved : 'main'
     })
-    
+
+    // State to control ThreadView header visibility in narrow screen mode
+    const [hideThreadHeader, setHideThreadHeader] = useState(false)
+
     // Remember the leftPct when switching to small screen
     const [largeScreenLeftPct, setLargeScreenLeftPct] = useState<number>(() => {
       // Load persisted position for wide screens
       const saved = localStorage.getItem('wideScreenLeftPct')
       return saved ? parseFloat(saved) : 50
     })
-    
+
     // Remember the sidebar collapse state for small screens (default to collapsed/folded up)
     const [smallScreenSidebarCollapsed, setSmallScreenSidebarCollapsed] = useState<boolean>(true)
     const [largeScreenSidebarCollapsed, setLargeScreenSidebarCollapsed] = useState<boolean>(false)
@@ -92,7 +96,7 @@ const HeaderRoute = createRootRoute({
     const handleModeChange = useCallback((newMode: FilterMode) => {
       // Clear all event queries to remove entries from view
       queryClient.removeQueries({ queryKey: ['events'] })
-      
+
       // Set new filter mode after clearing
       setFilterMode(newMode)
     }, [queryClient])
@@ -114,7 +118,7 @@ const HeaderRoute = createRootRoute({
           const pk = await nostr.getPublicKey!()
           setPubkey(pk)
           setIsLoggedIn(true)
-          
+
           // Fetch user metadata in background
           setLoadingMetadata(true)
           try {
@@ -139,6 +143,9 @@ const HeaderRoute = createRootRoute({
       setSelectedNote(event)
       setSelectedNoteMetadata(metadata || null)
       
+      // Reset thread header visibility when selecting a new note
+      setHideThreadHeader(false)
+
       // If metadata is not provided, try to fetch it
       if (!metadata && event.pubkey) {
         try {
@@ -148,7 +155,7 @@ const HeaderRoute = createRootRoute({
           console.warn('Failed to fetch metadata for selected note:', error)
         }
       }
-      
+
       // Handle responsive behavior
       if (isSmallScreen) {
         setSmallScreenPanel('thread')
@@ -162,7 +169,7 @@ const HeaderRoute = createRootRoute({
       const checkScreenWidth = () => {
         const wasSmallScreen = isSmallScreen
         const nowSmallScreen = window.innerWidth <= 1024
-        
+
         if (wasSmallScreen && !nowSmallScreen) {
           // Transitioning from small to large screen - restore previous panel split and sidebar state
           // If no thread is open, fold the thread panel closed
@@ -189,22 +196,33 @@ const HeaderRoute = createRootRoute({
           }
           setSidebarCollapsed(largeScreenSidebarCollapsed)
         }
-        
+
         setIsSmallScreen(nowSmallScreen)
       }
-      
+
       checkScreenWidth()
       window.addEventListener('resize', checkScreenWidth)
-      
+
       return () => window.removeEventListener('resize', checkScreenWidth)
     }, [isSmallScreen, leftPct, largeScreenLeftPct, smallScreenPanel, sidebarCollapsed, smallScreenSidebarCollapsed, largeScreenSidebarCollapsed, selectedNote])
 
     const handleLoginClick = useCallback(async () => {
       if (isLoggedIn) {
-        // Logout
+        // Logout - clear all user-related state and cached data
         setIsLoggedIn(false)
         setPubkey(null)
         setUserMetadata(null)
+        setLoadingMetadata(false)
+        setShowLoginModal(false)
+        setLoginModalMsg('')
+        
+        // Clear any selected note/thread that might be user-specific
+        setSelectedNote(null)
+        setSelectedNoteMetadata(null)
+        
+        // Clear all cached queries (including user-specific data like follows, metadata, etc.)
+        queryClient.clear()
+        
         return
       }
 
@@ -222,7 +240,7 @@ const HeaderRoute = createRootRoute({
         setPubkey(pk)
         setIsLoggedIn(true)
         setLoginModalMsg('Login successful! Fetching your profile…')
-        
+
         // Fetch user metadata
         setLoadingMetadata(true)
         try {
@@ -326,7 +344,15 @@ const HeaderRoute = createRootRoute({
       // Do not resize yet; wait for movement threshold. Tap will reset to 50% on touchend.
     }, [])
 
-    const dividerWidth = isSmallScreen ? '0' : '2em'
+    // Handle clicking on empty space in the left pane to scroll to top
+    const handleLeftPaneClick = useCallback((e: React.MouseEvent) => {
+      // Only scroll to top if clicking directly on the pane (not on child elements)
+      if (e.target === e.currentTarget && leftPaneRef.current) {
+        leftPaneRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }, [])
+
+    const dividerWidth = isSmallScreen || !selectedNote || leftPct === 100 ? '0' : '2em'
     const gridStyle = useMemo<React.CSSProperties>(() => ({
       display: 'grid',
       // Use fractional units so the fixed divider stays fully visible even when a side is 0
@@ -375,7 +401,7 @@ const HeaderRoute = createRootRoute({
                 </span>
               </button>
             )}
-            
+
             {/* Login/Logout button */}
             <button
               aria-label={isLoggedIn ? 'Log out' : 'Log in'}
@@ -602,8 +628,25 @@ const HeaderRoute = createRootRoute({
         {/* Resizable two panes below header with a grabber divider */}
         <section ref={containerRef} className="fixed top-14 left-0 right-0 bottom-0" style={{ ...gridStyle, left: sidebarWidth }}>
           {/* Left: main */}
-          <div className="pane overflow-y-scroll">
-            <NotesFilterPanel activeMode={filterMode} onModeChange={handleModeChange} />
+          <div ref={leftPaneRef} className="pane overflow-y-scroll" onClick={handleLeftPaneClick}>
+            <NotesFilterPanel 
+              activeMode={filterMode} 
+              onModeChange={handleModeChange} 
+              selectedNote={selectedNote}
+              isThreadOpen={!isSmallScreen && selectedNote && leftPct !== 100}
+              onThreadClick={() => {
+                if (isSmallScreen) {
+                  const newPanel = smallScreenPanel === 'thread' ? 'main' : 'thread'
+                  setSmallScreenPanel(newPanel)
+                  // Reset thread header visibility when switching back to thread
+                  if (newPanel === 'thread') {
+                    setHideThreadHeader(false)
+                  }
+                } else {
+                  setLeftPct(leftPct === 100 ? 50 : 100)
+                }
+              }}
+            />
             {activeTab === 'Global' && <EventFeed feedType="global" onNoteClick={handleNoteClick} filterMode={filterMode} />}
             {activeTab === 'Follows' && <EventFeed feedType="follows" onNoteClick={handleNoteClick} userPubkey={pubkey} filterMode={filterMode} />}
             {activeTab === 'Note' && <EventFeed feedType="note" onNoteClick={handleNoteClick} filterMode={filterMode} />}
@@ -629,9 +672,9 @@ const HeaderRoute = createRootRoute({
             aria-label="Resize panels"
           >
             {/* Center reset button (2em square) inside divider */}
-            {!isSmallScreen && (
+            {!isSmallScreen && selectedNote && leftPct === 0 && (
               <button
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40"
+                className="absolute top-0 z-40"
                 style={{ width: '2em', height: '2em', background: 'transparent', border: 'none', padding: 0, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25em', opacity: 0.5 }}
                 aria-label="Restore 50-50 split"
                 title="Restore 50-50 split"
@@ -639,66 +682,70 @@ const HeaderRoute = createRootRoute({
                 onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
                 onTouchStart={(e) => { e.stopPropagation(); e.preventDefault(); }}
               >
-                {/* Two inward-pointing arrows using border-based triangles */}
-                <span aria-hidden style={{ display: 'block', width: 0, height: 0, borderStyle: 'solid', borderWidth: '0.5em 0 0.5em 0.75em', borderColor: 'transparent transparent transparent var(--main-fg)' }} />
                 <span aria-hidden style={{ display: 'block', width: 0, height: 0, borderStyle: 'solid', borderWidth: '0.5em 0.75em 0.5em 0', borderColor: 'transparent var(--main-fg) transparent transparent' }} />
               </button>
             )}
 
-            {/* Floating maximize-left tab (2em transparent square) on the right side, centered */}
-            <button
-              className="absolute top-1/2 -translate-y-1/2 left-full z-50"
-              style={{ width: '2em', height: '2em', background: 'transparent', border: 'none', padding: 0, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}
-              aria-label="Maximize left panel"
-              title="Maximize left panel"
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                e.preventDefault(); 
-                if (isSmallScreen) {
-                  setSmallScreenPanel('main');
-                } else {
-                  setLeftPct(100);
-                }
-              }}
-              onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
-              onTouchStart={(e) => { e.stopPropagation(); e.preventDefault(); }}
-            >
-              {/* Left-pointing triangle in primary text color */}
-              <span aria-hidden style={{ display: 'block', width: 0, height: 0, borderStyle: 'solid', borderWidth: '0.5em 0 0.5em 0.75em', borderColor: 'transparent transparent transparent var(--main-fg)' }} />
-            </button>
 
             {/* Floating maximize-right tab (2em transparent square) on the left side, centered */}
-            <button
-              className="absolute top-1/2 -translate-y-1/2 right-full z-50"
-              style={{ width: '2em', height: '2em', background: 'transparent', border: 'none', padding: 0, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}
-              aria-label="Maximize right panel"
-              title="Maximize right panel"
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                e.preventDefault(); 
-                if (isSmallScreen) {
-                  setSmallScreenPanel('thread');
-                } else {
-                  setLeftPct(0);
-                }
-              }}
-              onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
-              onTouchStart={(e) => { e.stopPropagation(); e.preventDefault(); }}
-            >
-              {/* Right-pointing triangle in primary text color */}
-              <span aria-hidden style={{ display: 'block', width: 0, height: 0, borderStyle: 'solid', borderWidth: '0.5em 0.75em 0.5em 0', borderColor: 'transparent var(--main-fg) transparent transparent' }} />
-            </button>
+            {selectedNote && leftPct === 0 && (
+              <button
+                className="absolute top-1/2 -translate-y-1/2 right-full z-50"
+                style={{ width: '2em', height: '2em', background: 'transparent', border: 'none', padding: 0, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.5 }}
+                aria-label="Maximize right panel"
+                title="Maximize right panel"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  if (isSmallScreen) {
+                    setSmallScreenPanel('thread');
+                  } else {
+                    setLeftPct(0);
+                  }
+                }}
+                onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                onTouchStart={(e) => { e.stopPropagation(); e.preventDefault(); }}
+              >
+                {/* Right-pointing triangle in primary text color */}
+                  <span aria-hidden style={{ display: 'block', width: 0, height: 0, borderStyle: 'solid', borderWidth: '0.5em 0.75em 0.5em 0', borderColor: 'transparent transparent transparent var(--main-fg)' }} />
+              </button>
+            )}
 
-            {/* Visual grabber dots */}
-            {/*<div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 flex flex-col gap-1">*/}
-            {/*  <span className="block w-1 h-1 bg-[#00BCD4] rounded" />*/}
-            {/*  <span className="block w-1 h-1 bg-[#00BCD4] rounded" />*/}
-            {/*  <span className="block w-1 h-1 bg-[#00BCD4] rounded" />*/}
-            {/*</div>*/}
+            {/* Left-pointing triangle button when thread view is hidden */}
+            {!isSmallScreen && selectedNote && leftPct === 100 && (
+              <button
+                className="absolute left-full z-50"
+                style={{ 
+                  top: '3.5rem',
+                  width: '2em', 
+                  height: '2em', 
+                  background: 'rgba(255, 255, 255, 0.1)', 
+                  border: '1px solid rgba(255, 255, 255, 0.2)', 
+                  padding: 0, 
+                  borderRadius: '50%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  opacity: 0.8 
+                }}
+                aria-label="Show thread panel"
+                title="Show thread panel"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setLeftPct(50);
+                }}
+                onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                onTouchStart={(e) => { e.stopPropagation(); e.preventDefault(); }}
+              >
+                {/* Left-pointing triangle in primary text color */}
+                <span aria-hidden style={{ display: 'block', width: 0, height: 0, borderStyle: 'solid', borderWidth: '0.5em 0 0.5em 0.75em', borderColor: 'transparent transparent transparent var(--main-fg)' }} />
+              </button>
+            )}
           </div>
 
           {/* Right: thread */}
-          <div className="pane overflow-y-scroll bg-[#263238]">
+          <div className="pane overflow-y-scroll bg-[#263238] relative">
             {selectedNote ? (
               <ThreadView
                 focusedEvent={selectedNote}
@@ -706,15 +753,25 @@ const HeaderRoute = createRootRoute({
                 onNoteClick={handleNoteClick}
                 onClose={() => {
                   if (isSmallScreen) {
+                    setHideThreadHeader(false)
                     setSmallScreenPanel('main')
                   } else {
                     setLeftPct(100)
-                    setSelectedNote(null)
-                    setSelectedNoteMetadata(null)
+                  }
+                  setSelectedNote(null)
+                  setSelectedNoteMetadata(null)
+                }}
+                onMaximizeLeft={() => {
+                  if (isSmallScreen) {
+                    setHideThreadHeader(true)
+                    setSmallScreenPanel('main')
+                  } else {
+                    setLeftPct(100)
                   }
                 }}
-                headerLeft={isSmallScreen ? '0' : `calc(${sidebarWidthEm}em + ${leftPct}vw - ${sidebarWidthEm * leftPct / 100}em + ${isSmallScreen ? '0em' : '2em'})`}
-                headerWidth={isSmallScreen ? '100vw' : `calc(${100 - leftPct}vw - ${sidebarWidthEm * (100 - leftPct) / 100}em - ${isSmallScreen ? '0em' : '2em'})`}
+                headerLeft={isSmallScreen ? `${sidebarWidthEm}em` : `calc(${sidebarWidthEm}em + ${leftPct}%)`}
+                headerWidth={isSmallScreen ? `calc(100vw - ${sidebarWidthEm}em)` : `calc(${100 - leftPct}% - ${dividerWidth})`}
+                hideHeader={isSmallScreen && hideThreadHeader}
               />
             ) : (
               <div className="h-full flex items-center justify-center">
