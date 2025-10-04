@@ -7,6 +7,7 @@ interface ProfileViewProps {
   pubkey: string
   metadata: UserMetadata | null
   onNoteClick: (event: NostrEvent, metadata?: UserMetadata | null) => void
+  onUserClick?: (pubkey: string, metadata?: UserMetadata | null) => void
   filterMode: FilterMode
   onClose: () => void
 }
@@ -15,6 +16,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   pubkey,
   metadata,
   onNoteClick,
+  onUserClick,
   filterMode,
   onClose
 }) => {
@@ -132,6 +134,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
         <EventFeed 
           feedType="user" 
           onNoteClick={onNoteClick}
+          onUserClick={onUserClick}
           userPubkey={pubkey}
           filterMode={filterMode}
         />

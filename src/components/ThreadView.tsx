@@ -8,6 +8,7 @@ interface ThreadViewProps {
   focusedEvent: NostrEvent
   focusedEventMetadata?: UserMetadata | null
   onNoteClick?: (event: NostrEvent, metadata?: UserMetadata | null) => void
+  onUserClick?: (pubkey: string, metadata?: UserMetadata | null) => void
   onClose?: () => void
   onMaximizeLeft?: () => void
   headerLeft?: string
@@ -19,6 +20,7 @@ const ThreadView: React.FC<ThreadViewProps> = ({
   focusedEvent, 
   focusedEventMetadata, 
   onNoteClick,
+  onUserClick,
   onClose,
   onMaximizeLeft,
   headerLeft,
@@ -296,6 +298,7 @@ const ThreadView: React.FC<ThreadViewProps> = ({
               event={event}
               userMetadata={eventMetadata[event.pubkey]}
               onNoteClick={handleThreadNoteClick}
+              onUserClick={onUserClick}
               isInThreadView={true}
               onFocusNote={handleFocusNote}
             />

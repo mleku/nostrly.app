@@ -39,7 +39,7 @@ const HeaderRoute = createRootRoute({
 
     // Active tab state for radio button behavior
     const [activeTab, setActiveTab] = useState<string>('Global')
-    
+
     // User tabs state for dynamic user profiles
     interface UserTab {
       id: string
@@ -160,7 +160,7 @@ const HeaderRoute = createRootRoute({
     const handleNoteClick = useCallback(async (event: NostrEvent, metadata?: UserMetadata | null) => {
       setSelectedNote(event)
       setSelectedNoteMetadata(metadata || null)
-      
+
       // Reset thread header visibility when selecting a new note
       setHideThreadHeader(false)
 
@@ -186,21 +186,21 @@ const HeaderRoute = createRootRoute({
     const handleUserClick = useCallback(async (pubkey: string, metadata?: UserMetadata | null) => {
       // Clear all event queries to refresh the note thread view (same as filter buttons)
       queryClient.removeQueries({ queryKey: ['events'] })
-      
+
       // Check if tab for this user already exists
       const existingTab = userTabs.find(tab => tab.pubkey === pubkey)
-      
+
       if (existingTab) {
         // Switch to existing tab
         setActiveTab('UserProfile')
         setActiveUserTabId(existingTab.id)
         return
       }
-      
+
       // Create new tab for this user
       const tabId = `user-${pubkey.slice(0, 8)}-${Date.now()}`
       let userMetadata = metadata
-      
+
       // If we don't have metadata, try to fetch it
       if (!metadata) {
         try {
@@ -209,16 +209,16 @@ const HeaderRoute = createRootRoute({
           console.warn('Failed to fetch user metadata:', error)
         }
       }
-      
+
       const displayName = userMetadata?.display_name || userMetadata?.name || `${pubkey.slice(0, 8)}...`
-      
+
       const newTab: UserTab = {
         id: tabId,
         pubkey,
         metadata: userMetadata,
         displayName
       }
-      
+
       // Add new tab and switch to it
       setUserTabs(prev => [...prev, newTab])
       setActiveTab('UserProfile')
@@ -289,14 +289,14 @@ const HeaderRoute = createRootRoute({
         setLoadingMetadata(false)
         setShowLoginModal(false)
         setLoginModalMsg('')
-        
+
         // Clear any selected note/thread that might be user-specific
         setSelectedNote(null)
         setSelectedNoteMetadata(null)
-        
+
         // Clear all cached queries (including user-specific data like follows, metadata, etc.)
         queryClient.clear()
-        
+
         return
       }
 
@@ -560,7 +560,6 @@ const HeaderRoute = createRootRoute({
                   setActiveUserTabId(tab.id)
                 }}
               >
-                {/* Avatar circle */}
                 <span
                   className={sidebarCollapsed ? '' : 'mr-2'}
                   style={{ width: '2em', height: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
@@ -600,84 +599,23 @@ const HeaderRoute = createRootRoute({
               </div>
             ))}
 
-            {/* Note - very top */}
-            <div
-              className={`flex items-center w-full cursor-pointer ${activeTab === 'Note' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
-              style={{ height: '2.5em' }}
-              aria-label="Note"
-              title="Note"
-              onClick={() => setActiveTab('Note')}
-            >
-              {/* Avatar circle (author = logged-in user) */}
-              <span
-                className={sidebarCollapsed ? '' : 'mr-2'}
-                style={{ width: '2em', height: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                aria-hidden
+              <div
+                  className={`flex items-center w-full cursor-pointer ${activeTab === 'Follows' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
+                  style={{ height: '2.5em' }}
+                  aria-label="Follows"
+                  title="Follows"
+                  onClick={() => setActiveTab('Follows')}
               >
-                <span style={{ width: '1.5em', height: '1.5em', borderRadius: '9999px', background: '#455A64', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{avatarEmoji}</span>
-              </span>
-              {!sidebarCollapsed && (
-                <span className="flex items-center">
-                  <span aria-hidden className="mr-1">📝</span>
-                  note
-                </span>
-              )}
-            </div>
-
-            {/* Above Global */}
-            <div
-              className={`flex items-center w-full cursor-pointer ${activeTab === 'Hashtag' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
-              style={{ height: '2.5em' }}
-              aria-label="Hashtag"
-              title="Hashtag"
-              onClick={() => setActiveTab('Hashtag')}
-            >
               <span
-                className={sidebarCollapsed ? '' : 'mr-2'}
-                style={{ width: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25em' }}
-                aria-hidden
+                  className={sidebarCollapsed ? '' : 'mr-2'}
+                  style={{ width: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-hidden
               >
-                #
+                👥
               </span>
-              {!sidebarCollapsed && <span>Hashtag</span>}
-            </div>
+                  {!sidebarCollapsed && <span>Follows</span>}
+              </div>
 
-            <div
-              className={`flex items-center w-full cursor-pointer ${activeTab === 'User' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
-              style={{ height: '2.5em' }}
-              aria-label="User"
-              title="User"
-              onClick={() => setActiveTab('User')}
-            >
-              {/* Avatar circle */}
-              <span
-                className={sidebarCollapsed ? '' : 'mr-2'}
-                style={{ width: '2em', height: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                aria-hidden
-              >
-                <span style={{ width: '1.5em', height: '1.5em', borderRadius: '9999px', background: '#455A64', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>👤</span>
-              </span>
-              {!sidebarCollapsed && <span>username</span>}
-            </div>
-
-            <div
-              className={`flex items-center w-full cursor-pointer ${activeTab === 'Relay' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
-              style={{ height: '2.5em' }}
-              aria-label="Relay"
-              title="example.com"
-              onClick={() => setActiveTab('Relay')}
-            >
-              <span
-                className={sidebarCollapsed ? '' : 'mr-2'}
-                style={{ width: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                aria-hidden
-              >
-                🖧
-              </span>
-              {!sidebarCollapsed && <div className="overflow-hidden">wss://example.com</div>}
-            </div>
-
-            {/* Global */}
             <div
               className={`flex items-center w-full cursor-pointer ${activeTab === 'Global' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
               style={{ height: '2.5em' }}
@@ -694,24 +632,80 @@ const HeaderRoute = createRootRoute({
               </span>
               {!sidebarCollapsed && <span>Global</span>}
             </div>
-
-            {/* Below Global */}
-            <div
-              className={`flex items-center w-full cursor-pointer ${activeTab === 'Follows' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
-              style={{ height: '2.5em' }}
-              aria-label="Follows"
-              title="Follows"
-              onClick={() => setActiveTab('Follows')}
-            >
-              <span
-                className={sidebarCollapsed ? '' : 'mr-2'}
-                style={{ width: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                aria-hidden
+              <div
+                  className={`flex items-center w-full cursor-pointer ${activeTab === 'Note' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
+                  style={{ height: '2.5em' }}
+                  aria-label="Note"
+                  title="Note"
+                  onClick={() => setActiveTab('Note')}
               >
-                👥
+
+              <span
+                  className={sidebarCollapsed ? '' : 'mr-2'}
+                  style={{ width: '2em', height: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-hidden
+              >
+                <span style={{ width: '1.5em', height: '1.5em', borderRadius: '9999px', background: '#455A64', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{avatarEmoji}</span>
               </span>
-              {!sidebarCollapsed && <span>Follows</span>}
-            </div>
+                  {!sidebarCollapsed && (
+                      <span className="flex items-center">
+                  <span aria-hidden className="mr-1">📝</span>
+                  note
+                </span>
+                  )}
+              </div>
+
+              <div
+                  className={`flex items-center w-full cursor-pointer ${activeTab === 'Hashtag' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
+                  style={{ height: '2.5em' }}
+                  aria-label="Hashtag"
+                  title="Hashtag"
+                  onClick={() => setActiveTab('Hashtag')}
+              >
+              <span
+                  className={sidebarCollapsed ? '' : 'mr-2'}
+                  style={{ width: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25em' }}
+                  aria-hidden
+              >
+                #
+              </span>
+                  {!sidebarCollapsed && <span>Hashtag</span>}
+              </div>
+
+              <div
+                  className={`flex items-center w-full cursor-pointer ${activeTab === 'User' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
+                  style={{ height: '2.5em' }}
+                  aria-label="User"
+                  title="User"
+                  onClick={() => setActiveTab('User')}
+              >
+                  {/* Avatar circle */}
+                  <span
+                      className={sidebarCollapsed ? '' : 'mr-2'}
+                      style={{ width: '2em', height: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      aria-hidden
+                  >
+                <span style={{ width: '1.5em', height: '1.5em', borderRadius: '9999px', background: '#455A64', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>👤</span>
+              </span>
+                  {!sidebarCollapsed && <span>username</span>}
+              </div>
+
+              <div
+                  className={`flex items-center w-full cursor-pointer ${activeTab === 'Relay' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
+                  style={{ height: '2.5em' }}
+                  aria-label="Relay"
+                  title="example.com"
+                  onClick={() => setActiveTab('Relay')}
+              >
+              <span
+                  className={sidebarCollapsed ? '' : 'mr-2'}
+                  style={{ width: '2em', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-hidden
+              >
+                🖧
+              </span>
+                  {!sidebarCollapsed && <div className="overflow-hidden">wss://example.com</div>}
+              </div>
 
             <div
               className={`flex items-center w-full cursor-pointer ${activeTab === 'Write' ? 'bg-[#263238]' : 'bg-[#131A1D]'} text-[#CFD8DC] ${sidebarCollapsed ? 'px-2' : 'px-3'}`}
@@ -758,9 +752,9 @@ const HeaderRoute = createRootRoute({
         <section ref={containerRef} className="fixed top-14 left-0 right-0 bottom-0" style={{ ...gridStyle, left: sidebarWidth }}>
           {/* Left: main */}
           <div ref={leftPaneRef} className="pane overflow-y-scroll" onClick={handleLeftPaneClick}>
-            <NotesFilterPanel 
-              activeMode={filterMode} 
-              onModeChange={handleModeChange} 
+            <NotesFilterPanel
+              activeMode={filterMode}
+              onModeChange={handleModeChange}
               selectedNote={selectedNote}
               isThreadOpen={!isSmallScreen && selectedNote && leftPct !== 100}
               onThreadClick={() => {
@@ -783,10 +777,11 @@ const HeaderRoute = createRootRoute({
             {activeTab === 'User' && <EventFeed feedType="user" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
             {activeTab === 'Relay' && <EventFeed feedType="relay" onNoteClick={handleNoteClick} onUserClick={handleUserClick} filterMode={filterMode} />}
             {activeTab === 'Profile' && isLoggedIn && pubkey && (
-              <ProfileView 
-                pubkey={pubkey} 
-                metadata={userMetadata} 
+              <ProfileView
+                pubkey={pubkey}
+                metadata={userMetadata}
                 onNoteClick={handleNoteClick}
+                onUserClick={handleUserClick}
                 filterMode={filterMode}
                 onClose={() => setActiveTab('Global')}
               />
@@ -794,10 +789,11 @@ const HeaderRoute = createRootRoute({
             {activeTab === 'UserProfile' && activeUserTabId && (() => {
               const activeUserTab = userTabs.find(tab => tab.id === activeUserTabId)
               return activeUserTab ? (
-                <ProfileView 
-                  pubkey={activeUserTab.pubkey} 
-                  metadata={activeUserTab.metadata} 
+                <ProfileView
+                  pubkey={activeUserTab.pubkey}
+                  metadata={activeUserTab.metadata}
                   onNoteClick={handleNoteClick}
+                  onUserClick={handleUserClick}
                   filterMode={filterMode}
                   onClose={() => closeUserTab(activeUserTab.id)}
                 />
@@ -865,18 +861,18 @@ const HeaderRoute = createRootRoute({
             {!isSmallScreen && selectedNote && leftPct === 100 && (
               <button
                 className="absolute left-full z-50"
-                style={{ 
+                style={{
                   top: '3.5rem',
-                  width: '2em', 
-                  height: '2em', 
-                  background: 'rgba(255, 255, 255, 0.1)', 
-                  border: '1px solid rgba(255, 255, 255, 0.2)', 
-                  padding: 0, 
-                  borderRadius: '50%', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  opacity: 0.8 
+                  width: '2em',
+                  height: '2em',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  padding: 0,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: 0.8
                 }}
                 aria-label="Show thread panel"
                 title="Show thread panel"
@@ -901,6 +897,7 @@ const HeaderRoute = createRootRoute({
                 focusedEvent={selectedNote}
                 focusedEventMetadata={selectedNoteMetadata}
                 onNoteClick={handleNoteClick}
+                onUserClick={handleUserClick}
                 onClose={() => {
                   if (isSmallScreen) {
                     setHideThreadHeader(false)
