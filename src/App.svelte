@@ -353,11 +353,16 @@
 
     /* Sidebar Styles */
     .sidebar {
+        position: fixed;
+        left: 0;
+        top: 3em;
+        bottom: 0;
         width: 140px;
         background-color: var(--sidebar-bg);
         transition: width 0.3s ease;
         overflow: hidden;
         color: var(--text-color);
+        z-index: 100;
     }
 
     .sidebar.collapsed {
@@ -368,7 +373,7 @@
         height: 100%;
         display: flex;
         flex-direction: column;
-        padding: 1rem 0;
+        padding: 0;
     }
 
     .tabs {
@@ -411,25 +416,34 @@
     .toggle-btn {
         height: 2.5em;
         margin: 0;
-        padding:1em;
+        padding: 0.5em 1em;
         background-color: transparent;
         cursor: pointer;
         transition: background-color 0.2s ease;
         color: var(--text-color);
+        border: none;
     }
 
     .toggle-btn:hover {
-        padding: 0;
-        background-color: transparent;
+        background-color: var(--tab-hover-bg);
     }
 
     /* Main Content */
     .main-content {
-        flex: 1;
+        position: fixed;
+        left: 140px;
+        top: 3em;
+        right: 0;
+        bottom: 0;
         padding: 2rem;
         overflow-y: auto;
         background-color: var(--bg-color);
         color: var(--text-color);
+        transition: left 0.3s ease;
+    }
+
+    .app-container:has(.sidebar.collapsed) .main-content {
+        left: 60px;
     }
 
     .main-content h1 {
@@ -454,7 +468,12 @@
         }
 
         .main-content {
+            left: 120px;
             padding: 1rem;
+        }
+
+        .app-container:has(.sidebar.collapsed) .main-content {
+            left: 50px;
         }
 
         .main-content h1 {
@@ -561,7 +580,7 @@
         width: 400px;
         height: 100%;
         background: var(--bg-color);
-        border-left: 1px solid var(--border-color);
+        /*border-left: 1px solid var(--border-color);*/
         overflow-y: auto;
         animation: slideIn 0.3s ease;
     }
@@ -575,26 +594,28 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-color);
+        /*padding: 0 0.5em 0 0.5em;*/
+        /*border-bottom: 1px solid var(--border-color);*/
         background: var(--header-bg);
     }
     
     .drawer-header h2 {
         margin: 0;
         color: var(--text-color);
-        font-size: 1.2rem;
+        font-size: 1em;
+        padding: 1rem;
     }
     
     .close-btn {
         background: none;
         border: none;
-        font-size: 1.2rem;
+        font-size: 1em;
         cursor: pointer;
         color: var(--text-color);
-        padding: 0.25rem;
-        border-radius: 4px;
+        padding: 0.5em;
+        /*border-radius: 4px;*/
         transition: background-color 0.2s;
+        align-items: center;
     }
     
     .close-btn:hover {
