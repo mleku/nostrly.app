@@ -1,65 +1,107 @@
-# Nostrly App Starter
+# This repo is no longer maintained. Consider using `npm init vite` and selecting the `svelte` option or — if you want a full-fledged app framework — use [SvelteKit](https://kit.svelte.dev), the official application framework for Svelte.
 
-A minimal React app bootstrapped with Vite + TypeScript using:
+---
 
-- React 18
-- TanStack Router (programmatic routes)
-- TanStack React Query
-- IndexedDB for:
-  - Persisting React Query cache (via `@tanstack/query-persist-client-idb`)
-  - Storing simple app state (via `idb-keyval`)
+# svelte app
 
-## Getting Started
+This is a project template for [Svelte](https://svelte.dev) apps. It lives at https://github.com/sveltejs/template.
 
-1. Install dependencies
+To create a new project based on this template using [degit](https://github.com/Rich-Harris/degit):
 
 ```bash
+npx degit sveltejs/template svelte-app
+cd svelte-app
+```
+
+*Note that you will need to have [Node.js](https://nodejs.org) installed.*
+
+
+## Get started
+
+Install the dependencies...
+
+```bash
+cd svelte-app
 npm install
 ```
 
-2. Start the dev server
+...then start [Rollup](https://rollupjs.org):
 
 ```bash
 npm run dev
 ```
 
-3. Build for production
+Navigate to [localhost:8080](http://localhost:8080). You should see your app running. Edit a component file in `src`, save it, and reload the page to see your changes.
+
+By default, the server will only respond to requests from localhost. To allow connections from other computers, edit the `sirv` commands in package.json to include the option `--host 0.0.0.0`.
+
+If you're using [Visual Studio Code](https://code.visualstudio.com/) we recommend installing the official extension [Svelte for VS Code](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode). If you are using other editors you may need to install a plugin in order to get syntax highlighting and intellisense.
+
+## Building and running in production mode
+
+To create an optimised version of the app:
 
 ```bash
 npm run build
 ```
 
-4. Preview the production build
+You can run the newly built app with `npm run start`. This uses [sirv](https://github.com/lukeed/sirv), which is included in your package.json's `dependencies` so that the app will work when you deploy to platforms like [Heroku](https://heroku.com).
 
-```bash
-npm run preview
+
+## Single-page app mode
+
+By default, sirv will only respond to requests that match files in `public`. This is to maximise compatibility with static fileservers, allowing you to deploy your app anywhere.
+
+If you're building a single-page app (SPA) with multiple routes, sirv needs to be able to respond to requests for *any* path. You can make it so by editing the `"start"` command in package.json:
+
+```js
+"start": "sirv public --single"
 ```
 
-## Project Structure
+## Using TypeScript
 
-- `src/main.tsx` – wires up React Query, Router, and IndexedDB persistence
-- `src/router.tsx` – defines routes (Home and About)
-- `src/lib/idbState.ts` – tiny helper + hook to persist app state to IndexedDB
-- `src/routes/Home.tsx` – demo of persisted app state and cached network data
-- `src/routes/About.tsx` – about page
+This template comes with a script to set up a TypeScript development environment, you can run it immediately after cloning the template with:
 
-## Notes
+```bash
+node scripts/setupTypeScript.js
+```
 
-- React Query cache is persisted to IndexedDB under database `nostrly-app-db` store `react-query-cache`.
-- App state is stored under key `nostrly-app-state` using `idb-keyval`.
+Or remove the script via:
 
-Feel free to extend this starter to your app's needs.
+```bash
+rm scripts/setupTypeScript.js
+```
 
-## Tailwind CSS
+If you want to use `baseUrl` or `path` aliases within your `tsconfig`, you need to set up `@rollup/plugin-alias` to tell Rollup to resolve the aliases. For more info, see [this StackOverflow question](https://stackoverflow.com/questions/63427935/setup-tsconfig-path-in-svelte).
 
-This project is configured with Tailwind CSS via PostCSS.
+## Deploying to the web
 
-- Config: `tailwind.config.js`
-- PostCSS: `postcss.config.js`
-- Entry CSS: `src/index.css` (contains `@tailwind base; @tailwind components; @tailwind utilities;`)
+### With [Vercel](https://vercel.com)
 
-Usage:
-- Apply utility classes directly in components, e.g. `<div className="p-3">`.
-- Dark mode uses the system preference by default (media). You can switch to class strategy by setting `darkMode: 'class'` in `tailwind.config.js`.
+Install `vercel` if you haven't already:
 
-No extra build steps needed: Vite processes Tailwind automatically during `dev` and `build`.
+```bash
+npm install -g vercel
+```
+
+Then, from within your project folder:
+
+```bash
+cd public
+vercel deploy --name my-project
+```
+
+### With [surge](https://surge.sh/)
+
+Install `surge` if you haven't already:
+
+```bash
+npm install -g surge
+```
+
+Then, from within your project folder:
+
+```bash
+npm run build
+surge public my-project.surge.sh
+```
