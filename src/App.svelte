@@ -347,8 +347,8 @@
     /* App Container */
     .app-container {
         display: flex;
-        margin-top: 2.5em;
-        height: calc(100vh - 2.5em);
+        margin-top: 3em;
+        height: calc(100vh - 3em);
     }
 
     /* Sidebar Styles */
