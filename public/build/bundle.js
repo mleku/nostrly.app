@@ -1,5 +1,5 @@
 
-(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; r.id = 'livereloadscript'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
+(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35730/livereload.js?snipver=1'; r.id = 'livereloadscript'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
 var app = (function () {
     'use strict';
 
@@ -24,6 +24,14 @@ var app = (function () {
     function safe_not_equal(a, b) {
         return a != a ? b == b : a !== b || ((a && typeof a === 'object') || typeof a === 'function');
     }
+    let src_url_equal_anchor;
+    function src_url_equal(element_src, url) {
+        if (!src_url_equal_anchor) {
+            src_url_equal_anchor = document.createElement('a');
+        }
+        src_url_equal_anchor.href = url;
+        return element_src === src_url_equal_anchor.href;
+    }
     function is_empty(obj) {
         return Object.keys(obj).length === 0;
     }
@@ -44,6 +52,13 @@ var app = (function () {
     function text(data) {
         return document.createTextNode(data);
     }
+    function space() {
+        return text(' ');
+    }
+    function listen(node, event, handler, options) {
+        node.addEventListener(event, handler, options);
+        return () => node.removeEventListener(event, handler, options);
+    }
     function attr(node, attribute, value) {
         if (value == null)
             node.removeAttribute(attribute);
@@ -52,6 +67,9 @@ var app = (function () {
     }
     function children(element) {
         return Array.from(element.childNodes);
+    }
+    function toggle_class(element, name, toggle) {
+        element.classList[toggle ? 'add' : 'remove'](name);
     }
     function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
         const e = document.createEvent('CustomEvent');
@@ -324,6 +342,21 @@ var app = (function () {
         dispatch_dev('SvelteDOMRemove', { node });
         detach(node);
     }
+    function listen_dev(node, event, handler, options, has_prevent_default, has_stop_propagation, has_stop_immediate_propagation) {
+        const modifiers = options === true ? ['capture'] : options ? Array.from(Object.keys(options)) : [];
+        if (has_prevent_default)
+            modifiers.push('preventDefault');
+        if (has_stop_propagation)
+            modifiers.push('stopPropagation');
+        if (has_stop_immediate_propagation)
+            modifiers.push('stopImmediatePropagation');
+        dispatch_dev('SvelteDOMAddEventListener', { node, event, handler, modifiers });
+        const dispose = listen(node, event, handler, options);
+        return () => {
+            dispatch_dev('SvelteDOMRemoveEventListener', { node, event, handler, modifiers });
+            dispose();
+        };
+    }
     function attr_dev(node, attribute, value) {
         attr(node, attribute, value);
         if (value == null)
@@ -369,42 +402,355 @@ var app = (function () {
 
     const file = "src/App.svelte";
 
-    function create_fragment(ctx) {
-    	let main;
-    	let h1;
-    	let t0;
-    	let t1;
-    	let t2;
+    // (46:5) {#if sidebarExpanded}
+    function create_if_block_2(ctx) {
+    	let span;
 
     	const block = {
     		c: function create() {
+    			span = element("span");
+    			span.textContent = "follows";
+    			attr_dev(span, "class", "tab-label svelte-oyyzx8");
+    			add_location(span, file, 45, 26, 1161);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, span, anchor);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(span);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_2.name,
+    		type: "if",
+    		source: "(46:5) {#if sidebarExpanded}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (50:5) {#if sidebarExpanded}
+    function create_if_block_1(ctx) {
+    	let span;
+
+    	const block = {
+    		c: function create() {
+    			span = element("span");
+    			span.textContent = "global";
+    			attr_dev(span, "class", "tab-label svelte-oyyzx8");
+    			add_location(span, file, 49, 26, 1302);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, span, anchor);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(span);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_1.name,
+    		type: "if",
+    		source: "(50:5) {#if sidebarExpanded}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (54:5) {#if sidebarExpanded}
+    function create_if_block(ctx) {
+    	let span;
+
+    	const block = {
+    		c: function create() {
+    			span = element("span");
+    			span.textContent = "write";
+    			attr_dev(span, "class", "tab-label svelte-oyyzx8");
+    			add_location(span, file, 53, 26, 1442);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, span, anchor);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(span);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block.name,
+    		type: "if",
+    		source: "(54:5) {#if sidebarExpanded}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    function create_fragment(ctx) {
+    	let header;
+    	let div1;
+    	let img;
+    	let img_src_value;
+    	let t0;
+    	let div0;
+    	let textarea;
+    	let t1;
+    	let button0;
+    	let t2_value = (/*isDarkTheme*/ ctx[1] ? '☀️' : '🌙') + "";
+    	let t2;
+    	let t3;
+    	let button1;
+    	let t5;
+    	let div7;
+    	let aside;
+    	let div6;
+    	let div5;
+    	let div2;
+    	let span0;
+    	let t7;
+    	let t8;
+    	let div3;
+    	let span1;
+    	let t10;
+    	let t11;
+    	let div4;
+    	let span2;
+    	let t13;
+    	let t14;
+    	let button2;
+    	let t15_value = (/*sidebarExpanded*/ ctx[2] ? '◀' : '▶') + "";
+    	let t15;
+    	let t16;
+    	let main;
+    	let h1;
+    	let t17;
+    	let t18;
+    	let t19;
+    	let mounted;
+    	let dispose;
+    	let if_block0 = /*sidebarExpanded*/ ctx[2] && create_if_block_2(ctx);
+    	let if_block1 = /*sidebarExpanded*/ ctx[2] && create_if_block_1(ctx);
+    	let if_block2 = /*sidebarExpanded*/ ctx[2] && create_if_block(ctx);
+
+    	const block = {
+    		c: function create() {
+    			header = element("header");
+    			div1 = element("div");
+    			img = element("img");
+    			t0 = space();
+    			div0 = element("div");
+    			textarea = element("textarea");
+    			t1 = space();
+    			button0 = element("button");
+    			t2 = text(t2_value);
+    			t3 = space();
+    			button1 = element("button");
+    			button1.textContent = "Login";
+    			t5 = space();
+    			div7 = element("div");
+    			aside = element("aside");
+    			div6 = element("div");
+    			div5 = element("div");
+    			div2 = element("div");
+    			span0 = element("span");
+    			span0.textContent = "👥";
+    			t7 = space();
+    			if (if_block0) if_block0.c();
+    			t8 = space();
+    			div3 = element("div");
+    			span1 = element("span");
+    			span1.textContent = "🌍";
+    			t10 = space();
+    			if (if_block1) if_block1.c();
+    			t11 = space();
+    			div4 = element("div");
+    			span2 = element("span");
+    			span2.textContent = "✏️";
+    			t13 = space();
+    			if (if_block2) if_block2.c();
+    			t14 = space();
+    			button2 = element("button");
+    			t15 = text(t15_value);
+    			t16 = space();
     			main = element("main");
     			h1 = element("h1");
-    			t0 = text("Hello ");
-    			t1 = text(/*name*/ ctx[0]);
-    			t2 = text("!");
-    			attr_dev(h1, "class", "svelte-1tky8bj");
-    			add_location(h1, file, 5, 1, 46);
-    			attr_dev(main, "class", "svelte-1tky8bj");
-    			add_location(main, file, 4, 0, 38);
+    			t17 = text("Hello ");
+    			t18 = text(/*name*/ ctx[0]);
+    			t19 = text("!");
+    			if (!src_url_equal(img.src, img_src_value = "/orly.png")) attr_dev(img, "src", img_src_value);
+    			attr_dev(img, "alt", "Orly Logo");
+    			attr_dev(img, "class", "logo svelte-oyyzx8");
+    			add_location(img, file, 26, 2, 514);
+    			attr_dev(textarea, "placeholder", "What's on your mind?");
+    			attr_dev(textarea, "class", "svelte-oyyzx8");
+    			add_location(textarea, file, 28, 3, 596);
+    			attr_dev(div0, "class", "text-area svelte-oyyzx8");
+    			add_location(div0, file, 27, 2, 569);
+    			attr_dev(button0, "class", "theme-toggle-btn svelte-oyyzx8");
+    			add_location(button0, file, 30, 2, 664);
+    			attr_dev(button1, "class", "login-btn svelte-oyyzx8");
+    			add_location(button1, file, 33, 2, 766);
+    			attr_dev(div1, "class", "header-content svelte-oyyzx8");
+    			add_location(div1, file, 25, 1, 483);
+    			attr_dev(header, "class", "main-header svelte-oyyzx8");
+    			toggle_class(header, "dark-theme", /*isDarkTheme*/ ctx[1]);
+    			add_location(header, file, 24, 0, 422);
+    			attr_dev(span0, "class", "tab-icon svelte-oyyzx8");
+    			add_location(span0, file, 44, 5, 1102);
+    			attr_dev(div2, "class", "tab svelte-oyyzx8");
+    			add_location(div2, file, 43, 4, 1079);
+    			attr_dev(span1, "class", "tab-icon svelte-oyyzx8");
+    			add_location(span1, file, 48, 5, 1243);
+    			attr_dev(div3, "class", "tab svelte-oyyzx8");
+    			add_location(div3, file, 47, 4, 1220);
+    			attr_dev(span2, "class", "tab-icon svelte-oyyzx8");
+    			add_location(span2, file, 52, 5, 1383);
+    			attr_dev(div4, "class", "tab svelte-oyyzx8");
+    			add_location(div4, file, 51, 4, 1360);
+    			attr_dev(div5, "class", "tabs svelte-oyyzx8");
+    			add_location(div5, file, 42, 3, 1056);
+    			attr_dev(button2, "class", "toggle-btn svelte-oyyzx8");
+    			add_location(button2, file, 56, 3, 1508);
+    			attr_dev(div6, "class", "sidebar-content svelte-oyyzx8");
+    			add_location(div6, file, 41, 2, 1023);
+    			attr_dev(aside, "class", "sidebar svelte-oyyzx8");
+    			toggle_class(aside, "collapsed", !/*sidebarExpanded*/ ctx[2]);
+    			toggle_class(aside, "dark-theme", /*isDarkTheme*/ ctx[1]);
+    			add_location(aside, file, 40, 1, 931);
+    			attr_dev(h1, "class", "svelte-oyyzx8");
+    			add_location(h1, file, 64, 2, 1682);
+    			attr_dev(main, "class", "main-content svelte-oyyzx8");
+    			add_location(main, file, 63, 1, 1652);
+    			attr_dev(div7, "class", "app-container svelte-oyyzx8");
+    			toggle_class(div7, "dark-theme", /*isDarkTheme*/ ctx[1]);
+    			add_location(div7, file, 38, 0, 853);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
     		},
     		m: function mount(target, anchor) {
-    			insert_dev(target, main, anchor);
+    			insert_dev(target, header, anchor);
+    			append_dev(header, div1);
+    			append_dev(div1, img);
+    			append_dev(div1, t0);
+    			append_dev(div1, div0);
+    			append_dev(div0, textarea);
+    			append_dev(div1, t1);
+    			append_dev(div1, button0);
+    			append_dev(button0, t2);
+    			append_dev(div1, t3);
+    			append_dev(div1, button1);
+    			insert_dev(target, t5, anchor);
+    			insert_dev(target, div7, anchor);
+    			append_dev(div7, aside);
+    			append_dev(aside, div6);
+    			append_dev(div6, div5);
+    			append_dev(div5, div2);
+    			append_dev(div2, span0);
+    			append_dev(div2, t7);
+    			if (if_block0) if_block0.m(div2, null);
+    			append_dev(div5, t8);
+    			append_dev(div5, div3);
+    			append_dev(div3, span1);
+    			append_dev(div3, t10);
+    			if (if_block1) if_block1.m(div3, null);
+    			append_dev(div5, t11);
+    			append_dev(div5, div4);
+    			append_dev(div4, span2);
+    			append_dev(div4, t13);
+    			if (if_block2) if_block2.m(div4, null);
+    			append_dev(div6, t14);
+    			append_dev(div6, button2);
+    			append_dev(button2, t15);
+    			append_dev(div7, t16);
+    			append_dev(div7, main);
     			append_dev(main, h1);
-    			append_dev(h1, t0);
-    			append_dev(h1, t1);
-    			append_dev(h1, t2);
+    			append_dev(h1, t17);
+    			append_dev(h1, t18);
+    			append_dev(h1, t19);
+
+    			if (!mounted) {
+    				dispose = [
+    					listen_dev(button0, "click", /*toggleTheme*/ ctx[4], false, false, false, false),
+    					listen_dev(button2, "click", /*toggleSidebar*/ ctx[3], false, false, false, false)
+    				];
+
+    				mounted = true;
+    			}
     		},
     		p: function update(ctx, [dirty]) {
-    			if (dirty & /*name*/ 1) set_data_dev(t1, /*name*/ ctx[0]);
+    			if (dirty & /*isDarkTheme*/ 2 && t2_value !== (t2_value = (/*isDarkTheme*/ ctx[1] ? '☀️' : '🌙') + "")) set_data_dev(t2, t2_value);
+
+    			if (dirty & /*isDarkTheme*/ 2) {
+    				toggle_class(header, "dark-theme", /*isDarkTheme*/ ctx[1]);
+    			}
+
+    			if (/*sidebarExpanded*/ ctx[2]) {
+    				if (if_block0) ; else {
+    					if_block0 = create_if_block_2(ctx);
+    					if_block0.c();
+    					if_block0.m(div2, null);
+    				}
+    			} else if (if_block0) {
+    				if_block0.d(1);
+    				if_block0 = null;
+    			}
+
+    			if (/*sidebarExpanded*/ ctx[2]) {
+    				if (if_block1) ; else {
+    					if_block1 = create_if_block_1(ctx);
+    					if_block1.c();
+    					if_block1.m(div3, null);
+    				}
+    			} else if (if_block1) {
+    				if_block1.d(1);
+    				if_block1 = null;
+    			}
+
+    			if (/*sidebarExpanded*/ ctx[2]) {
+    				if (if_block2) ; else {
+    					if_block2 = create_if_block(ctx);
+    					if_block2.c();
+    					if_block2.m(div4, null);
+    				}
+    			} else if (if_block2) {
+    				if_block2.d(1);
+    				if_block2 = null;
+    			}
+
+    			if (dirty & /*sidebarExpanded*/ 4 && t15_value !== (t15_value = (/*sidebarExpanded*/ ctx[2] ? '◀' : '▶') + "")) set_data_dev(t15, t15_value);
+
+    			if (dirty & /*sidebarExpanded*/ 4) {
+    				toggle_class(aside, "collapsed", !/*sidebarExpanded*/ ctx[2]);
+    			}
+
+    			if (dirty & /*isDarkTheme*/ 2) {
+    				toggle_class(aside, "dark-theme", /*isDarkTheme*/ ctx[1]);
+    			}
+
+    			if (dirty & /*name*/ 1) set_data_dev(t18, /*name*/ ctx[0]);
+
+    			if (dirty & /*isDarkTheme*/ 2) {
+    				toggle_class(div7, "dark-theme", /*isDarkTheme*/ ctx[1]);
+    			}
     		},
     		i: noop,
     		o: noop,
     		d: function destroy(detaching) {
-    			if (detaching) detach_dev(main);
+    			if (detaching) detach_dev(header);
+    			if (detaching) detach_dev(t5);
+    			if (detaching) detach_dev(div7);
+    			if (if_block0) if_block0.d();
+    			if (if_block1) if_block1.d();
+    			if (if_block2) if_block2.d();
+    			mounted = false;
+    			run_all(dispose);
     		}
     	};
 
@@ -423,6 +769,16 @@ var app = (function () {
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('App', slots, []);
     	let { name } = $$props;
+    	let sidebarExpanded = true;
+    	let isDarkTheme = false;
+
+    	function toggleSidebar() {
+    		$$invalidate(2, sidebarExpanded = !sidebarExpanded);
+    	}
+
+    	function toggleTheme() {
+    		$$invalidate(1, isDarkTheme = !isDarkTheme);
+    	}
 
     	$$self.$$.on_mount.push(function () {
     		if (name === undefined && !('name' in $$props || $$self.$$.bound[$$self.$$.props['name']])) {
@@ -440,17 +796,37 @@ var app = (function () {
     		if ('name' in $$props) $$invalidate(0, name = $$props.name);
     	};
 
-    	$$self.$capture_state = () => ({ name });
+    	$$self.$capture_state = () => ({
+    		name,
+    		sidebarExpanded,
+    		isDarkTheme,
+    		toggleSidebar,
+    		toggleTheme
+    	});
 
     	$$self.$inject_state = $$props => {
     		if ('name' in $$props) $$invalidate(0, name = $$props.name);
+    		if ('sidebarExpanded' in $$props) $$invalidate(2, sidebarExpanded = $$props.sidebarExpanded);
+    		if ('isDarkTheme' in $$props) $$invalidate(1, isDarkTheme = $$props.isDarkTheme);
     	};
 
     	if ($$props && "$$inject" in $$props) {
     		$$self.$inject_state($$props.$$inject);
     	}
 
-    	return [name];
+    	$$self.$$.update = () => {
+    		if ($$self.$$.dirty & /*isDarkTheme*/ 2) {
+    			if (typeof document !== 'undefined') {
+    				if (isDarkTheme) {
+    					document.body.classList.add('dark-theme');
+    				} else {
+    					document.body.classList.remove('dark-theme');
+    				}
+    			}
+    		}
+    	};
+
+    	return [name, isDarkTheme, sidebarExpanded, toggleSidebar, toggleTheme];
     }
 
     class App extends SvelteComponentDev {
