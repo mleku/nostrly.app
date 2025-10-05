@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/client.orly.dev.iml" filepath="$PROJECT_DIR$/.idea/client.orly.dev.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../github.com/PlebianApp/market/.idea/market.iml" filepath="$PROJECT_DIR$/../github.com/PlebianApp/market/.idea/market.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/git.nostrly.app.iml" filepath="$PROJECT_DIR$/.idea/git.nostrly.app.iml" />
     </modules>
   </component>
 </project>
