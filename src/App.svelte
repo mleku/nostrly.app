@@ -14,6 +14,20 @@
     let userProfile = null;
     let showSettingsDrawer = false;
 
+    // Safely render "about" text: convert double newlines to a single HTML line break
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    $: aboutHtml = userProfile?.about
+        ? escapeHtml(userProfile.about).replace(/\n{2,}/g, '<br>')
+        : '';
+
     // Load theme preference from localStorage on component initialization
     if (typeof localStorage !== 'undefined') {
         const savedTheme = localStorage.getItem('isDarkTheme');
@@ -184,25 +198,31 @@
             <div class="drawer-content">
                 {#if userProfile}
                     <div class="profile-section">
-                        {#if userProfile.banner}
-                            <img src={userProfile.banner} alt="Profile banner" class="profile-banner" />
-                        {/if}
-                        <div class="profile-info">
-                            {#if userProfile.picture}
-                                <img src={userProfile.picture} alt="User avatar" class="profile-avatar" />
-                            {:else}
-                                <div class="profile-avatar-placeholder">👤</div>
+                        <div class="profile-hero">
+                            {#if userProfile.banner}
+                                <img src={userProfile.banner} alt="Profile banner" class="profile-banner" />
                             {/if}
-                            <div class="profile-details">
-                                <h3>{userProfile.name || 'Unknown User'}</h3>
-                                {#if userProfile.about}
-                                    <p class="profile-about">{userProfile.about}</p>
-                                {/if}
+                            <!-- Avatar overlaps the bottom edge of the banner by 50% -->
+                            {#if userProfile.picture}
+                                <img src={userProfile.picture} alt="User avatar" class="profile-avatar overlap" />
+                            {:else}
+                                <div class="profile-avatar-placeholder overlap">👤</div>
+                            {/if}
+                            <!-- Username and nip05 to the right of the avatar, above the bottom edge -->
+                            <div class="name-row">
+                                <h3 class="profile-username">{userProfile.name || 'Unknown User'}</h3>
                                 {#if userProfile.nip05}
-                                    <p class="profile-nip05">{userProfile.nip05}</p>
+                                    <span class="profile-nip05-inline">{userProfile.nip05}</span>
                                 {/if}
                             </div>
                         </div>
+
+                        <!-- About text in a box underneath, with avatar overlapping its top edge -->
+                        {#if userProfile.about}
+                            <div class="about-card">
+                                <p class="profile-about">{@html aboutHtml}</p>
+                            </div>
+                        {/if}
                     </div>
                 {/if}
                 <!-- Additional settings can be added here -->
@@ -397,7 +417,7 @@
 
     .tab.active {
         background-color: var(--tab-hover-bg);
-        border-left: 3px solid var(--primary);
+        border-right: 3px solid var(--primary);
     }
 
     .tab-icon {
@@ -577,7 +597,7 @@
     }
     
     .settings-drawer {
-        width: 400px;
+        width: 640px;
         height: 100%;
         background: var(--bg-color);
         /*border-left: 1px solid var(--border-color);*/
@@ -594,8 +614,6 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        /*padding: 0 0.5em 0 0.5em;*/
-        /*border-bottom: 1px solid var(--border-color);*/
         background: var(--header-bg);
     }
     
@@ -613,7 +631,6 @@
         cursor: pointer;
         color: var(--text-color);
         padding: 0.5em;
-        /*border-radius: 4px;*/
         transition: background-color 0.2s;
         align-items: center;
     }
@@ -623,61 +640,89 @@
     }
     
     .drawer-content {
-        padding: 1rem;
+        /*padding: 1rem;*/
     }
     
     .profile-section {
         margin-bottom: 2rem;
     }
+
+    .profile-hero {
+        position: relative;
+    }
     
     .profile-banner {
         width: 100%;
-        height: 120px;
+        height: 160px;
         object-fit: cover;
-        border-radius: 8px;
-        margin-bottom: 1rem;
+        border-radius: 0;
+        display: block;
     }
-    
-    .profile-info {
-        display: flex;
-        gap: 1rem;
-        align-items: flex-start;
-    }
-    
+
+    /* Avatar sits half over the bottom edge of the banner */
     .profile-avatar, .profile-avatar-placeholder {
-        width: 60px;
-        height: 60px;
+        width: 72px;
+        height: 72px;
         border-radius: 50%;
         object-fit: cover;
         flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        border: 2px solid var(--bg-color);
     }
-    
-    .profile-avatar-placeholder {
+
+    .overlap {
+        position: absolute;
+        left: 12px;
+        bottom: -36px; /* half out of the banner */
+        z-index: 2;
+        background: var(--button-hover-bg);
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--button-hover-bg);
         font-size: 1.5rem;
     }
-    
-    .profile-details h3 {
-        margin: 0 0 0.5rem 0;
-        color: var(--text-color);
+
+    /* Username and nip05 on the banner, to the right of avatar */
+    .name-row {
+        position: absolute;
+        left: calc(12px + 72px + 12px);
+        bottom: 8px;
+        right: 12px;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        z-index: 1;
+          shadow: 0 3px 6px rgba(0,0,0,0.6);
+  }
+
+    .profile-username {
+        margin: 0;
         font-size: 1.1rem;
+        color: #000; /* contrasting over banner */
+        text-shadow: 0 3px 6px rgba(255,255,255,1);
     }
-    
+
+    .profile-nip05-inline {
+        font-size: 0.85rem;
+        color: #000; /* subtle but contrasting */
+        font-family: monospace;
+        opacity: 0.95;
+        text-shadow: 0 3px 6px rgba(255,255,255,1);
+    }
+
+    /* About box below with overlap space for avatar */
+    .about-card {
+        background: var(--header-bg);
+        padding: 12px 12px 12px 96px; /* offset text from overlapping avatar */
+        position: relative;
+        word-break: auto-phrase;
+    }
+
     .profile-about {
-        margin: 0 0 0.5rem 0;
+        margin: 0;
         color: var(--text-color);
         font-size: 0.9rem;
         line-height: 1.4;
-    }
-    
-    .profile-nip05 {
-        margin: 0;
-        color: var(--primary);
-        font-size: 0.8rem;
-        font-family: monospace;
     }
     
     @media (max-width: 640px) {
@@ -685,8 +730,14 @@
             width: 100%;
         }
         
-        .user-name {
-            max-width: 80px;
+        .name-row {
+            left: calc(8px + 56px + 8px);
+            bottom: 6px;
+            right: 8px;
+            gap: 6px;
         }
+
+        .profile-username { font-size: 1rem; }
+        .profile-nip05-inline { font-size: 0.8rem; }
     }
 </style>

@@ -1472,11 +1472,11 @@ var app = (function () {
 
     function get_each_context(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[24] = list[i];
+    	child_ctx[25] = list[i];
     	return child_ctx;
     }
 
-    // (142:8) {:else}
+    // (156:8) {:else}
     function create_else_block_2(ctx) {
     	let button;
     	let mounted;
@@ -1486,14 +1486,14 @@ var app = (function () {
     		c: function create() {
     			button = element("button");
     			button.textContent = "📥";
-    			attr_dev(button, "class", "login-btn svelte-tepx4");
-    			add_location(button, file, 142, 12, 4499);
+    			attr_dev(button, "class", "login-btn svelte-cutxxt");
+    			add_location(button, file, 156, 12, 4951);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, button, anchor);
 
     			if (!mounted) {
-    				dispose = listen_dev(button, "click", /*openLoginModal*/ ctx[14], false, false, false, false);
+    				dispose = listen_dev(button, "click", /*openLoginModal*/ ctx[15], false, false, false, false);
     				mounted = true;
     			}
     		},
@@ -1509,20 +1509,20 @@ var app = (function () {
     		block,
     		id: create_else_block_2.name,
     		type: "else",
-    		source: "(142:8) {:else}",
+    		source: "(156:8) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (128:8) {#if isLoggedIn}
+    // (142:8) {#if isLoggedIn}
     function create_if_block_7(ctx) {
     	let div;
     	let button0;
     	let t0;
     	let span;
-    	let t1_value = (/*userProfile*/ ctx[7]?.name || /*userPubkey*/ ctx[6].slice(0, 8) + '...') + "";
+    	let t1_value = (/*userProfile*/ ctx[3]?.name || /*userPubkey*/ ctx[7].slice(0, 8) + '...') + "";
     	let t1;
     	let t2;
     	let button1;
@@ -1530,7 +1530,7 @@ var app = (function () {
     	let dispose;
 
     	function select_block_type_1(ctx, dirty) {
-    		if (/*userProfile*/ ctx[7]?.picture) return create_if_block_8;
+    		if (/*userProfile*/ ctx[3]?.picture) return create_if_block_8;
     		return create_else_block_1;
     	}
 
@@ -1548,14 +1548,14 @@ var app = (function () {
     			t2 = space();
     			button1 = element("button");
     			button1.textContent = "🚪";
-    			attr_dev(span, "class", "user-name svelte-tepx4");
-    			add_location(span, file, 135, 20, 4216);
-    			attr_dev(button0, "class", "user-profile-btn svelte-tepx4");
-    			add_location(button0, file, 129, 16, 3865);
-    			attr_dev(button1, "class", "logout-btn svelte-tepx4");
-    			add_location(button1, file, 139, 16, 4389);
-    			attr_dev(div, "class", "user-info svelte-tepx4");
-    			add_location(div, file, 128, 12, 3825);
+    			attr_dev(span, "class", "user-name svelte-cutxxt");
+    			add_location(span, file, 149, 20, 4668);
+    			attr_dev(button0, "class", "user-profile-btn svelte-cutxxt");
+    			add_location(button0, file, 143, 16, 4317);
+    			attr_dev(button1, "class", "logout-btn svelte-cutxxt");
+    			add_location(button1, file, 153, 16, 4841);
+    			attr_dev(div, "class", "user-info svelte-cutxxt");
+    			add_location(div, file, 142, 12, 4277);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -1569,8 +1569,8 @@ var app = (function () {
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(button0, "click", /*openSettingsDrawer*/ ctx[18], false, false, false, false),
-    					listen_dev(button1, "click", /*handleLogout*/ ctx[16], false, false, false, false)
+    					listen_dev(button0, "click", /*openSettingsDrawer*/ ctx[19], false, false, false, false),
+    					listen_dev(button1, "click", /*handleLogout*/ ctx[17], false, false, false, false)
     				];
 
     				mounted = true;
@@ -1589,7 +1589,7 @@ var app = (function () {
     				}
     			}
 
-    			if (dirty & /*userProfile, userPubkey*/ 192 && t1_value !== (t1_value = (/*userProfile*/ ctx[7]?.name || /*userPubkey*/ ctx[6].slice(0, 8) + '...') + "")) set_data_dev(t1, t1_value);
+    			if (dirty & /*userProfile, userPubkey*/ 136 && t1_value !== (t1_value = (/*userProfile*/ ctx[3]?.name || /*userPubkey*/ ctx[7].slice(0, 8) + '...') + "")) set_data_dev(t1, t1_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(div);
@@ -1603,14 +1603,14 @@ var app = (function () {
     		block,
     		id: create_if_block_7.name,
     		type: "if",
-    		source: "(128:8) {#if isLoggedIn}",
+    		source: "(142:8) {#if isLoggedIn}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (133:20) {:else}
+    // (147:20) {:else}
     function create_else_block_1(ctx) {
     	let div;
 
@@ -1618,8 +1618,8 @@ var app = (function () {
     		c: function create() {
     			div = element("div");
     			div.textContent = "👤";
-    			attr_dev(div, "class", "user-avatar-placeholder svelte-tepx4");
-    			add_location(div, file, 133, 24, 4124);
+    			attr_dev(div, "class", "user-avatar-placeholder svelte-cutxxt");
+    			add_location(div, file, 147, 24, 4576);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -1634,14 +1634,14 @@ var app = (function () {
     		block,
     		id: create_else_block_1.name,
     		type: "else",
-    		source: "(133:20) {:else}",
+    		source: "(147:20) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (131:20) {#if userProfile?.picture}
+    // (145:20) {#if userProfile?.picture}
     function create_if_block_8(ctx) {
     	let img;
     	let img_src_value;
@@ -1649,16 +1649,16 @@ var app = (function () {
     	const block = {
     		c: function create() {
     			img = element("img");
-    			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[7].picture)) attr_dev(img, "src", img_src_value);
+    			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[3].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "User avatar");
-    			attr_dev(img, "class", "user-avatar svelte-tepx4");
-    			add_location(img, file, 131, 24, 4000);
+    			attr_dev(img, "class", "user-avatar svelte-cutxxt");
+    			add_location(img, file, 145, 24, 4452);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, img, anchor);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*userProfile*/ 128 && !src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[7].picture)) {
+    			if (dirty & /*userProfile*/ 8 && !src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[3].picture)) {
     				attr_dev(img, "src", img_src_value);
     			}
     		},
@@ -1671,25 +1671,25 @@ var app = (function () {
     		block,
     		id: create_if_block_8.name,
     		type: "if",
-    		source: "(131:20) {#if userProfile?.picture}",
+    		source: "(145:20) {#if userProfile?.picture}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (159:24) {#if sidebarExpanded}
+    // (173:24) {#if sidebarExpanded}
     function create_if_block_6(ctx) {
     	let span;
-    	let t_value = /*tab*/ ctx[24].label + "";
+    	let t_value = /*tab*/ ctx[25].label + "";
     	let t;
 
     	const block = {
     		c: function create() {
     			span = element("span");
     			t = text(t_value);
-    			attr_dev(span, "class", "tab-label svelte-tepx4");
-    			add_location(span, file, 158, 45, 5162);
+    			attr_dev(span, "class", "tab-label svelte-cutxxt");
+    			add_location(span, file, 172, 45, 5614);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, span, anchor);
@@ -1705,27 +1705,27 @@ var app = (function () {
     		block,
     		id: create_if_block_6.name,
     		type: "if",
-    		source: "(159:24) {#if sidebarExpanded}",
+    		source: "(173:24) {#if sidebarExpanded}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (155:16) {#each tabs as tab}
+    // (169:16) {#each tabs as tab}
     function create_each_block(ctx) {
     	let div;
     	let span;
-    	let t0_value = /*tab*/ ctx[24].icon + "";
+    	let t0_value = /*tab*/ ctx[25].icon + "";
     	let t0;
     	let t1;
     	let t2;
     	let mounted;
     	let dispose;
-    	let if_block = /*sidebarExpanded*/ ctx[3] && create_if_block_6(ctx);
+    	let if_block = /*sidebarExpanded*/ ctx[4] && create_if_block_6(ctx);
 
     	function click_handler_1() {
-    		return /*click_handler_1*/ ctx[21](/*tab*/ ctx[24]);
+    		return /*click_handler_1*/ ctx[22](/*tab*/ ctx[25]);
     	}
 
     	const block = {
@@ -1736,11 +1736,11 @@ var app = (function () {
     			t1 = space();
     			if (if_block) if_block.c();
     			t2 = space();
-    			attr_dev(span, "class", "tab-icon svelte-tepx4");
-    			add_location(span, file, 157, 24, 5076);
-    			attr_dev(div, "class", "tab svelte-tepx4");
-    			toggle_class(div, "active", /*selectedTab*/ ctx[2] === /*tab*/ ctx[24].id);
-    			add_location(div, file, 155, 20, 4936);
+    			attr_dev(span, "class", "tab-icon svelte-cutxxt");
+    			add_location(span, file, 171, 24, 5528);
+    			attr_dev(div, "class", "tab svelte-cutxxt");
+    			toggle_class(div, "active", /*selectedTab*/ ctx[2] === /*tab*/ ctx[25].id);
+    			add_location(div, file, 169, 20, 5388);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -1758,7 +1758,7 @@ var app = (function () {
     		p: function update(new_ctx, dirty) {
     			ctx = new_ctx;
 
-    			if (/*sidebarExpanded*/ ctx[3]) {
+    			if (/*sidebarExpanded*/ ctx[4]) {
     				if (if_block) {
     					if_block.p(ctx, dirty);
     				} else {
@@ -1771,8 +1771,8 @@ var app = (function () {
     				if_block = null;
     			}
 
-    			if (dirty & /*selectedTab, tabs*/ 1028) {
-    				toggle_class(div, "active", /*selectedTab*/ ctx[2] === /*tab*/ ctx[24].id);
+    			if (dirty & /*selectedTab, tabs*/ 2052) {
+    				toggle_class(div, "active", /*selectedTab*/ ctx[2] === /*tab*/ ctx[25].id);
     			}
     		},
     		d: function destroy(detaching) {
@@ -1787,14 +1787,14 @@ var app = (function () {
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(155:16) {#each tabs as tab}",
+    		source: "(169:16) {#each tabs as tab}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (177:0) {#if showSettingsDrawer}
+    // (191:0) {#if showSettingsDrawer}
     function create_if_block(ctx) {
     	let div3;
     	let div2;
@@ -1806,7 +1806,7 @@ var app = (function () {
     	let div1;
     	let mounted;
     	let dispose;
-    	let if_block = /*userProfile*/ ctx[7] && create_if_block_1(ctx);
+    	let if_block = /*userProfile*/ ctx[3] && create_if_block_1(ctx);
 
     	const block = {
     		c: function create() {
@@ -1821,19 +1821,19 @@ var app = (function () {
     			t3 = space();
     			div1 = element("div");
     			if (if_block) if_block.c();
-    			attr_dev(h2, "class", "svelte-tepx4");
-    			add_location(h2, file, 180, 16, 5847);
-    			attr_dev(button, "class", "close-btn svelte-tepx4");
-    			add_location(button, file, 181, 16, 5881);
-    			attr_dev(div0, "class", "drawer-header svelte-tepx4");
-    			add_location(div0, file, 179, 12, 5803);
-    			attr_dev(div1, "class", "drawer-content svelte-tepx4");
-    			add_location(div1, file, 183, 12, 5980);
-    			attr_dev(div2, "class", "settings-drawer svelte-tepx4");
+    			attr_dev(h2, "class", "svelte-cutxxt");
+    			add_location(h2, file, 194, 16, 6299);
+    			attr_dev(button, "class", "close-btn svelte-cutxxt");
+    			add_location(button, file, 195, 16, 6333);
+    			attr_dev(div0, "class", "drawer-header svelte-cutxxt");
+    			add_location(div0, file, 193, 12, 6255);
+    			attr_dev(div1, "class", "drawer-content svelte-cutxxt");
+    			add_location(div1, file, 197, 12, 6432);
+    			attr_dev(div2, "class", "settings-drawer svelte-cutxxt");
     			toggle_class(div2, "dark-theme", /*isDarkTheme*/ ctx[1]);
-    			add_location(div2, file, 178, 8, 5705);
-    			attr_dev(div3, "class", "drawer-overlay svelte-tepx4");
-    			add_location(div3, file, 177, 4, 5637);
+    			add_location(div2, file, 192, 8, 6157);
+    			attr_dev(div3, "class", "drawer-overlay svelte-cutxxt");
+    			add_location(div3, file, 191, 4, 6089);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div3, anchor);
@@ -1848,16 +1848,16 @@ var app = (function () {
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(button, "click", /*closeSettingsDrawer*/ ctx[19], false, false, false, false),
-    					listen_dev(div2, "click", stop_propagation(/*click_handler*/ ctx[20]), false, false, true, false),
-    					listen_dev(div3, "click", /*closeSettingsDrawer*/ ctx[19], false, false, false, false)
+    					listen_dev(button, "click", /*closeSettingsDrawer*/ ctx[20], false, false, false, false),
+    					listen_dev(div2, "click", stop_propagation(/*click_handler*/ ctx[21]), false, false, true, false),
+    					listen_dev(div3, "click", /*closeSettingsDrawer*/ ctx[20], false, false, false, false)
     				];
 
     				mounted = true;
     			}
     		},
     		p: function update(ctx, dirty) {
-    			if (/*userProfile*/ ctx[7]) {
+    			if (/*userProfile*/ ctx[3]) {
     				if (if_block) {
     					if_block.p(ctx, dirty);
     				} else {
@@ -1886,43 +1886,43 @@ var app = (function () {
     		block,
     		id: create_if_block.name,
     		type: "if",
-    		source: "(177:0) {#if showSettingsDrawer}",
+    		source: "(191:0) {#if showSettingsDrawer}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (185:16) {#if userProfile}
+    // (199:16) {#if userProfile}
     function create_if_block_1(ctx) {
     	let div2;
-    	let t0;
     	let div1;
+    	let t0;
     	let t1;
     	let div0;
     	let h3;
-    	let t2_value = (/*userProfile*/ ctx[7].name || 'Unknown User') + "";
+    	let t2_value = (/*userProfile*/ ctx[3].name || 'Unknown User') + "";
     	let t2;
     	let t3;
     	let t4;
-    	let if_block0 = /*userProfile*/ ctx[7].banner && create_if_block_5(ctx);
+    	let if_block0 = /*userProfile*/ ctx[3].banner && create_if_block_5(ctx);
 
     	function select_block_type_2(ctx, dirty) {
-    		if (/*userProfile*/ ctx[7].picture) return create_if_block_4;
+    		if (/*userProfile*/ ctx[3].picture) return create_if_block_4;
     		return create_else_block;
     	}
 
     	let current_block_type = select_block_type_2(ctx);
     	let if_block1 = current_block_type(ctx);
-    	let if_block2 = /*userProfile*/ ctx[7].about && create_if_block_3(ctx);
-    	let if_block3 = /*userProfile*/ ctx[7].nip05 && create_if_block_2(ctx);
+    	let if_block2 = /*userProfile*/ ctx[3].nip05 && create_if_block_3(ctx);
+    	let if_block3 = /*userProfile*/ ctx[3].about && create_if_block_2(ctx);
 
     	const block = {
     		c: function create() {
     			div2 = element("div");
+    			div1 = element("div");
     			if (if_block0) if_block0.c();
     			t0 = space();
-    			div1 = element("div");
     			if_block1.c();
     			t1 = space();
     			div0 = element("div");
@@ -1932,20 +1932,20 @@ var app = (function () {
     			if (if_block2) if_block2.c();
     			t4 = space();
     			if (if_block3) if_block3.c();
-    			attr_dev(h3, "class", "svelte-tepx4");
-    			add_location(h3, file, 196, 32, 6730);
-    			attr_dev(div0, "class", "profile-details svelte-tepx4");
-    			add_location(div0, file, 195, 28, 6668);
-    			attr_dev(div1, "class", "profile-info svelte-tepx4");
-    			add_location(div1, file, 189, 24, 6301);
-    			attr_dev(div2, "class", "profile-section svelte-tepx4");
-    			add_location(div2, file, 185, 20, 6063);
+    			attr_dev(h3, "class", "profile-username svelte-cutxxt");
+    			add_location(h3, file, 212, 32, 7399);
+    			attr_dev(div0, "class", "name-row svelte-cutxxt");
+    			add_location(div0, file, 211, 28, 7344);
+    			attr_dev(div1, "class", "profile-hero svelte-cutxxt");
+    			add_location(div1, file, 200, 24, 6569);
+    			attr_dev(div2, "class", "profile-section svelte-cutxxt");
+    			add_location(div2, file, 199, 20, 6515);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div2, anchor);
-    			if (if_block0) if_block0.m(div2, null);
-    			append_dev(div2, t0);
     			append_dev(div2, div1);
+    			if (if_block0) if_block0.m(div1, null);
+    			append_dev(div1, t0);
     			if_block1.m(div1, null);
     			append_dev(div1, t1);
     			append_dev(div1, div0);
@@ -1953,17 +1953,17 @@ var app = (function () {
     			append_dev(h3, t2);
     			append_dev(div0, t3);
     			if (if_block2) if_block2.m(div0, null);
-    			append_dev(div0, t4);
-    			if (if_block3) if_block3.m(div0, null);
+    			append_dev(div2, t4);
+    			if (if_block3) if_block3.m(div2, null);
     		},
     		p: function update(ctx, dirty) {
-    			if (/*userProfile*/ ctx[7].banner) {
+    			if (/*userProfile*/ ctx[3].banner) {
     				if (if_block0) {
     					if_block0.p(ctx, dirty);
     				} else {
     					if_block0 = create_if_block_5(ctx);
     					if_block0.c();
-    					if_block0.m(div2, t0);
+    					if_block0.m(div1, t0);
     				}
     			} else if (if_block0) {
     				if_block0.d(1);
@@ -1982,28 +1982,28 @@ var app = (function () {
     				}
     			}
 
-    			if (dirty & /*userProfile*/ 128 && t2_value !== (t2_value = (/*userProfile*/ ctx[7].name || 'Unknown User') + "")) set_data_dev(t2, t2_value);
+    			if (dirty & /*userProfile*/ 8 && t2_value !== (t2_value = (/*userProfile*/ ctx[3].name || 'Unknown User') + "")) set_data_dev(t2, t2_value);
 
-    			if (/*userProfile*/ ctx[7].about) {
+    			if (/*userProfile*/ ctx[3].nip05) {
     				if (if_block2) {
     					if_block2.p(ctx, dirty);
     				} else {
     					if_block2 = create_if_block_3(ctx);
     					if_block2.c();
-    					if_block2.m(div0, t4);
+    					if_block2.m(div0, null);
     				}
     			} else if (if_block2) {
     				if_block2.d(1);
     				if_block2 = null;
     			}
 
-    			if (/*userProfile*/ ctx[7].nip05) {
+    			if (/*userProfile*/ ctx[3].about) {
     				if (if_block3) {
     					if_block3.p(ctx, dirty);
     				} else {
     					if_block3 = create_if_block_2(ctx);
     					if_block3.c();
-    					if_block3.m(div0, null);
+    					if_block3.m(div2, null);
     				}
     			} else if (if_block3) {
     				if_block3.d(1);
@@ -2023,14 +2023,14 @@ var app = (function () {
     		block,
     		id: create_if_block_1.name,
     		type: "if",
-    		source: "(185:16) {#if userProfile}",
+    		source: "(199:16) {#if userProfile}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (187:24) {#if userProfile.banner}
+    // (202:28) {#if userProfile.banner}
     function create_if_block_5(ctx) {
     	let img;
     	let img_src_value;
@@ -2038,16 +2038,16 @@ var app = (function () {
     	const block = {
     		c: function create() {
     			img = element("img");
-    			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[7].banner)) attr_dev(img, "src", img_src_value);
+    			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[3].banner)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Profile banner");
-    			attr_dev(img, "class", "profile-banner svelte-tepx4");
-    			add_location(img, file, 187, 28, 6170);
+    			attr_dev(img, "class", "profile-banner svelte-cutxxt");
+    			add_location(img, file, 202, 32, 6681);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, img, anchor);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*userProfile*/ 128 && !src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[7].banner)) {
+    			if (dirty & /*userProfile*/ 8 && !src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[3].banner)) {
     				attr_dev(img, "src", img_src_value);
     			}
     		},
@@ -2060,14 +2060,14 @@ var app = (function () {
     		block,
     		id: create_if_block_5.name,
     		type: "if",
-    		source: "(187:24) {#if userProfile.banner}",
+    		source: "(202:28) {#if userProfile.banner}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (193:28) {:else}
+    // (208:28) {:else}
     function create_else_block(ctx) {
     	let div;
 
@@ -2075,8 +2075,8 @@ var app = (function () {
     		c: function create() {
     			div = element("div");
     			div.textContent = "👤";
-    			attr_dev(div, "class", "profile-avatar-placeholder svelte-tepx4");
-    			add_location(div, file, 193, 32, 6557);
+    			attr_dev(div, "class", "profile-avatar-placeholder overlap svelte-cutxxt");
+    			add_location(div, file, 208, 32, 7119);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -2091,14 +2091,14 @@ var app = (function () {
     		block,
     		id: create_else_block.name,
     		type: "else",
-    		source: "(193:28) {:else}",
+    		source: "(208:28) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (191:28) {#if userProfile.picture}
+    // (206:28) {#if userProfile.picture}
     function create_if_block_4(ctx) {
     	let img;
     	let img_src_value;
@@ -2106,16 +2106,16 @@ var app = (function () {
     	const block = {
     		c: function create() {
     			img = element("img");
-    			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[7].picture)) attr_dev(img, "src", img_src_value);
+    			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[3].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "User avatar");
-    			attr_dev(img, "class", "profile-avatar svelte-tepx4");
-    			add_location(img, file, 191, 32, 6414);
+    			attr_dev(img, "class", "profile-avatar overlap svelte-cutxxt");
+    			add_location(img, file, 206, 32, 6968);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, img, anchor);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*userProfile*/ 128 && !src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[7].picture)) {
+    			if (dirty & /*userProfile*/ 8 && !src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[3].picture)) {
     				attr_dev(img, "src", img_src_value);
     			}
     		},
@@ -2128,35 +2128,35 @@ var app = (function () {
     		block,
     		id: create_if_block_4.name,
     		type: "if",
-    		source: "(191:28) {#if userProfile.picture}",
+    		source: "(206:28) {#if userProfile.picture}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (198:32) {#if userProfile.about}
+    // (214:32) {#if userProfile.nip05}
     function create_if_block_3(ctx) {
-    	let p;
-    	let t_value = /*userProfile*/ ctx[7].about + "";
+    	let span;
+    	let t_value = /*userProfile*/ ctx[3].nip05 + "";
     	let t;
 
     	const block = {
     		c: function create() {
-    			p = element("p");
+    			span = element("span");
     			t = text(t_value);
-    			attr_dev(p, "class", "profile-about svelte-tepx4");
-    			add_location(p, file, 198, 36, 6868);
+    			attr_dev(span, "class", "profile-nip05-inline svelte-cutxxt");
+    			add_location(span, file, 214, 36, 7562);
     		},
     		m: function mount(target, anchor) {
-    			insert_dev(target, p, anchor);
-    			append_dev(p, t);
+    			insert_dev(target, span, anchor);
+    			append_dev(span, t);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*userProfile*/ 128 && t_value !== (t_value = /*userProfile*/ ctx[7].about + "")) set_data_dev(t, t_value);
+    			if (dirty & /*userProfile*/ 8 && t_value !== (t_value = /*userProfile*/ ctx[3].nip05 + "")) set_data_dev(t, t_value);
     		},
     		d: function destroy(detaching) {
-    			if (detaching) detach_dev(p);
+    			if (detaching) detach_dev(span);
     		}
     	};
 
@@ -2164,35 +2164,36 @@ var app = (function () {
     		block,
     		id: create_if_block_3.name,
     		type: "if",
-    		source: "(198:32) {#if userProfile.about}",
+    		source: "(214:32) {#if userProfile.nip05}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (201:32) {#if userProfile.nip05}
+    // (221:24) {#if userProfile.about}
     function create_if_block_2(ctx) {
+    	let div;
     	let p;
-    	let t_value = /*userProfile*/ ctx[7].nip05 + "";
-    	let t;
 
     	const block = {
     		c: function create() {
+    			div = element("div");
     			p = element("p");
-    			t = text(t_value);
-    			attr_dev(p, "class", "profile-nip05 svelte-tepx4");
-    			add_location(p, file, 201, 36, 7047);
+    			attr_dev(p, "class", "profile-about svelte-cutxxt");
+    			add_location(p, file, 222, 32, 7964);
+    			attr_dev(div, "class", "about-card svelte-cutxxt");
+    			add_location(div, file, 221, 28, 7907);
     		},
     		m: function mount(target, anchor) {
-    			insert_dev(target, p, anchor);
-    			append_dev(p, t);
+    			insert_dev(target, div, anchor);
+    			append_dev(div, p);
+    			p.innerHTML = /*aboutHtml*/ ctx[10];
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*userProfile*/ 128 && t_value !== (t_value = /*userProfile*/ ctx[7].nip05 + "")) set_data_dev(t, t_value);
-    		},
+    			if (dirty & /*aboutHtml*/ 1024) p.innerHTML = /*aboutHtml*/ ctx[10];		},
     		d: function destroy(detaching) {
-    			if (detaching) detach_dev(p);
+    			if (detaching) detach_dev(div);
     		}
     	};
 
@@ -2200,7 +2201,7 @@ var app = (function () {
     		block,
     		id: create_if_block_2.name,
     		type: "if",
-    		source: "(201:32) {#if userProfile.nip05}",
+    		source: "(221:24) {#if userProfile.about}",
     		ctx
     	});
 
@@ -2229,7 +2230,7 @@ var app = (function () {
     	let div2;
     	let t6;
     	let button1;
-    	let t7_value = (/*sidebarExpanded*/ ctx[3] ? '◀' : '▶') + "";
+    	let t7_value = (/*sidebarExpanded*/ ctx[4] ? '◀' : '▶') + "";
     	let t7;
     	let t8;
     	let main;
@@ -2246,13 +2247,13 @@ var app = (function () {
     	let dispose;
 
     	function select_block_type(ctx, dirty) {
-    		if (/*isLoggedIn*/ ctx[5]) return create_if_block_7;
+    		if (/*isLoggedIn*/ ctx[6]) return create_if_block_7;
     		return create_else_block_2;
     	}
 
     	let current_block_type = select_block_type(ctx);
     	let if_block0 = current_block_type(ctx);
-    	let each_value = /*tabs*/ ctx[10];
+    	let each_value = /*tabs*/ ctx[11];
     	validate_each_argument(each_value);
     	let each_blocks = [];
 
@@ -2263,19 +2264,19 @@ var app = (function () {
     	let if_block1 = /*showSettingsDrawer*/ ctx[8] && create_if_block(ctx);
 
     	function loginmodal_showModal_binding(value) {
-    		/*loginmodal_showModal_binding*/ ctx[22](value);
+    		/*loginmodal_showModal_binding*/ ctx[23](value);
     	}
 
     	let loginmodal_props = { isDarkTheme: /*isDarkTheme*/ ctx[1] };
 
-    	if (/*showLoginModal*/ ctx[4] !== void 0) {
-    		loginmodal_props.showModal = /*showLoginModal*/ ctx[4];
+    	if (/*showLoginModal*/ ctx[5] !== void 0) {
+    		loginmodal_props.showModal = /*showLoginModal*/ ctx[5];
     	}
 
     	loginmodal = new LoginModal({ props: loginmodal_props, $$inline: true });
     	binding_callbacks.push(() => bind(loginmodal, 'showModal', loginmodal_showModal_binding));
-    	loginmodal.$on("login", /*handleLogin*/ ctx[15]);
-    	loginmodal.$on("close", /*closeLoginModal*/ ctx[17]);
+    	loginmodal.$on("login", /*handleLogin*/ ctx[16]);
+    	loginmodal.$on("close", /*closeLoginModal*/ ctx[18]);
 
     	const block = {
     		c: function create() {
@@ -2316,36 +2317,36 @@ var app = (function () {
     			create_component(loginmodal.$$.fragment);
     			if (!src_url_equal(img.src, img_src_value = "/orly.png")) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Orly Logo");
-    			attr_dev(img, "class", "logo svelte-tepx4");
-    			add_location(img, file, 120, 8, 3485);
-    			attr_dev(span, "class", "selected-tab-label svelte-tepx4");
-    			add_location(span, file, 122, 12, 3586);
-    			attr_dev(div0, "class", "tab-label-area svelte-tepx4");
-    			add_location(div0, file, 121, 8, 3545);
-    			attr_dev(button0, "class", "theme-toggle-btn svelte-tepx4");
-    			add_location(button0, file, 124, 8, 3673);
-    			attr_dev(div1, "class", "header-content svelte-tepx4");
-    			add_location(div1, file, 119, 4, 3448);
-    			attr_dev(header, "class", "main-header svelte-tepx4");
+    			attr_dev(img, "class", "logo svelte-cutxxt");
+    			add_location(img, file, 134, 8, 3937);
+    			attr_dev(span, "class", "selected-tab-label svelte-cutxxt");
+    			add_location(span, file, 136, 12, 4038);
+    			attr_dev(div0, "class", "tab-label-area svelte-cutxxt");
+    			add_location(div0, file, 135, 8, 3997);
+    			attr_dev(button0, "class", "theme-toggle-btn svelte-cutxxt");
+    			add_location(button0, file, 138, 8, 4125);
+    			attr_dev(div1, "class", "header-content svelte-cutxxt");
+    			add_location(div1, file, 133, 4, 3900);
+    			attr_dev(header, "class", "main-header svelte-cutxxt");
     			toggle_class(header, "dark-theme", /*isDarkTheme*/ ctx[1]);
-    			add_location(header, file, 118, 0, 3384);
-    			attr_dev(div2, "class", "tabs svelte-tepx4");
-    			add_location(div2, file, 153, 12, 4861);
-    			attr_dev(button1, "class", "toggle-btn svelte-tepx4");
-    			add_location(button1, file, 163, 12, 5324);
-    			attr_dev(div3, "class", "sidebar-content svelte-tepx4");
-    			add_location(div3, file, 152, 8, 4819);
-    			attr_dev(aside, "class", "sidebar svelte-tepx4");
-    			toggle_class(aside, "collapsed", !/*sidebarExpanded*/ ctx[3]);
+    			add_location(header, file, 132, 0, 3836);
+    			attr_dev(div2, "class", "tabs svelte-cutxxt");
+    			add_location(div2, file, 167, 12, 5313);
+    			attr_dev(button1, "class", "toggle-btn svelte-cutxxt");
+    			add_location(button1, file, 177, 12, 5776);
+    			attr_dev(div3, "class", "sidebar-content svelte-cutxxt");
+    			add_location(div3, file, 166, 8, 5271);
+    			attr_dev(aside, "class", "sidebar svelte-cutxxt");
+    			toggle_class(aside, "collapsed", !/*sidebarExpanded*/ ctx[4]);
     			toggle_class(aside, "dark-theme", /*isDarkTheme*/ ctx[1]);
-    			add_location(aside, file, 150, 4, 4710);
-    			attr_dev(h1, "class", "svelte-tepx4");
-    			add_location(h1, file, 171, 8, 5540);
-    			attr_dev(main, "class", "main-content svelte-tepx4");
-    			add_location(main, file, 170, 4, 5504);
-    			attr_dev(div4, "class", "app-container svelte-tepx4");
+    			add_location(aside, file, 164, 4, 5162);
+    			attr_dev(h1, "class", "svelte-cutxxt");
+    			add_location(h1, file, 185, 8, 5992);
+    			attr_dev(main, "class", "main-content svelte-cutxxt");
+    			add_location(main, file, 184, 4, 5956);
+    			attr_dev(div4, "class", "app-container svelte-cutxxt");
     			toggle_class(div4, "dark-theme", /*isDarkTheme*/ ctx[1]);
-    			add_location(div4, file, 148, 0, 4626);
+    			add_location(div4, file, 162, 0, 5078);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -2392,8 +2393,8 @@ var app = (function () {
 
     			if (!mounted) {
     				dispose = [
-    					listen_dev(button0, "click", /*toggleTheme*/ ctx[12], false, false, false, false),
-    					listen_dev(button1, "click", /*toggleSidebar*/ ctx[11], false, false, false, false)
+    					listen_dev(button0, "click", /*toggleTheme*/ ctx[13], false, false, false, false),
+    					listen_dev(button1, "click", /*toggleSidebar*/ ctx[12], false, false, false, false)
     				];
 
     				mounted = true;
@@ -2419,8 +2420,8 @@ var app = (function () {
     				toggle_class(header, "dark-theme", /*isDarkTheme*/ ctx[1]);
     			}
 
-    			if (dirty & /*selectedTab, tabs, selectTab, sidebarExpanded*/ 9228) {
-    				each_value = /*tabs*/ ctx[10];
+    			if (dirty & /*selectedTab, tabs, selectTab, sidebarExpanded*/ 18452) {
+    				each_value = /*tabs*/ ctx[11];
     				validate_each_argument(each_value);
     				let i;
 
@@ -2443,10 +2444,10 @@ var app = (function () {
     				each_blocks.length = each_value.length;
     			}
 
-    			if ((!current || dirty & /*sidebarExpanded*/ 8) && t7_value !== (t7_value = (/*sidebarExpanded*/ ctx[3] ? '◀' : '▶') + "")) set_data_dev(t7, t7_value);
+    			if ((!current || dirty & /*sidebarExpanded*/ 16) && t7_value !== (t7_value = (/*sidebarExpanded*/ ctx[4] ? '◀' : '▶') + "")) set_data_dev(t7, t7_value);
 
-    			if (!current || dirty & /*sidebarExpanded*/ 8) {
-    				toggle_class(aside, "collapsed", !/*sidebarExpanded*/ ctx[3]);
+    			if (!current || dirty & /*sidebarExpanded*/ 16) {
+    				toggle_class(aside, "collapsed", !/*sidebarExpanded*/ ctx[4]);
     			}
 
     			if (!current || dirty & /*isDarkTheme*/ 2) {
@@ -2475,9 +2476,9 @@ var app = (function () {
     			const loginmodal_changes = {};
     			if (dirty & /*isDarkTheme*/ 2) loginmodal_changes.isDarkTheme = /*isDarkTheme*/ ctx[1];
 
-    			if (!updating_showModal && dirty & /*showLoginModal*/ 16) {
+    			if (!updating_showModal && dirty & /*showLoginModal*/ 32) {
     				updating_showModal = true;
-    				loginmodal_changes.showModal = /*showLoginModal*/ ctx[4];
+    				loginmodal_changes.showModal = /*showLoginModal*/ ctx[5];
     				add_flush_callback(() => updating_showModal = false);
     			}
 
@@ -2518,7 +2519,12 @@ var app = (function () {
     	return block;
     }
 
+    function escapeHtml(str) {
+    	return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     function instance($$self, $$props, $$invalidate) {
+    	let aboutHtml;
     	let selectedTabData;
     	let { $$slots: slots = {}, $$scope } = $$props;
     	validate_slots('App', slots, []);
@@ -2568,7 +2574,7 @@ var app = (function () {
     	];
 
     	function toggleSidebar() {
-    		$$invalidate(3, sidebarExpanded = !sidebarExpanded);
+    		$$invalidate(4, sidebarExpanded = !sidebarExpanded);
     	}
 
     	function toggleTheme() {
@@ -2586,21 +2592,21 @@ var app = (function () {
 
     	function openLoginModal() {
     		if (!isLoggedIn) {
-    			$$invalidate(4, showLoginModal = true);
+    			$$invalidate(5, showLoginModal = true);
     		}
     	}
 
     	async function handleLogin(event) {
     		const { method, pubkey, privateKey, signer } = event.detail;
-    		$$invalidate(5, isLoggedIn = true);
-    		$$invalidate(6, userPubkey = pubkey);
+    		$$invalidate(6, isLoggedIn = true);
+    		$$invalidate(7, userPubkey = pubkey);
     		authMethod = method;
-    		$$invalidate(4, showLoginModal = false);
+    		$$invalidate(5, showLoginModal = false);
 
     		// Initialize Nostr client and fetch profile
     		try {
     			await initializeNostrClient();
-    			$$invalidate(7, userProfile = await fetchUserProfile(pubkey));
+    			$$invalidate(3, userProfile = await fetchUserProfile(pubkey));
     			console.log('Profile loaded:', userProfile);
     		} catch(error) {
     			console.error('Failed to load profile:', error);
@@ -2608,10 +2614,10 @@ var app = (function () {
     	}
 
     	function handleLogout() {
-    		$$invalidate(5, isLoggedIn = false);
-    		$$invalidate(6, userPubkey = '');
+    		$$invalidate(6, isLoggedIn = false);
+    		$$invalidate(7, userPubkey = '');
     		authMethod = '';
-    		$$invalidate(7, userProfile = null);
+    		$$invalidate(3, userProfile = null);
     		$$invalidate(8, showSettingsDrawer = false);
 
     		// Clear stored authentication
@@ -2623,7 +2629,7 @@ var app = (function () {
     	}
 
     	function closeLoginModal() {
-    		$$invalidate(4, showLoginModal = false);
+    		$$invalidate(5, showLoginModal = false);
     	}
 
     	function openSettingsDrawer() {
@@ -2654,7 +2660,7 @@ var app = (function () {
 
     	function loginmodal_showModal_binding(value) {
     		showLoginModal = value;
-    		$$invalidate(4, showLoginModal);
+    		$$invalidate(5, showLoginModal);
     	}
 
     	$$self.$$set = $$props => {
@@ -2675,6 +2681,7 @@ var app = (function () {
     		authMethod,
     		userProfile,
     		showSettingsDrawer,
+    		escapeHtml,
     		tabs,
     		toggleSidebar,
     		toggleTheme,
@@ -2685,21 +2692,23 @@ var app = (function () {
     		closeLoginModal,
     		openSettingsDrawer,
     		closeSettingsDrawer,
-    		selectedTabData
+    		selectedTabData,
+    		aboutHtml
     	});
 
     	$$self.$inject_state = $$props => {
     		if ('name' in $$props) $$invalidate(0, name = $$props.name);
-    		if ('sidebarExpanded' in $$props) $$invalidate(3, sidebarExpanded = $$props.sidebarExpanded);
+    		if ('sidebarExpanded' in $$props) $$invalidate(4, sidebarExpanded = $$props.sidebarExpanded);
     		if ('isDarkTheme' in $$props) $$invalidate(1, isDarkTheme = $$props.isDarkTheme);
     		if ('selectedTab' in $$props) $$invalidate(2, selectedTab = $$props.selectedTab);
-    		if ('showLoginModal' in $$props) $$invalidate(4, showLoginModal = $$props.showLoginModal);
-    		if ('isLoggedIn' in $$props) $$invalidate(5, isLoggedIn = $$props.isLoggedIn);
-    		if ('userPubkey' in $$props) $$invalidate(6, userPubkey = $$props.userPubkey);
+    		if ('showLoginModal' in $$props) $$invalidate(5, showLoginModal = $$props.showLoginModal);
+    		if ('isLoggedIn' in $$props) $$invalidate(6, isLoggedIn = $$props.isLoggedIn);
+    		if ('userPubkey' in $$props) $$invalidate(7, userPubkey = $$props.userPubkey);
     		if ('authMethod' in $$props) authMethod = $$props.authMethod;
-    		if ('userProfile' in $$props) $$invalidate(7, userProfile = $$props.userProfile);
+    		if ('userProfile' in $$props) $$invalidate(3, userProfile = $$props.userProfile);
     		if ('showSettingsDrawer' in $$props) $$invalidate(8, showSettingsDrawer = $$props.showSettingsDrawer);
     		if ('selectedTabData' in $$props) $$invalidate(9, selectedTabData = $$props.selectedTabData);
+    		if ('aboutHtml' in $$props) $$invalidate(10, aboutHtml = $$props.aboutHtml);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -2707,6 +2716,12 @@ var app = (function () {
     	}
 
     	$$self.$$.update = () => {
+    		if ($$self.$$.dirty & /*userProfile*/ 8) {
+    			$$invalidate(10, aboutHtml = (userProfile?.about)
+    			? escapeHtml(userProfile.about).replace(/\n{2,}/g, '<br>')
+    			: '');
+    		}
+
     		if ($$self.$$.dirty & /*selectedTab*/ 4) {
     			$$invalidate(9, selectedTabData = tabs.find(tab => tab.id === selectedTab));
     		}
@@ -2726,13 +2741,14 @@ var app = (function () {
     		name,
     		isDarkTheme,
     		selectedTab,
+    		userProfile,
     		sidebarExpanded,
     		showLoginModal,
     		isLoggedIn,
     		userPubkey,
-    		userProfile,
     		showSettingsDrawer,
     		selectedTabData,
+    		aboutHtml,
     		tabs,
     		toggleSidebar,
     		toggleTheme,
