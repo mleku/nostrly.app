@@ -1407,56 +1407,172 @@ var app = (function () {
     // Create a global client instance
     const nostrClient = new NostrClient();
 
+    // IndexedDB helpers for caching events (kind 0 profiles)
+    const DB_NAME = 'nostrCache';
+    const DB_VERSION = 1;
+    const STORE_EVENTS = 'events';
+
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            try {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(STORE_EVENTS)) {
+                        const store = db.createObjectStore(STORE_EVENTS, { keyPath: 'id' });
+                        store.createIndex('byKindAuthor', ['kind', 'pubkey'], { unique: false });
+                        store.createIndex('byKindAuthorCreated', ['kind', 'pubkey', 'created_at'], { unique: false });
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+
+    async function getLatestProfileEvent(pubkey) {
+        try {
+            const db = await openDB();
+            return await new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_EVENTS, 'readonly');
+                const idx = tx.objectStore(STORE_EVENTS).index('byKindAuthorCreated');
+                const range = IDBKeyRange.bound([0, pubkey, -Infinity], [0, pubkey, Infinity]);
+                const req = idx.openCursor(range, 'prev'); // newest first
+                req.onsuccess = () => {
+                    const cursor = req.result;
+                    resolve(cursor ? cursor.value : null);
+                };
+                req.onerror = () => reject(req.error);
+            });
+        } catch (e) {
+            console.warn('IDB getLatestProfileEvent failed', e);
+            return null;
+        }
+    }
+
+    async function putEvent(event) {
+        try {
+            const db = await openDB();
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_EVENTS, 'readwrite');
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+                tx.objectStore(STORE_EVENTS).put(event);
+            });
+        } catch (e) {
+            console.warn('IDB putEvent failed', e);
+        }
+    }
+
+    function parseProfileFromEvent(event) {
+        try {
+            const profile = JSON.parse(event.content || '{}');
+            return {
+                name: profile.name || profile.display_name || '',
+                picture: profile.picture || '',
+                banner: profile.banner || '',
+                about: profile.about || '',
+                nip05: profile.nip05 || '',
+                lud16: profile.lud16 || profile.lud06 || ''
+            };
+        } catch (e) {
+            return { name: '', picture: '', banner: '', about: '', nip05: '', lud16: '' };
+        }
+    }
+
     // Fetch user profile metadata (kind 0)
     async function fetchUserProfile(pubkey) {
-        return new Promise((resolve, reject) => {
-            let profileFound = false;
-            
+        return new Promise(async (resolve, reject) => {
             console.log(`Starting profile fetch for pubkey: ${pubkey}`);
-            
-            const timeout = setTimeout(() => {
-                if (!profileFound) {
-                    console.log('Profile fetch timeout reached');
-                    reject(new Error('Profile fetch timeout'));
+
+            let resolved = false;
+            let newestEvent = null;
+            let debounceTimer = null;
+            let overallTimer = null;
+            let subscriptionId = null;
+
+            function cleanup() {
+                if (subscriptionId) {
+                    try { nostrClient.unsubscribe(subscriptionId); } catch {}
                 }
-            }, 15000); // Increased timeout to 15 seconds
-            
-            // Wait a bit to ensure connections are ready
+                if (debounceTimer) clearTimeout(debounceTimer);
+                if (overallTimer) clearTimeout(overallTimer);
+            }
+
+            // 1) Try cached profile first and resolve immediately if present
+            try {
+                const cachedEvent = await getLatestProfileEvent(pubkey);
+                if (cachedEvent) {
+                    console.log('Using cached profile event');
+                    const profile = parseProfileFromEvent(cachedEvent);
+                    resolved = true; // resolve immediately with cache
+                    resolve(profile);
+                }
+            } catch (e) {
+                console.warn('Failed to load cached profile', e);
+            }
+
+            // 2) Set overall timeout
+            overallTimer = setTimeout(() => {
+                if (!newestEvent) {
+                    console.log('Profile fetch timeout reached');
+                    if (!resolved) reject(new Error('Profile fetch timeout'));
+                } else if (!resolved) {
+                    resolve(parseProfileFromEvent(newestEvent));
+                }
+                cleanup();
+            }, 15000);
+
+            // 3) Wait a bit to ensure connections are ready and then subscribe without limit
             setTimeout(() => {
                 console.log('Starting subscription after connection delay...');
-                const subscriptionId = nostrClient.subscribe(
+                subscriptionId = nostrClient.subscribe(
                     {
                         kinds: [0],
-                        authors: [pubkey],
-                        limit: 1
+                        authors: [pubkey]
                     },
                     (event) => {
+                        // Collect all kind 0 events and pick the newest by created_at
+                        if (!event || event.kind !== 0) return;
                         console.log('Profile event received:', event);
-                        if (!profileFound) {
-                            profileFound = true;
-                            clearTimeout(timeout);
-                            
-                            try {
-                                const profile = JSON.parse(event.content);
-                                console.log('Parsed profile data:', profile);
-                                resolve({
-                                    name: profile.name || profile.display_name || '',
-                                    picture: profile.picture || '',
-                                    banner: profile.banner || '',
-                                    about: profile.about || '',
-                                    nip05: profile.nip05 || '',
-                                    lud16: profile.lud16 || profile.lud06 || ''
-                                });
-                            } catch (error) {
-                                console.error('Failed to parse profile data:', error);
-                                reject(new Error('Failed to parse profile data'));
-                            }
-                            
-                            nostrClient.unsubscribe(subscriptionId);
+
+                        if (!newestEvent || (event.created_at || 0) > (newestEvent.created_at || 0)) {
+                            newestEvent = event;
                         }
+
+                        // Debounce to wait for more relays; then finalize selection
+                        if (debounceTimer) clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(async () => {
+                            try {
+                                if (newestEvent) {
+                                    await putEvent(newestEvent); // cache newest only
+                                    const profile = parseProfileFromEvent(newestEvent);
+
+                                    // Notify listeners that an updated profile is available
+                                    try {
+                                        if (typeof window !== 'undefined' && window.dispatchEvent) {
+                                            window.dispatchEvent(new CustomEvent('profile-updated', {
+                                                detail: { pubkey, profile, event: newestEvent }
+                                            }));
+                                        }
+                                    } catch (e) {
+                                        console.warn('Failed to dispatch profile-updated event', e);
+                                    }
+
+                                    if (!resolved) {
+                                        resolve(profile);
+                                        resolved = true;
+                                    }
+                                }
+                            } finally {
+                                cleanup();
+                            }
+                        }, 800);
                     }
                 );
-            }, 2000); // Wait 2 seconds for connections to be ready
+            }, 2000);
         });
     }
 
