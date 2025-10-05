@@ -1,15 +1,34 @@
 <script>
+    import LoginModal from './LoginModal.svelte';
+    import { initializeNostrClient, fetchUserProfile } from './nostr.js';
+    
     export let name;
 
     let sidebarExpanded = true;
     let isDarkTheme = false;
     let selectedTab = 'global';
+    let showLoginModal = false;
+    let isLoggedIn = false;
+    let userPubkey = '';
+    let authMethod = '';
+    let userProfile = null;
+    let showSettingsDrawer = false;
 
     // Load theme preference from localStorage on component initialization
     if (typeof localStorage !== 'undefined') {
         const savedTheme = localStorage.getItem('isDarkTheme');
         if (savedTheme !== null) {
             isDarkTheme = JSON.parse(savedTheme);
+        }
+        
+        // Check for existing authentication
+        const storedAuthMethod = localStorage.getItem('nostr_auth_method');
+        const storedPubkey = localStorage.getItem('nostr_pubkey');
+        
+        if (storedAuthMethod && storedPubkey) {
+            isLoggedIn = true;
+            userPubkey = storedPubkey;
+            authMethod = storedAuthMethod;
         }
     }
 
@@ -34,6 +53,56 @@
     function selectTab(tabId) {
         selectedTab = tabId;
     }
+    
+    function openLoginModal() {
+        if (!isLoggedIn) {
+            showLoginModal = true;
+        }
+    }
+    
+    async function handleLogin(event) {
+        const { method, pubkey, privateKey, signer } = event.detail;
+        isLoggedIn = true;
+        userPubkey = pubkey;
+        authMethod = method;
+        showLoginModal = false;
+        
+        // Initialize Nostr client and fetch profile
+        try {
+            await initializeNostrClient();
+            userProfile = await fetchUserProfile(pubkey);
+            console.log('Profile loaded:', userProfile);
+        } catch (error) {
+            console.error('Failed to load profile:', error);
+        }
+    }
+    
+    function handleLogout() {
+        isLoggedIn = false;
+        userPubkey = '';
+        authMethod = '';
+        userProfile = null;
+        showSettingsDrawer = false;
+        
+        // Clear stored authentication
+        if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem('nostr_auth_method');
+            localStorage.removeItem('nostr_pubkey');
+            localStorage.removeItem('nostr_privkey');
+        }
+    }
+    
+    function closeLoginModal() {
+        showLoginModal = false;
+    }
+    
+    function openSettingsDrawer() {
+        showSettingsDrawer = true;
+    }
+    
+    function closeSettingsDrawer() {
+        showSettingsDrawer = false;
+    }
 
     $: selectedTabData = tabs.find(tab => tab.id === selectedTab);
 
@@ -56,7 +125,23 @@
         <button class="theme-toggle-btn" on:click={toggleTheme}>
             {isDarkTheme ? '☀️' : '🌙'}
         </button>
-        <button class="login-btn">📥</button>
+        {#if isLoggedIn}
+            <div class="user-info">
+                <button class="user-profile-btn" on:click={openSettingsDrawer}>
+                    {#if userProfile?.picture}
+                        <img src={userProfile.picture} alt="User avatar" class="user-avatar" />
+                    {:else}
+                        <div class="user-avatar-placeholder">👤</div>
+                    {/if}
+                    <span class="user-name">
+                        {userProfile?.name || userPubkey.slice(0, 8) + '...'}
+                    </span>
+                </button>
+                <button class="logout-btn" on:click={handleLogout}>🚪</button>
+            </div>
+        {:else}
+            <button class="login-btn" on:click={openLoginModal}>📥</button>
+        {/if}
     </div>
 </header>
 
@@ -88,24 +173,71 @@
     </main>
 </div>
 
+<!-- Settings Drawer -->
+{#if showSettingsDrawer}
+    <div class="drawer-overlay" on:click={closeSettingsDrawer}>
+        <div class="settings-drawer" class:dark-theme={isDarkTheme} on:click|stopPropagation>
+            <div class="drawer-header">
+                <h2>Settings</h2>
+                <button class="close-btn" on:click={closeSettingsDrawer}>✕</button>
+            </div>
+            <div class="drawer-content">
+                {#if userProfile}
+                    <div class="profile-section">
+                        {#if userProfile.banner}
+                            <img src={userProfile.banner} alt="Profile banner" class="profile-banner" />
+                        {/if}
+                        <div class="profile-info">
+                            {#if userProfile.picture}
+                                <img src={userProfile.picture} alt="User avatar" class="profile-avatar" />
+                            {:else}
+                                <div class="profile-avatar-placeholder">👤</div>
+                            {/if}
+                            <div class="profile-details">
+                                <h3>{userProfile.name || 'Unknown User'}</h3>
+                                {#if userProfile.about}
+                                    <p class="profile-about">{userProfile.about}</p>
+                                {/if}
+                                {#if userProfile.nip05}
+                                    <p class="profile-nip05">{userProfile.nip05}</p>
+                                {/if}
+                            </div>
+                        </div>
+                    </div>
+                {/if}
+                <!-- Additional settings can be added here -->
+            </div>
+        </div>
+    </div>
+{/if}
+
+<!-- Login Modal -->
+<LoginModal 
+    bind:showModal={showLoginModal}
+    {isDarkTheme}
+    on:login={handleLogin}
+    on:close={closeLoginModal}
+/>
+
 <style>
     :global(body) {
         margin: 0;
         padding: 0;
-        --bg-color: #eeeeee;
-        --header-bg: #eeeeee;
+        --bg-color: #ddd;
+        --header-bg: #eee;
         --border-color: #dee2e6;
         --text-color: #444444;
         --sidebar-bg: #eeeeee;
         --tab-hover-bg: #ddd;
         --input-border: #ccc;
-        --button-bg: #f8f9fa;
-        --button-hover-bg: #ddd;
+        --button-bg: #ddd;
+        --button-hover-bg: #eee;
         --primary: #00BCD4;
+        --warning: #ff3e00;
     }
 
     :global(body.dark-theme) {
-        --bg-color: #1e272c;
+        --bg-color: #263238;
         --header-bg: #1e272c;
         --border-color: #404040;
         --text-color: #ffffff;
@@ -115,11 +247,12 @@
         --button-bg: #263238;
         --button-hover-bg: #1e272c;
         --primary: #00BCD4;
+        --warning: #ff3e00;
     }
 
     /* Header Styles */
     .main-header {
-        height: 2.5em;
+        height: 3em;
         background-color: var(--header-bg);
         position: fixed;
         top: 0;
@@ -133,7 +266,7 @@
         height: 100%;
         display: flex;
         align-items: center;
-        padding: 0.25em 0 0 0;
+        padding: 0;
         gap: 0;
     }
 
@@ -166,19 +299,22 @@
     }
 
     .theme-toggle-btn {
-        padding: 0;
-        border: none;
-        background-color: var(--button-bg);
-        cursor: pointer;
-        flex-shrink: 0;
-        font-size: 0.8em;
+        border: 0 none;
+        border-radius: 0;
         display: flex;
         align-items: center;
-        justify-content: center;
+        background-color: var(--button-bg);
+        cursor: pointer;
         color: var(--text-color);
         height: 3em;
-        width: 2.5em;
+        width: auto;
+        min-width: 3em;
+        flex-shrink: 0;
         line-height: 1;
+        transition: background-color 0.2s;
+        justify-content: center;
+        padding: 1em 1em 1em 1em;
+        margin: 0;
     }
 
     .theme-toggle-btn:hover {
@@ -186,19 +322,22 @@
     }
 
     .login-btn {
-        padding: 0;
-        border: none;
-        background-color: var(--primary);
-        color: white;
-        cursor: pointer;
-        flex-shrink: 0;
-        height: 2.5em;
-        width: 2.5em;
+        border: 0 none;
+        border-radius: 0;
         display: flex;
         align-items: center;
+        background-color: var(--primary);
+        cursor: pointer;
+        color: var(--text-color);
+        height: 3em;
+        width: auto;
+        min-width: 3em;
+        flex-shrink: 0;
+        line-height: 1;
+        transition: background-color 0.2s;
         justify-content: center;
-        font-size: 1em;
-        line-height: 1em;
+        padding: 1em 1em 1em 1em;
+        margin: 0;
     }
 
     .login-btn:hover {
@@ -272,15 +411,16 @@
     .toggle-btn {
         height: 2.5em;
         margin: 0;
-        background-color: var(--bg-color);
+        padding:1em;
+        background-color: transparent;
         cursor: pointer;
         transition: background-color 0.2s ease;
         color: var(--text-color);
     }
 
     .toggle-btn:hover {
-        background-color: var(--button-hover-bg);
         padding: 0;
+        background-color: transparent;
     }
 
     /* Main Content */
@@ -302,12 +442,7 @@
 
     @media (max-width: 640px) {
         .header-content {
-            padding: 0 0.5rem;
-            gap: 0.5rem;
-        }
-
-        .text-area textarea {
-            font-size: 0.8em;
+            padding: 0;
         }
 
         .sidebar {
@@ -324,6 +459,213 @@
 
         .main-content h1 {
             font-size: 2.5em;
+        }
+    }
+    
+    /* User Info Styles */
+    .user-info {
+        display: flex;
+        align-items: flex-start;
+        padding: 0;
+        height:3em;
+    }
+    
+    .user-pubkey {
+        font-size: 1em;
+        color: var(--text-color);
+        font-family: monospace;
+        background: var(--button-bg);
+    }
+    
+    .logout-btn {
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background-color: var(--warning);
+        color: white;
+        cursor: pointer;
+        flex-shrink: 0;
+        height: 3em;
+        width: 3em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /*.logout-btn:hover {*/
+    /*    background: ;*/
+    /*}*/
+    
+    /* User Profile Button */
+    .user-profile-btn {
+        border: 0 none;
+        border-radius: 0;
+        display: flex;
+        align-items: center;
+        background-color: var(--button-bg);
+        cursor: pointer;
+        color: var(--text-color);
+        height: 3em;
+        width: auto;
+        min-width: 3em;
+        flex-shrink: 0;
+        line-height: 1;
+        transition: background-color 0.2s;
+        justify-content: center;
+        padding: 1em 1em 1em 1em;
+        margin: 0;
+    }
+    
+    .user-profile-btn:hover {
+        background-color: var(--button-hover-bg);
+    }
+    
+    .user-avatar, .user-avatar-placeholder {
+        width: 1em;
+        height: 1em;
+        object-fit: cover;
+    }
+    
+    .user-avatar-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--button-hover-bg);
+        font-size: 0.5em;
+        padding: 0.5em;
+    }
+    
+    .user-name {
+        font-size: 0.8rem;
+        font-weight: 500;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Settings Drawer */
+    .drawer-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        display: flex;
+        justify-content: flex-end;
+    }
+    
+    .settings-drawer {
+        width: 400px;
+        height: 100%;
+        background: var(--bg-color);
+        border-left: 1px solid var(--border-color);
+        overflow-y: auto;
+        animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
+    }
+    
+    .drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--header-bg);
+    }
+    
+    .drawer-header h2 {
+        margin: 0;
+        color: var(--text-color);
+        font-size: 1.2rem;
+    }
+    
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        color: var(--text-color);
+        padding: 0.25rem;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+    
+    .close-btn:hover {
+        background: var(--button-hover-bg);
+    }
+    
+    .drawer-content {
+        padding: 1rem;
+    }
+    
+    .profile-section {
+        margin-bottom: 2rem;
+    }
+    
+    .profile-banner {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .profile-info {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+    
+    .profile-avatar, .profile-avatar-placeholder {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    
+    .profile-avatar-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--button-hover-bg);
+        font-size: 1.5rem;
+    }
+    
+    .profile-details h3 {
+        margin: 0 0 0.5rem 0;
+        color: var(--text-color);
+        font-size: 1.1rem;
+    }
+    
+    .profile-about {
+        margin: 0 0 0.5rem 0;
+        color: var(--text-color);
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    
+    .profile-nip05 {
+        margin: 0;
+        color: var(--primary);
+        font-size: 0.8rem;
+        font-family: monospace;
+    }
+    
+    @media (max-width: 640px) {
+        .settings-drawer {
+            width: 100%;
+        }
+        
+        .user-name {
+            max-width: 80px;
         }
     }
 </style>
