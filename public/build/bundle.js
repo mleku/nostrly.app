@@ -1602,7 +1602,7 @@ var app = (function () {
     		c: function create() {
     			button = element("button");
     			button.textContent = "📥";
-    			attr_dev(button, "class", "login-btn svelte-cutxxt");
+    			attr_dev(button, "class", "login-btn svelte-1sqatpc");
     			add_location(button, file, 156, 12, 4951);
     		},
     		m: function mount(target, anchor) {
@@ -1664,13 +1664,13 @@ var app = (function () {
     			t2 = space();
     			button1 = element("button");
     			button1.textContent = "🚪";
-    			attr_dev(span, "class", "user-name svelte-cutxxt");
+    			attr_dev(span, "class", "user-name svelte-1sqatpc");
     			add_location(span, file, 149, 20, 4668);
-    			attr_dev(button0, "class", "user-profile-btn svelte-cutxxt");
+    			attr_dev(button0, "class", "user-profile-btn svelte-1sqatpc");
     			add_location(button0, file, 143, 16, 4317);
-    			attr_dev(button1, "class", "logout-btn svelte-cutxxt");
+    			attr_dev(button1, "class", "logout-btn svelte-1sqatpc");
     			add_location(button1, file, 153, 16, 4841);
-    			attr_dev(div, "class", "user-info svelte-cutxxt");
+    			attr_dev(div, "class", "user-info svelte-1sqatpc");
     			add_location(div, file, 142, 12, 4277);
     		},
     		m: function mount(target, anchor) {
@@ -1734,7 +1734,7 @@ var app = (function () {
     		c: function create() {
     			div = element("div");
     			div.textContent = "👤";
-    			attr_dev(div, "class", "user-avatar-placeholder svelte-cutxxt");
+    			attr_dev(div, "class", "user-avatar-placeholder svelte-1sqatpc");
     			add_location(div, file, 147, 24, 4576);
     		},
     		m: function mount(target, anchor) {
@@ -1767,7 +1767,7 @@ var app = (function () {
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[3].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "User avatar");
-    			attr_dev(img, "class", "user-avatar svelte-cutxxt");
+    			attr_dev(img, "class", "user-avatar svelte-1sqatpc");
     			add_location(img, file, 145, 24, 4452);
     		},
     		m: function mount(target, anchor) {
@@ -1804,7 +1804,7 @@ var app = (function () {
     		c: function create() {
     			span = element("span");
     			t = text(t_value);
-    			attr_dev(span, "class", "tab-label svelte-cutxxt");
+    			attr_dev(span, "class", "tab-label svelte-1sqatpc");
     			add_location(span, file, 172, 45, 5614);
     		},
     		m: function mount(target, anchor) {
@@ -1852,9 +1852,9 @@ var app = (function () {
     			t1 = space();
     			if (if_block) if_block.c();
     			t2 = space();
-    			attr_dev(span, "class", "tab-icon svelte-cutxxt");
+    			attr_dev(span, "class", "tab-icon svelte-1sqatpc");
     			add_location(span, file, 171, 24, 5528);
-    			attr_dev(div, "class", "tab svelte-cutxxt");
+    			attr_dev(div, "class", "tab svelte-1sqatpc");
     			toggle_class(div, "active", /*selectedTab*/ ctx[2] === /*tab*/ ctx[25].id);
     			add_location(div, file, 169, 20, 5388);
     		},
@@ -1937,18 +1937,18 @@ var app = (function () {
     			t3 = space();
     			div1 = element("div");
     			if (if_block) if_block.c();
-    			attr_dev(h2, "class", "svelte-cutxxt");
+    			attr_dev(h2, "class", "svelte-1sqatpc");
     			add_location(h2, file, 194, 16, 6299);
-    			attr_dev(button, "class", "close-btn svelte-cutxxt");
+    			attr_dev(button, "class", "close-btn svelte-1sqatpc");
     			add_location(button, file, 195, 16, 6333);
-    			attr_dev(div0, "class", "drawer-header svelte-cutxxt");
+    			attr_dev(div0, "class", "drawer-header svelte-1sqatpc");
     			add_location(div0, file, 193, 12, 6255);
-    			attr_dev(div1, "class", "drawer-content svelte-cutxxt");
+    			attr_dev(div1, "class", "drawer-content svelte-1sqatpc");
     			add_location(div1, file, 197, 12, 6432);
-    			attr_dev(div2, "class", "settings-drawer svelte-cutxxt");
+    			attr_dev(div2, "class", "settings-drawer svelte-1sqatpc");
     			toggle_class(div2, "dark-theme", /*isDarkTheme*/ ctx[1]);
     			add_location(div2, file, 192, 8, 6157);
-    			attr_dev(div3, "class", "drawer-overlay svelte-cutxxt");
+    			attr_dev(div3, "class", "drawer-overlay svelte-1sqatpc");
     			add_location(div3, file, 191, 4, 6089);
     		},
     		m: function mount(target, anchor) {
@@ -2048,13 +2048,13 @@ var app = (function () {
     			if (if_block2) if_block2.c();
     			t4 = space();
     			if (if_block3) if_block3.c();
-    			attr_dev(h3, "class", "profile-username svelte-cutxxt");
+    			attr_dev(h3, "class", "profile-username svelte-1sqatpc");
     			add_location(h3, file, 212, 32, 7399);
-    			attr_dev(div0, "class", "name-row svelte-cutxxt");
+    			attr_dev(div0, "class", "name-row svelte-1sqatpc");
     			add_location(div0, file, 211, 28, 7344);
-    			attr_dev(div1, "class", "profile-hero svelte-cutxxt");
+    			attr_dev(div1, "class", "profile-hero svelte-1sqatpc");
     			add_location(div1, file, 200, 24, 6569);
-    			attr_dev(div2, "class", "profile-section svelte-cutxxt");
+    			attr_dev(div2, "class", "profile-section svelte-1sqatpc");
     			add_location(div2, file, 199, 20, 6515);
     		},
     		m: function mount(target, anchor) {
@@ -2156,7 +2156,7 @@ var app = (function () {
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[3].banner)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Profile banner");
-    			attr_dev(img, "class", "profile-banner svelte-cutxxt");
+    			attr_dev(img, "class", "profile-banner svelte-1sqatpc");
     			add_location(img, file, 202, 32, 6681);
     		},
     		m: function mount(target, anchor) {
@@ -2191,7 +2191,7 @@ var app = (function () {
     		c: function create() {
     			div = element("div");
     			div.textContent = "👤";
-    			attr_dev(div, "class", "profile-avatar-placeholder overlap svelte-cutxxt");
+    			attr_dev(div, "class", "profile-avatar-placeholder overlap svelte-1sqatpc");
     			add_location(div, file, 208, 32, 7119);
     		},
     		m: function mount(target, anchor) {
@@ -2224,7 +2224,7 @@ var app = (function () {
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[3].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "User avatar");
-    			attr_dev(img, "class", "profile-avatar overlap svelte-cutxxt");
+    			attr_dev(img, "class", "profile-avatar overlap svelte-1sqatpc");
     			add_location(img, file, 206, 32, 6968);
     		},
     		m: function mount(target, anchor) {
@@ -2261,7 +2261,7 @@ var app = (function () {
     		c: function create() {
     			span = element("span");
     			t = text(t_value);
-    			attr_dev(span, "class", "profile-nip05-inline svelte-cutxxt");
+    			attr_dev(span, "class", "profile-nip05-inline svelte-1sqatpc");
     			add_location(span, file, 214, 36, 7562);
     		},
     		m: function mount(target, anchor) {
@@ -2296,9 +2296,9 @@ var app = (function () {
     		c: function create() {
     			div = element("div");
     			p = element("p");
-    			attr_dev(p, "class", "profile-about svelte-cutxxt");
+    			attr_dev(p, "class", "profile-about svelte-1sqatpc");
     			add_location(p, file, 222, 32, 7964);
-    			attr_dev(div, "class", "about-card svelte-cutxxt");
+    			attr_dev(div, "class", "about-card svelte-1sqatpc");
     			add_location(div, file, 221, 28, 7907);
     		},
     		m: function mount(target, anchor) {
@@ -2433,34 +2433,34 @@ var app = (function () {
     			create_component(loginmodal.$$.fragment);
     			if (!src_url_equal(img.src, img_src_value = "/orly.png")) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Orly Logo");
-    			attr_dev(img, "class", "logo svelte-cutxxt");
+    			attr_dev(img, "class", "logo svelte-1sqatpc");
     			add_location(img, file, 134, 8, 3937);
-    			attr_dev(span, "class", "selected-tab-label svelte-cutxxt");
+    			attr_dev(span, "class", "selected-tab-label svelte-1sqatpc");
     			add_location(span, file, 136, 12, 4038);
-    			attr_dev(div0, "class", "tab-label-area svelte-cutxxt");
+    			attr_dev(div0, "class", "tab-label-area svelte-1sqatpc");
     			add_location(div0, file, 135, 8, 3997);
-    			attr_dev(button0, "class", "theme-toggle-btn svelte-cutxxt");
+    			attr_dev(button0, "class", "theme-toggle-btn svelte-1sqatpc");
     			add_location(button0, file, 138, 8, 4125);
-    			attr_dev(div1, "class", "header-content svelte-cutxxt");
+    			attr_dev(div1, "class", "header-content svelte-1sqatpc");
     			add_location(div1, file, 133, 4, 3900);
-    			attr_dev(header, "class", "main-header svelte-cutxxt");
+    			attr_dev(header, "class", "main-header svelte-1sqatpc");
     			toggle_class(header, "dark-theme", /*isDarkTheme*/ ctx[1]);
     			add_location(header, file, 132, 0, 3836);
-    			attr_dev(div2, "class", "tabs svelte-cutxxt");
+    			attr_dev(div2, "class", "tabs svelte-1sqatpc");
     			add_location(div2, file, 167, 12, 5313);
-    			attr_dev(button1, "class", "toggle-btn svelte-cutxxt");
+    			attr_dev(button1, "class", "toggle-btn svelte-1sqatpc");
     			add_location(button1, file, 177, 12, 5776);
-    			attr_dev(div3, "class", "sidebar-content svelte-cutxxt");
+    			attr_dev(div3, "class", "sidebar-content svelte-1sqatpc");
     			add_location(div3, file, 166, 8, 5271);
-    			attr_dev(aside, "class", "sidebar svelte-cutxxt");
+    			attr_dev(aside, "class", "sidebar svelte-1sqatpc");
     			toggle_class(aside, "collapsed", !/*sidebarExpanded*/ ctx[4]);
     			toggle_class(aside, "dark-theme", /*isDarkTheme*/ ctx[1]);
     			add_location(aside, file, 164, 4, 5162);
-    			attr_dev(h1, "class", "svelte-cutxxt");
+    			attr_dev(h1, "class", "svelte-1sqatpc");
     			add_location(h1, file, 185, 8, 5992);
-    			attr_dev(main, "class", "main-content svelte-cutxxt");
+    			attr_dev(main, "class", "main-content svelte-1sqatpc");
     			add_location(main, file, 184, 4, 5956);
-    			attr_dev(div4, "class", "app-container svelte-cutxxt");
+    			attr_dev(div4, "class", "app-container svelte-1sqatpc");
     			toggle_class(div4, "dark-theme", /*isDarkTheme*/ ctx[1]);
     			add_location(div4, file, 162, 0, 5078);
     		},

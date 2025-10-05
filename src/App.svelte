@@ -323,7 +323,7 @@
         border-radius: 0;
         display: flex;
         align-items: center;
-        background-color: var(--button-bg);
+        background-color: var(--button-hover-bg);
         cursor: pointer;
         color: var(--text-color);
         height: 3em;
@@ -338,7 +338,7 @@
     }
 
     .theme-toggle-btn:hover {
-        background-color: var(--button-hover-bg);
+        background-color: var(--button-bg);
     }
 
     .login-btn {
@@ -513,7 +513,7 @@
         font-size: 1em;
         color: var(--text-color);
         font-family: monospace;
-        background: var(--button-bg);
+        background: var(--button-hover-bg);
     }
     
     .logout-btn {
@@ -541,7 +541,7 @@
         border-radius: 0;
         display: flex;
         align-items: center;
-        background-color: var(--button-bg);
+        background-color: var(--button-hover-bg);
         cursor: pointer;
         color: var(--text-color);
         height: 3em;
@@ -556,7 +556,7 @@
     }
     
     .user-profile-btn:hover {
-        background-color: var(--button-hover-bg);
+        background-color: var(--button-bg);
     }
     
     .user-avatar, .user-avatar-placeholder {
@@ -569,7 +569,6 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--button-hover-bg);
         font-size: 0.5em;
         padding: 0.5em;
     }
