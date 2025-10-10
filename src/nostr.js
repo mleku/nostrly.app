@@ -1,4 +1,5 @@
 import { DEFAULT_RELAYS } from './constants.js';
+import NDK from '@nostr-dev-kit/ndk';
 
 // Simple WebSocket relay manager
 class NostrClient {
@@ -313,4 +314,67 @@ export async function fetchUserProfile(pubkey) {
 // Initialize client connection
 export async function initializeNostrClient() {
     await nostrClient.connect();
+}
+
+// NDK instance
+let ndk = null;
+
+// Initialize NDK
+export async function initializeNDK() {
+    if (!ndk) {
+        ndk = new NDK({
+            explicitRelayUrls: DEFAULT_RELAYS
+        });
+        await ndk.connect();
+    }
+    return ndk;
+}
+
+// Get NDK instance
+export function getNDK() {
+    return ndk;
+}
+
+// Create extension signer
+export function createExtensionSigner() {
+    if (!window.nostr) {
+        throw new Error('No Nostr extension found. Please install a NIP-07 compatible extension like nos2x or Alby.');
+    }
+    
+    return {
+        async getPublicKey() {
+            return await window.nostr.getPublicKey();
+        },
+        async signEvent(event) {
+            return await window.nostr.signEvent(event);
+        }
+    };
+}
+
+// Login with extension using NDK
+export async function loginWithExtension() {
+    try {
+        const ndk = await initializeNDK();
+        const signer = createExtensionSigner();
+        
+        // Set the signer on NDK
+        ndk.signer = signer;
+        
+        // Get the user's public key
+        const pubkey = await signer.getPublicKey();
+        
+        // Get user profile
+        const user = ndk.getUser({ pubkey });
+        await user.fetchProfile();
+        
+        return {
+            pubkey,
+            profile: user.profile,
+            ndk,
+            signer
+        };
+    } catch (error) {
+        console.error('Extension login failed:', error);
+        throw error;
+    }
 }
