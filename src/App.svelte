@@ -471,7 +471,7 @@
         margin: 0em;
         width: 100%;
         padding: 0;
-        flex: 2;
+        flex: 0 0 auto;
     }
     
     .control-buttons-container {
@@ -497,7 +497,7 @@
         margin-bottom: 0;
         width: 100%;
         padding-left: 0;
-        flex: 1;
+        flex: 0 0 auto;
     }
 
     .logo-section {
@@ -614,17 +614,15 @@
         border-radius: 0;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: start;
         background-color: var(--button-hover-bg);
         cursor: pointer;
         color: var(--text-color);
         width: 100%;
-        height: 3em;
         padding: 0;
         margin: 0;
         transition: background-color 0.2s;
-        gap: 0.2rem;
-        font-size: 1.5em;
+        font-size: 1em;
     }
 
     .user-profile-btn.expanded {
@@ -639,8 +637,8 @@
     }
     
     .user-avatar, .user-avatar-placeholder {
-        width: 1.5em;
-        height: 1.5em;
+        width: 2em;
+        height: 2em;
         /* font-size: 2em; */
         border-radius: 50%;
         object-fit: cover;
@@ -658,17 +656,15 @@
     }
     
     .user-name {
-        font-size: 0.55em;
+        font-size: 2em;
         width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
-        padding:2em;
     }
 
     .user-profile-btn.expanded .user-name {
-        font-size: 1em;
+        font-size: 1.2em;
         padding:0.5em;
-        padding-left:0;
         margin:0;
         text-align: left;
         flex: 1;
@@ -782,7 +778,7 @@
         }
         
         .user-name {
-            font-size: 0.5em;
+            font-size: 1em;
         }
         
         

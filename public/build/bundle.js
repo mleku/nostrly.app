@@ -25242,9 +25242,9 @@ For regular events (kind ${kind}), use:
     			t0 = text("🔑");
     			span = element("span");
     			span.textContent = "Log in";
-    			attr_dev(span, "class", "login-text svelte-172lu40");
+    			attr_dev(span, "class", "login-text svelte-1mwkbdf");
     			add_location(span, file, 217, 70, 7576);
-    			attr_dev(button, "class", "login-btn svelte-172lu40");
+    			attr_dev(button, "class", "login-btn svelte-1mwkbdf");
     			add_location(button, file, 217, 16, 7522);
     		},
     		m: function mount(target, anchor) {
@@ -25303,12 +25303,12 @@ For regular events (kind ${kind}), use:
     			t0 = space();
     			span = element("span");
     			t1 = text(t1_value);
-    			attr_dev(span, "class", "user-name svelte-172lu40");
+    			attr_dev(span, "class", "user-name svelte-1mwkbdf");
     			add_location(span, file, 211, 24, 7294);
-    			attr_dev(button, "class", "user-profile-btn svelte-172lu40");
+    			attr_dev(button, "class", "user-profile-btn svelte-1mwkbdf");
     			toggle_class(button, "expanded", /*isExpanded*/ ctx[7]);
     			add_location(button, file, 205, 20, 6891);
-    			attr_dev(div, "class", "user-info svelte-172lu40");
+    			attr_dev(div, "class", "user-info svelte-1mwkbdf");
     			add_location(div, file, 204, 16, 6847);
     		},
     		m: function mount(target, anchor) {
@@ -25370,7 +25370,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "👤";
-    			attr_dev(div, "class", "user-avatar-placeholder svelte-172lu40");
+    			attr_dev(div, "class", "user-avatar-placeholder svelte-1mwkbdf");
     			add_location(div, file, 209, 28, 7194);
     		},
     		m: function mount(target, anchor) {
@@ -25403,7 +25403,7 @@ For regular events (kind ${kind}), use:
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[1].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "User avatar");
-    			attr_dev(img, "class", "user-avatar svelte-172lu40");
+    			attr_dev(img, "class", "user-avatar svelte-1mwkbdf");
     			add_location(img, file, 207, 28, 7062);
     		},
     		m: function mount(target, anchor) {
@@ -25478,29 +25478,29 @@ For regular events (kind ${kind}), use:
     			t8 = space();
     			button2 = element("button");
     			button2.textContent = "Log out";
-    			attr_dev(h2, "class", "svelte-172lu40");
+    			attr_dev(h2, "class", "svelte-1mwkbdf");
     			add_location(h2, file, 245, 16, 8667);
-    			attr_dev(button0, "class", "close-btn svelte-172lu40");
+    			attr_dev(button0, "class", "close-btn svelte-1mwkbdf");
     			add_location(button0, file, 246, 16, 8701);
-    			attr_dev(div0, "class", "drawer-header svelte-172lu40");
+    			attr_dev(div0, "class", "drawer-header svelte-1mwkbdf");
     			add_location(div0, file, 244, 12, 8623);
-    			attr_dev(span, "class", "theme-toggle-label svelte-172lu40");
+    			attr_dev(span, "class", "theme-toggle-label svelte-1mwkbdf");
     			add_location(span, file, 281, 24, 10638);
-    			attr_dev(button1, "class", "theme-toggle-btn svelte-172lu40");
+    			attr_dev(button1, "class", "theme-toggle-btn svelte-1mwkbdf");
     			attr_dev(button1, "aria-label", "Toggle theme");
     			add_location(button1, file, 282, 24, 10709);
-    			attr_dev(div1, "class", "theme-toggle-section svelte-172lu40");
+    			attr_dev(div1, "class", "theme-toggle-section svelte-1mwkbdf");
     			add_location(div1, file, 280, 20, 10579);
-    			attr_dev(button2, "class", "logout-btn svelte-172lu40");
+    			attr_dev(button2, "class", "logout-btn svelte-1mwkbdf");
     			add_location(button2, file, 286, 20, 10940);
-    			attr_dev(div2, "class", "settings-actions svelte-172lu40");
+    			attr_dev(div2, "class", "settings-actions svelte-1mwkbdf");
     			add_location(div2, file, 279, 16, 10528);
-    			attr_dev(div3, "class", "drawer-content svelte-172lu40");
+    			attr_dev(div3, "class", "drawer-content svelte-1mwkbdf");
     			add_location(div3, file, 248, 12, 8800);
-    			attr_dev(div4, "class", "settings-drawer svelte-172lu40");
+    			attr_dev(div4, "class", "settings-drawer svelte-1mwkbdf");
     			toggle_class(div4, "dark-theme", /*isDarkTheme*/ ctx[0]);
     			add_location(div4, file, 243, 8, 8498);
-    			attr_dev(div5, "class", "drawer-overlay svelte-172lu40");
+    			attr_dev(div5, "class", "drawer-overlay svelte-1mwkbdf");
     			attr_dev(div5, "role", "button");
     			attr_dev(div5, "tabindex", "0");
     			add_location(div5, file, 242, 4, 8339);
@@ -25617,13 +25617,13 @@ For regular events (kind ${kind}), use:
     			if (if_block2) if_block2.c();
     			t4 = space();
     			if (if_block3) if_block3.c();
-    			attr_dev(h3, "class", "profile-username svelte-172lu40");
+    			attr_dev(h3, "class", "profile-username svelte-1mwkbdf");
     			add_location(h3, file, 263, 32, 9767);
-    			attr_dev(div0, "class", "name-row svelte-172lu40");
+    			attr_dev(div0, "class", "name-row svelte-1mwkbdf");
     			add_location(div0, file, 262, 28, 9712);
-    			attr_dev(div1, "class", "profile-hero svelte-172lu40");
+    			attr_dev(div1, "class", "profile-hero svelte-1mwkbdf");
     			add_location(div1, file, 251, 24, 8937);
-    			attr_dev(div2, "class", "profile-section svelte-172lu40");
+    			attr_dev(div2, "class", "profile-section svelte-1mwkbdf");
     			add_location(div2, file, 250, 20, 8883);
     		},
     		m: function mount(target, anchor) {
@@ -25725,7 +25725,7 @@ For regular events (kind ${kind}), use:
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[1].banner)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Profile banner");
-    			attr_dev(img, "class", "profile-banner svelte-172lu40");
+    			attr_dev(img, "class", "profile-banner svelte-1mwkbdf");
     			add_location(img, file, 253, 32, 9049);
     		},
     		m: function mount(target, anchor) {
@@ -25760,7 +25760,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "👤";
-    			attr_dev(div, "class", "profile-avatar-placeholder overlap svelte-172lu40");
+    			attr_dev(div, "class", "profile-avatar-placeholder overlap svelte-1mwkbdf");
     			add_location(div, file, 259, 32, 9487);
     		},
     		m: function mount(target, anchor) {
@@ -25793,7 +25793,7 @@ For regular events (kind ${kind}), use:
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[1].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "User avatar");
-    			attr_dev(img, "class", "profile-avatar overlap svelte-172lu40");
+    			attr_dev(img, "class", "profile-avatar overlap svelte-1mwkbdf");
     			add_location(img, file, 257, 32, 9336);
     		},
     		m: function mount(target, anchor) {
@@ -25830,7 +25830,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			span = element("span");
     			t = text(t_value);
-    			attr_dev(span, "class", "profile-nip05-inline svelte-172lu40");
+    			attr_dev(span, "class", "profile-nip05-inline svelte-1mwkbdf");
     			add_location(span, file, 265, 36, 9930);
     		},
     		m: function mount(target, anchor) {
@@ -25868,9 +25868,9 @@ For regular events (kind ${kind}), use:
     			div = element("div");
     			p = element("p");
     			t = text(t_value);
-    			attr_dev(p, "class", "profile-about svelte-172lu40");
+    			attr_dev(p, "class", "profile-about svelte-1mwkbdf");
     			add_location(p, file, 273, 32, 10332);
-    			attr_dev(div, "class", "about-card svelte-172lu40");
+    			attr_dev(div, "class", "about-card svelte-1mwkbdf");
     			add_location(div, file, 272, 28, 10275);
     		},
     		m: function mount(target, anchor) {
@@ -25985,37 +25985,37 @@ For regular events (kind ${kind}), use:
     			: "/orly.png")) attr_dev(img, "src", img_src_value);
 
     			attr_dev(img, "alt", "Orly Logo");
-    			attr_dev(img, "class", "logo svelte-172lu40");
+    			attr_dev(img, "class", "logo svelte-1mwkbdf");
     			add_location(img, file, 188, 16, 6224);
-    			attr_dev(div0, "class", "logo-section svelte-172lu40");
+    			attr_dev(div0, "class", "logo-section svelte-1mwkbdf");
     			toggle_class(div0, "expanded", /*isExpanded*/ ctx[7]);
     			add_location(div0, file, 187, 12, 6153);
-    			attr_dev(span, "class", "orly-text svelte-172lu40");
+    			attr_dev(span, "class", "orly-text svelte-1mwkbdf");
     			add_location(span, file, 197, 16, 6612);
-    			attr_dev(div1, "class", "logo-section svelte-172lu40");
+    			attr_dev(div1, "class", "logo-section svelte-1mwkbdf");
     			toggle_class(div1, "expanded", /*isExpanded*/ ctx[7]);
     			add_location(div1, file, 196, 12, 6541);
-    			attr_dev(div2, "class", "top-section svelte-172lu40");
+    			attr_dev(div2, "class", "top-section svelte-1mwkbdf");
     			add_location(div2, file, 186, 8, 6115);
-    			attr_dev(div3, "class", "middle-section svelte-172lu40");
+    			attr_dev(div3, "class", "middle-section svelte-1mwkbdf");
     			add_location(div3, file, 202, 8, 6773);
-    			attr_dev(button, "class", "expander-btn svelte-172lu40");
+    			attr_dev(button, "class", "expander-btn svelte-1mwkbdf");
     			add_location(button, file, 224, 16, 7842);
-    			attr_dev(div4, "class", "control-buttons-container svelte-172lu40");
+    			attr_dev(div4, "class", "control-buttons-container svelte-1mwkbdf");
     			add_location(div4, file, 223, 12, 7786);
-    			attr_dev(div5, "class", "bottom-section svelte-172lu40");
+    			attr_dev(div5, "class", "bottom-section svelte-1mwkbdf");
     			add_location(div5, file, 222, 8, 7745);
-    			attr_dev(div6, "class", "header-content svelte-172lu40");
+    			attr_dev(div6, "class", "header-content svelte-1mwkbdf");
     			add_location(div6, file, 184, 4, 6008);
-    			attr_dev(header, "class", "main-header svelte-172lu40");
+    			attr_dev(header, "class", "main-header svelte-1mwkbdf");
     			toggle_class(header, "dark-theme", /*isDarkTheme*/ ctx[0]);
     			toggle_class(header, "expanded", /*isExpanded*/ ctx[7]);
     			add_location(header, file, 183, 0, 5916);
-    			attr_dev(p, "class", "svelte-172lu40");
+    			attr_dev(p, "class", "svelte-1mwkbdf");
     			add_location(p, file, 236, 8, 8205);
-    			attr_dev(main, "class", "main-content svelte-172lu40");
+    			attr_dev(main, "class", "main-content svelte-1mwkbdf");
     			add_location(main, file, 235, 4, 8169);
-    			attr_dev(div7, "class", "app-container svelte-172lu40");
+    			attr_dev(div7, "class", "app-container svelte-1mwkbdf");
     			toggle_class(div7, "dark-theme", /*isDarkTheme*/ ctx[0]);
     			toggle_class(div7, "expanded", /*isExpanded*/ ctx[7]);
     			add_location(div7, file, 233, 0, 8052);
