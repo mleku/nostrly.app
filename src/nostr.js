@@ -6,6 +6,7 @@ class NostrClient {
     constructor() {
         this.relays = new Map();
         this.subscriptions = new Map();
+        this.userRelays = null; // User's relay list
     }
 
     async connect() {
@@ -130,6 +131,74 @@ class NostrClient {
         }
     }
 
+    async connectToUserRelays(userRelays) {
+        if (!userRelays || userRelays.length === 0) {
+            console.log('No user relays provided, keeping default relays');
+            return;
+        }
+
+        console.log('Connecting to user relays:', userRelays);
+        this.userRelays = userRelays;
+
+        // Close existing connections
+        this.disconnect();
+
+        // Connect to user's relays
+        const relayUrls = userRelays.map(relay => relay.url);
+        const connectionPromises = relayUrls.map(relayUrl => {
+            return new Promise((resolve) => {
+                try {
+                    console.log(`Attempting to connect to user relay ${relayUrl}`);
+                    const ws = new WebSocket(relayUrl);
+                    
+                    ws.onopen = () => {
+                        console.log(`✓ Successfully connected to user relay ${relayUrl}`);
+                        resolve(true);
+                    };
+                    
+                    ws.onerror = (error) => {
+                        console.error(`✗ Error connecting to user relay ${relayUrl}:`, error);
+                        resolve(false);
+                    };
+                    
+                    ws.onclose = (event) => {
+                        console.warn(`Connection closed to user relay ${relayUrl}:`, event.code, event.reason);
+                    };
+                    
+                    ws.onmessage = (event) => {
+                        console.log(`Message from user relay ${relayUrl}:`, event.data);
+                        try {
+                            this.handleMessage(relayUrl, JSON.parse(event.data));
+                        } catch (error) {
+                            console.error(`Failed to parse message from user relay ${relayUrl}:`, error, event.data);
+                        }
+                    };
+                    
+                    this.relays.set(relayUrl, ws);
+                    
+                    // Timeout after 5 seconds
+                    setTimeout(() => {
+                        if (ws.readyState !== WebSocket.OPEN) {
+                            console.warn(`Connection timeout for user relay ${relayUrl}`);
+                            resolve(false);
+                        }
+                    }, 5000);
+                    
+                } catch (error) {
+                    console.error(`Failed to create WebSocket for user relay ${relayUrl}:`, error);
+                    resolve(false);
+                }
+            });
+        });
+        
+        const results = await Promise.all(connectionPromises);
+        const successfulConnections = results.filter(Boolean).length;
+        console.log(`Connected to ${successfulConnections}/${relayUrls.length} user relays`);
+        
+        // Wait a bit more for connections to stabilize
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
     disconnect() {
         for (const [relayUrl, ws] of this.relays) {
             ws.close();
@@ -214,6 +283,103 @@ function parseProfileFromEvent(event) {
         };
     } catch (e) {
         return { name: '', picture: '', banner: '', about: '', nip05: '', lud16: '' };
+    }
+}
+
+// Fetch user relay list (kind 10002)
+export async function fetchUserRelayList(pubkey) {
+    return new Promise(async (resolve, reject) => {
+        console.log(`Starting relay list fetch for pubkey: ${pubkey}`);
+
+        let resolved = false;
+        let newestEvent = null;
+        let debounceTimer = null;
+        let overallTimer = null;
+        let subscriptionId = null;
+
+        function cleanup() {
+            if (subscriptionId) {
+                try { nostrClient.unsubscribe(subscriptionId); } catch {}
+            }
+            if (debounceTimer) clearTimeout(debounceTimer);
+            if (overallTimer) clearTimeout(overallTimer);
+        }
+
+        // Set overall timeout
+        overallTimer = setTimeout(() => {
+            if (!newestEvent) {
+                console.log('Relay list fetch timeout reached');
+                if (!resolved) resolve([]); // Return empty array instead of rejecting
+            } else if (!resolved) {
+                const relayList = parseRelayListFromEvent(newestEvent);
+                resolve(relayList);
+            }
+            cleanup();
+        }, 10000);
+
+        // Wait a bit to ensure connections are ready and then subscribe
+        setTimeout(() => {
+            console.log('Starting relay list subscription...');
+            subscriptionId = nostrClient.subscribe(
+                {
+                    kinds: [10002],
+                    authors: [pubkey]
+                },
+                (event) => {
+                    // Collect all kind 10002 events and pick the newest by created_at
+                    if (!event || event.kind !== 10002) return;
+                    console.log('Relay list event received:', event);
+
+                    if (!newestEvent || (event.created_at || 0) > (newestEvent.created_at || 0)) {
+                        newestEvent = event;
+                    }
+
+                    // Debounce to wait for more relays; then finalize selection
+                    if (debounceTimer) clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        try {
+                            if (newestEvent) {
+                                const relayList = parseRelayListFromEvent(newestEvent);
+                                console.log('Parsed relay list:', relayList);
+
+                                if (!resolved) {
+                                    resolve(relayList);
+                                    resolved = true;
+                                }
+                            }
+                        } finally {
+                            cleanup();
+                        }
+                    }, 1000);
+                }
+            );
+        }, 1000);
+    });
+}
+
+function parseRelayListFromEvent(event) {
+    try {
+        const relayList = [];
+        if (event.tags) {
+            for (const tag of event.tags) {
+                if (tag[0] === 'r' && tag[1]) {
+                    const relayUrl = tag[1];
+                    const read = tag[2] !== 'write';
+                    const write = tag[2] !== 'read';
+                    
+                    relayList.push({
+                        url: relayUrl,
+                        read: read,
+                        write: write
+                    });
+                }
+            }
+        }
+        console.log('Parsed relay list from event:', relayList);
+        return relayList;
+    } catch (e) {
+        console.warn('Failed to parse relay list from event:', e);
+        return [];
     }
 }
 

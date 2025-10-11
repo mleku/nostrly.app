@@ -23981,6 +23981,7 @@ For regular events (kind ${kind}), use:
         constructor() {
             this.relays = new Map();
             this.subscriptions = new Map();
+            this.userRelays = null; // User's relay list
         }
 
         async connect() {
@@ -24105,6 +24106,74 @@ For regular events (kind ${kind}), use:
             }
         }
 
+        async connectToUserRelays(userRelays) {
+            if (!userRelays || userRelays.length === 0) {
+                console.log('No user relays provided, keeping default relays');
+                return;
+            }
+
+            console.log('Connecting to user relays:', userRelays);
+            this.userRelays = userRelays;
+
+            // Close existing connections
+            this.disconnect();
+
+            // Connect to user's relays
+            const relayUrls = userRelays.map(relay => relay.url);
+            const connectionPromises = relayUrls.map(relayUrl => {
+                return new Promise((resolve) => {
+                    try {
+                        console.log(`Attempting to connect to user relay ${relayUrl}`);
+                        const ws = new WebSocket(relayUrl);
+                        
+                        ws.onopen = () => {
+                            console.log(`✓ Successfully connected to user relay ${relayUrl}`);
+                            resolve(true);
+                        };
+                        
+                        ws.onerror = (error) => {
+                            console.error(`✗ Error connecting to user relay ${relayUrl}:`, error);
+                            resolve(false);
+                        };
+                        
+                        ws.onclose = (event) => {
+                            console.warn(`Connection closed to user relay ${relayUrl}:`, event.code, event.reason);
+                        };
+                        
+                        ws.onmessage = (event) => {
+                            console.log(`Message from user relay ${relayUrl}:`, event.data);
+                            try {
+                                this.handleMessage(relayUrl, JSON.parse(event.data));
+                            } catch (error) {
+                                console.error(`Failed to parse message from user relay ${relayUrl}:`, error, event.data);
+                            }
+                        };
+                        
+                        this.relays.set(relayUrl, ws);
+                        
+                        // Timeout after 5 seconds
+                        setTimeout(() => {
+                            if (ws.readyState !== WebSocket.OPEN) {
+                                console.warn(`Connection timeout for user relay ${relayUrl}`);
+                                resolve(false);
+                            }
+                        }, 5000);
+                        
+                    } catch (error) {
+                        console.error(`Failed to create WebSocket for user relay ${relayUrl}:`, error);
+                        resolve(false);
+                    }
+                });
+            });
+            
+            const results = await Promise.all(connectionPromises);
+            const successfulConnections = results.filter(Boolean).length;
+            console.log(`Connected to ${successfulConnections}/${relayUrls.length} user relays`);
+            
+            // Wait a bit more for connections to stabilize
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
         disconnect() {
             for (const [relayUrl, ws] of this.relays) {
                 ws.close();
@@ -24189,6 +24258,103 @@ For regular events (kind ${kind}), use:
             };
         } catch (e) {
             return { name: '', picture: '', banner: '', about: '', nip05: '', lud16: '' };
+        }
+    }
+
+    // Fetch user relay list (kind 10002)
+    async function fetchUserRelayList(pubkey) {
+        return new Promise(async (resolve, reject) => {
+            console.log(`Starting relay list fetch for pubkey: ${pubkey}`);
+
+            let resolved = false;
+            let newestEvent = null;
+            let debounceTimer = null;
+            let overallTimer = null;
+            let subscriptionId = null;
+
+            function cleanup() {
+                if (subscriptionId) {
+                    try { nostrClient.unsubscribe(subscriptionId); } catch {}
+                }
+                if (debounceTimer) clearTimeout(debounceTimer);
+                if (overallTimer) clearTimeout(overallTimer);
+            }
+
+            // Set overall timeout
+            overallTimer = setTimeout(() => {
+                if (!newestEvent) {
+                    console.log('Relay list fetch timeout reached');
+                    if (!resolved) resolve([]); // Return empty array instead of rejecting
+                } else if (!resolved) {
+                    const relayList = parseRelayListFromEvent(newestEvent);
+                    resolve(relayList);
+                }
+                cleanup();
+            }, 10000);
+
+            // Wait a bit to ensure connections are ready and then subscribe
+            setTimeout(() => {
+                console.log('Starting relay list subscription...');
+                subscriptionId = nostrClient.subscribe(
+                    {
+                        kinds: [10002],
+                        authors: [pubkey]
+                    },
+                    (event) => {
+                        // Collect all kind 10002 events and pick the newest by created_at
+                        if (!event || event.kind !== 10002) return;
+                        console.log('Relay list event received:', event);
+
+                        if (!newestEvent || (event.created_at || 0) > (newestEvent.created_at || 0)) {
+                            newestEvent = event;
+                        }
+
+                        // Debounce to wait for more relays; then finalize selection
+                        if (debounceTimer) clearTimeout(debounceTimer);
+                        debounceTimer = setTimeout(() => {
+                            try {
+                                if (newestEvent) {
+                                    const relayList = parseRelayListFromEvent(newestEvent);
+                                    console.log('Parsed relay list:', relayList);
+
+                                    if (!resolved) {
+                                        resolve(relayList);
+                                        resolved = true;
+                                    }
+                                }
+                            } finally {
+                                cleanup();
+                            }
+                        }, 1000);
+                    }
+                );
+            }, 1000);
+        });
+    }
+
+    function parseRelayListFromEvent(event) {
+        try {
+            const relayList = [];
+            if (event.tags) {
+                for (const tag of event.tags) {
+                    if (tag[0] === 'r' && tag[1]) {
+                        const relayUrl = tag[1];
+                        const read = tag[2] !== 'write';
+                        const write = tag[2] !== 'read';
+                        
+                        relayList.push({
+                            url: relayUrl,
+                            read: read,
+                            write: write
+                        });
+                    }
+                }
+            }
+            console.log('Parsed relay list from event:', relayList);
+            return relayList;
+        } catch (e) {
+            console.warn('Failed to parse relay list from event:', e);
+            return [];
         }
     }
 
@@ -25241,6 +25407,7 @@ For regular events (kind ${kind}), use:
     /* src/App.svelte generated by Svelte v3.59.2 */
 
     const { console: console_1 } = globals;
+
     const file = "src/App.svelte";
 
     function get_each_context(ctx, list, i) {
@@ -25256,7 +25423,7 @@ For regular events (kind ${kind}), use:
     	return child_ctx;
     }
 
-    // (245:20) {#if activeView === 'global' && !isExpanded}
+    // (282:20) {#if activeView === 'global' && !isExpanded}
     function create_if_block_15(ctx) {
     	let div;
 
@@ -25264,8 +25431,8 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "Global";
-    			attr_dev(div, "class", "vertical-label svelte-3hfpib");
-    			add_location(div, file, 245, 24, 8046);
+    			attr_dev(div, "class", "vertical-label svelte-1gu8jku");
+    			add_location(div, file, 282, 24, 9635);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -25279,14 +25446,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_15.name,
     		type: "if",
-    		source: "(245:20) {#if activeView === 'global' && !isExpanded}",
+    		source: "(282:20) {#if activeView === 'global' && !isExpanded}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (274:12) {:else}
+    // (311:12) {:else}
     function create_else_block_3(ctx) {
     	let div1;
     	let div0;
@@ -25309,18 +25476,18 @@ For regular events (kind ${kind}), use:
     			t1 = text("🔑");
     			span = element("span");
     			span.textContent = "Log in";
-    			attr_dev(span, "class", "login-text svelte-3hfpib");
-    			add_location(span, file, 279, 181, 10172);
-    			attr_dev(button, "class", "login-btn svelte-3hfpib");
+    			attr_dev(span, "class", "login-text svelte-1gu8jku");
+    			add_location(span, file, 316, 181, 11761);
+    			attr_dev(button, "class", "login-btn svelte-1gu8jku");
     			attr_dev(button, "title", button_title_value = /*isExpanded*/ ctx[7] ? '' : 'Log in');
     			toggle_class(button, "expanded", /*isExpanded*/ ctx[7]);
     			toggle_class(button, "active", /*activeView*/ ctx[8] === 'welcome');
-    			add_location(button, file, 279, 24, 10015);
-    			attr_dev(div0, "class", "tab-container svelte-3hfpib");
+    			add_location(button, file, 316, 24, 11604);
+    			attr_dev(div0, "class", "tab-container svelte-1gu8jku");
     			toggle_class(div0, "active", /*activeView*/ ctx[8] === 'welcome');
-    			add_location(div0, file, 275, 20, 9755);
-    			attr_dev(div1, "class", "user-info svelte-3hfpib");
-    			add_location(div1, file, 274, 16, 9711);
+    			add_location(div0, file, 312, 20, 11344);
+    			attr_dev(div1, "class", "user-info svelte-1gu8jku");
+    			add_location(div1, file, 311, 16, 11300);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div1, anchor);
@@ -25376,14 +25543,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_else_block_3.name,
     		type: "else",
-    		source: "(274:12) {:else}",
+    		source: "(311:12) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (256:12) {#if isLoggedIn}
+    // (293:12) {#if isLoggedIn}
     function create_if_block_11(ctx) {
     	let div1;
     	let div0;
@@ -25417,9 +25584,9 @@ For regular events (kind ${kind}), use:
     			t1 = space();
     			span = element("span");
     			t2 = text(t2_value);
-    			attr_dev(span, "class", "user-name svelte-3hfpib");
-    			add_location(span, file, 267, 28, 9444);
-    			attr_dev(button, "class", "user-profile-btn svelte-3hfpib");
+    			attr_dev(span, "class", "user-name svelte-1gu8jku");
+    			add_location(span, file, 304, 28, 11033);
+    			attr_dev(button, "class", "user-profile-btn svelte-1gu8jku");
 
     			attr_dev(button, "title", button_title_value = /*isExpanded*/ ctx[7]
     			? ''
@@ -25427,12 +25594,12 @@ For regular events (kind ${kind}), use:
 
     			toggle_class(button, "expanded", /*isExpanded*/ ctx[7]);
     			toggle_class(button, "active", /*activeView*/ ctx[8] === 'welcome');
-    			add_location(button, file, 261, 24, 8897);
-    			attr_dev(div0, "class", "tab-container svelte-3hfpib");
+    			add_location(button, file, 298, 24, 10486);
+    			attr_dev(div0, "class", "tab-container svelte-1gu8jku");
     			toggle_class(div0, "active", /*activeView*/ ctx[8] === 'welcome');
-    			add_location(div0, file, 257, 20, 8638);
-    			attr_dev(div1, "class", "user-info svelte-3hfpib");
-    			add_location(div1, file, 256, 16, 8594);
+    			add_location(div0, file, 294, 20, 10227);
+    			attr_dev(div1, "class", "user-info svelte-1gu8jku");
+    			add_location(div1, file, 293, 16, 10183);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div1, anchor);
@@ -25507,14 +25674,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_11.name,
     		type: "if",
-    		source: "(256:12) {#if isLoggedIn}",
+    		source: "(293:12) {#if isLoggedIn}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (277:24) {#if activeView === 'welcome' && !isExpanded}
+    // (314:24) {#if activeView === 'welcome' && !isExpanded}
     function create_if_block_14(ctx) {
     	let div;
 
@@ -25522,8 +25689,8 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "Login";
-    			attr_dev(div, "class", "vertical-label svelte-3hfpib");
-    			add_location(div, file, 277, 28, 9921);
+    			attr_dev(div, "class", "vertical-label svelte-1gu8jku");
+    			add_location(div, file, 314, 28, 11510);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -25537,14 +25704,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_14.name,
     		type: "if",
-    		source: "(277:24) {#if activeView === 'welcome' && !isExpanded}",
+    		source: "(314:24) {#if activeView === 'welcome' && !isExpanded}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (259:24) {#if activeView === 'welcome' && !isExpanded}
+    // (296:24) {#if activeView === 'welcome' && !isExpanded}
     function create_if_block_13(ctx) {
     	let div;
 
@@ -25552,8 +25719,8 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "User";
-    			attr_dev(div, "class", "vertical-label svelte-3hfpib");
-    			add_location(div, file, 259, 28, 8804);
+    			attr_dev(div, "class", "vertical-label svelte-1gu8jku");
+    			add_location(div, file, 296, 28, 10393);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -25567,14 +25734,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_13.name,
     		type: "if",
-    		source: "(259:24) {#if activeView === 'welcome' && !isExpanded}",
+    		source: "(296:24) {#if activeView === 'welcome' && !isExpanded}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (265:28) {:else}
+    // (302:28) {:else}
     function create_else_block_2(ctx) {
     	let div;
 
@@ -25582,8 +25749,8 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "👤";
-    			attr_dev(div, "class", "user-avatar-placeholder svelte-3hfpib");
-    			add_location(div, file, 265, 32, 9336);
+    			attr_dev(div, "class", "user-avatar-placeholder svelte-1gu8jku");
+    			add_location(div, file, 302, 32, 10925);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -25598,14 +25765,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_else_block_2.name,
     		type: "else",
-    		source: "(265:28) {:else}",
+    		source: "(302:28) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (263:28) {#if userProfile?.picture}
+    // (300:28) {#if userProfile?.picture}
     function create_if_block_12(ctx) {
     	let img;
     	let img_src_value;
@@ -25615,8 +25782,8 @@ For regular events (kind ${kind}), use:
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[1].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "User avatar");
-    			attr_dev(img, "class", "user-avatar svelte-3hfpib");
-    			add_location(img, file, 263, 32, 9196);
+    			attr_dev(img, "class", "user-avatar svelte-1gu8jku");
+    			add_location(img, file, 300, 32, 10785);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, img, anchor);
@@ -25635,14 +25802,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_12.name,
     		type: "if",
-    		source: "(263:28) {#if userProfile?.picture}",
+    		source: "(300:28) {#if userProfile?.picture}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (345:8) {:else}
+    // (382:8) {:else}
     function create_else_block_1(ctx) {
     	let p;
 
@@ -25650,8 +25817,8 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			p = element("p");
     			p.textContent = "Welcome to nostrly.app - A Nostr client application.";
-    			attr_dev(p, "class", "svelte-3hfpib");
-    			add_location(p, file, 345, 12, 14762);
+    			attr_dev(p, "class", "svelte-1gu8jku");
+    			add_location(p, file, 382, 12, 16386);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, p, anchor);
@@ -25666,14 +25833,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_else_block_1.name,
     		type: "else",
-    		source: "(345:8) {:else}",
+    		source: "(382:8) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (301:8) {#if activeView === 'global'}
+    // (338:8) {#if activeView === 'global'}
     function create_if_block_6(ctx) {
     	let div;
     	let t;
@@ -25696,8 +25863,8 @@ For regular events (kind ${kind}), use:
     				each_blocks[i].c();
     			}
 
-    			attr_dev(div, "class", "global-container svelte-3hfpib");
-    			add_location(div, file, 301, 12, 10893);
+    			attr_dev(div, "class", "global-container svelte-1gu8jku");
+    			add_location(div, file, 338, 12, 12482);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -25759,14 +25926,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_6.name,
     		type: "if",
-    		source: "(301:8) {#if activeView === 'global'}",
+    		source: "(338:8) {#if activeView === 'global'}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (304:16) {#if foldedBoxes.length > 0}
+    // (341:16) {#if foldedBoxes.length > 0}
     function create_if_block_10(ctx) {
     	let div;
     	let each_value_1 = /*foldedBoxes*/ ctx[10];
@@ -25785,8 +25952,8 @@ For regular events (kind ${kind}), use:
     				each_blocks[i].c();
     			}
 
-    			attr_dev(div, "class", "folded-column svelte-3hfpib");
-    			add_location(div, file, 304, 20, 11034);
+    			attr_dev(div, "class", "folded-column svelte-1gu8jku");
+    			add_location(div, file, 341, 20, 12623);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -25832,20 +25999,19 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_10.name,
     		type: "if",
-    		source: "(304:16) {#if foldedBoxes.length > 0}",
+    		source: "(341:16) {#if foldedBoxes.length > 0}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (306:24) {#each foldedBoxes as foldedIndex}
+    // (343:24) {#each foldedBoxes as foldedIndex}
     function create_each_block_1(ctx) {
     	let button;
+    	let t0_value = /*foldedIndex*/ ctx[41] + 1 + "";
     	let t0;
-    	let t1_value = /*foldedIndex*/ ctx[41] + 1 + "";
     	let t1;
-    	let t2;
     	let mounted;
     	let dispose;
 
@@ -25856,17 +26022,15 @@ For regular events (kind ${kind}), use:
     	const block = {
     		c: function create() {
     			button = element("button");
-    			t0 = text("Box ");
-    			t1 = text(t1_value);
-    			t2 = space();
-    			attr_dev(button, "class", "folded-title-btn svelte-3hfpib");
-    			add_location(button, file, 306, 28, 11149);
+    			t0 = text(t0_value);
+    			t1 = space();
+    			attr_dev(button, "class", "folded-title-btn svelte-1gu8jku");
+    			add_location(button, file, 343, 28, 12738);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, button, anchor);
     			append_dev(button, t0);
     			append_dev(button, t1);
-    			append_dev(button, t2);
 
     			if (!mounted) {
     				dispose = listen_dev(button, "click", click_handler_1, false, false, false, false);
@@ -25875,7 +26039,7 @@ For regular events (kind ${kind}), use:
     		},
     		p: function update(new_ctx, dirty) {
     			ctx = new_ctx;
-    			if (dirty[0] & /*foldedBoxes*/ 1024 && t1_value !== (t1_value = /*foldedIndex*/ ctx[41] + 1 + "")) set_data_dev(t1, t1_value);
+    			if (dirty[0] & /*foldedBoxes*/ 1024 && t0_value !== (t0_value = /*foldedIndex*/ ctx[41] + 1 + "")) set_data_dev(t0, t0_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(button);
@@ -25888,50 +26052,49 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_each_block_1.name,
     		type: "each",
-    		source: "(306:24) {#each foldedBoxes as foldedIndex}",
+    		source: "(343:24) {#each foldedBoxes as foldedIndex}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (316:20) {#if !foldedBoxes.includes(index)}
+    // (353:20) {#if !foldedBoxes.includes(index)}
     function create_if_block_7(ctx) {
     	let div2;
     	let div1;
     	let button;
     	let h3;
+    	let t0_value = /*index*/ ctx[40] + 1 + "";
     	let t0;
-    	let t1_value = /*index*/ ctx[40] + 1 + "";
     	let t1;
-    	let t2;
     	let div0;
+    	let t2;
     	let t3;
-    	let t4;
     	let p0;
+    	let t4;
+    	let t5_value = /*index*/ ctx[40] + 1 + "";
     	let t5;
-    	let t6_value = /*index*/ ctx[40] + 1 + "";
     	let t6;
     	let t7;
-    	let t8;
     	let p1;
-    	let t10;
+    	let t9;
     	let p2;
-    	let t12;
+    	let t11;
     	let p3;
-    	let t14;
+    	let t13;
     	let p4;
-    	let t16;
+    	let t15;
     	let p5;
-    	let t18;
+    	let t17;
     	let p6;
-    	let t20;
+    	let t19;
     	let p7;
-    	let t22;
+    	let t21;
     	let p8;
-    	let t24;
+    	let t23;
     	let p9;
-    	let t26;
+    	let t25;
     	let mounted;
     	let dispose;
 
@@ -25948,76 +26111,76 @@ For regular events (kind ${kind}), use:
     			div1 = element("div");
     			button = element("button");
     			h3 = element("h3");
-    			t0 = text("Box ");
-    			t1 = text(t1_value);
-    			t2 = space();
+    			t0 = text(t0_value);
+    			t1 = space();
     			div0 = element("div");
     			if (if_block0) if_block0.c();
-    			t3 = space();
+    			t2 = space();
     			if (if_block1) if_block1.c();
-    			t4 = space();
+    			t3 = space();
     			p0 = element("p");
-    			t5 = text("This is dummy content for box ");
-    			t6 = text(t6_value);
-    			t7 = text(". Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.");
-    			t8 = space();
+    			t4 = text("This is dummy content for box ");
+    			t5 = text(t5_value);
+    			t6 = text(". Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.");
+    			t7 = space();
     			p1 = element("p");
     			p1.textContent = "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.";
-    			t10 = space();
+    			t9 = space();
     			p2 = element("p");
     			p2.textContent = "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.";
-    			t12 = space();
+    			t11 = space();
     			p3 = element("p");
     			p3.textContent = "Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.";
-    			t14 = space();
+    			t13 = space();
     			p4 = element("p");
     			p4.textContent = "Sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.";
-    			t16 = space();
+    			t15 = space();
     			p5 = element("p");
     			p5.textContent = "Sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam.";
-    			t18 = space();
+    			t17 = space();
     			p6 = element("p");
     			p6.textContent = "Nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur.";
-    			t20 = space();
+    			t19 = space();
     			p7 = element("p");
     			p7.textContent = "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.";
-    			t22 = space();
+    			t21 = space();
     			p8 = element("p");
     			p8.textContent = "Similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio.";
-    			t24 = space();
+    			t23 = space();
     			p9 = element("p");
     			p9.textContent = "Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.";
-    			t26 = space();
-    			attr_dev(h3, "class", "svelte-3hfpib");
-    			add_location(h3, file, 319, 36, 11797);
-    			attr_dev(button, "class", "title-btn svelte-3hfpib");
-    			add_location(button, file, 318, 32, 11700);
-    			attr_dev(div0, "class", "box-controls svelte-3hfpib");
-    			add_location(div0, file, 321, 32, 11896);
-    			attr_dev(div1, "class", "box-header svelte-3hfpib");
-    			add_location(div1, file, 317, 28, 11643);
-    			attr_dev(p0, "class", "svelte-3hfpib");
-    			add_location(p0, file, 330, 28, 12483);
-    			attr_dev(p1, "class", "svelte-3hfpib");
-    			add_location(p1, file, 331, 28, 12685);
-    			attr_dev(p2, "class", "svelte-3hfpib");
-    			add_location(p2, file, 332, 28, 12931);
-    			attr_dev(p3, "class", "svelte-3hfpib");
-    			add_location(p3, file, 333, 28, 13175);
-    			attr_dev(p4, "class", "svelte-3hfpib");
-    			add_location(p4, file, 334, 28, 13404);
-    			attr_dev(p5, "class", "svelte-3hfpib");
-    			add_location(p5, file, 335, 28, 13612);
-    			attr_dev(p6, "class", "svelte-3hfpib");
-    			add_location(p6, file, 336, 28, 13840);
-    			attr_dev(p7, "class", "svelte-3hfpib");
-    			add_location(p7, file, 337, 28, 14021);
-    			attr_dev(p8, "class", "svelte-3hfpib");
-    			add_location(p8, file, 338, 28, 14259);
-    			attr_dev(p9, "class", "svelte-3hfpib");
-    			add_location(p9, file, 339, 28, 14445);
-    			attr_dev(div2, "class", "content-box svelte-3hfpib");
-    			add_location(div2, file, 316, 24, 11589);
+    			t25 = space();
+    			attr_dev(h3, "class", "svelte-1gu8jku");
+    			add_location(h3, file, 356, 36, 13425);
+    			attr_dev(button, "class", "title-btn svelte-1gu8jku");
+    			toggle_class(button, "disabled", /*index*/ ctx[40] === /*columnCount*/ ctx[9] - 1);
+    			add_location(button, file, 355, 32, 13285);
+    			attr_dev(div0, "class", "box-controls svelte-1gu8jku");
+    			add_location(div0, file, 358, 32, 13520);
+    			attr_dev(div1, "class", "box-header svelte-1gu8jku");
+    			add_location(div1, file, 354, 28, 13228);
+    			attr_dev(p0, "class", "svelte-1gu8jku");
+    			add_location(p0, file, 367, 28, 14107);
+    			attr_dev(p1, "class", "svelte-1gu8jku");
+    			add_location(p1, file, 368, 28, 14309);
+    			attr_dev(p2, "class", "svelte-1gu8jku");
+    			add_location(p2, file, 369, 28, 14555);
+    			attr_dev(p3, "class", "svelte-1gu8jku");
+    			add_location(p3, file, 370, 28, 14799);
+    			attr_dev(p4, "class", "svelte-1gu8jku");
+    			add_location(p4, file, 371, 28, 15028);
+    			attr_dev(p5, "class", "svelte-1gu8jku");
+    			add_location(p5, file, 372, 28, 15236);
+    			attr_dev(p6, "class", "svelte-1gu8jku");
+    			add_location(p6, file, 373, 28, 15464);
+    			attr_dev(p7, "class", "svelte-1gu8jku");
+    			add_location(p7, file, 374, 28, 15645);
+    			attr_dev(p8, "class", "svelte-1gu8jku");
+    			add_location(p8, file, 375, 28, 15883);
+    			attr_dev(p9, "class", "svelte-1gu8jku");
+    			add_location(p9, file, 376, 28, 16069);
+    			attr_dev(div2, "class", "content-box svelte-1gu8jku");
+    			add_location(div2, file, 353, 24, 13174);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div2, anchor);
@@ -26025,36 +26188,35 @@ For regular events (kind ${kind}), use:
     			append_dev(div1, button);
     			append_dev(button, h3);
     			append_dev(h3, t0);
-    			append_dev(h3, t1);
-    			append_dev(div1, t2);
+    			append_dev(div1, t1);
     			append_dev(div1, div0);
     			if (if_block0) if_block0.m(div0, null);
-    			append_dev(div0, t3);
+    			append_dev(div0, t2);
     			if (if_block1) if_block1.m(div0, null);
-    			append_dev(div2, t4);
+    			append_dev(div2, t3);
     			append_dev(div2, p0);
+    			append_dev(p0, t4);
     			append_dev(p0, t5);
     			append_dev(p0, t6);
-    			append_dev(p0, t7);
-    			append_dev(div2, t8);
+    			append_dev(div2, t7);
     			append_dev(div2, p1);
-    			append_dev(div2, t10);
+    			append_dev(div2, t9);
     			append_dev(div2, p2);
-    			append_dev(div2, t12);
+    			append_dev(div2, t11);
     			append_dev(div2, p3);
-    			append_dev(div2, t14);
+    			append_dev(div2, t13);
     			append_dev(div2, p4);
-    			append_dev(div2, t16);
+    			append_dev(div2, t15);
     			append_dev(div2, p5);
-    			append_dev(div2, t18);
+    			append_dev(div2, t17);
     			append_dev(div2, p6);
-    			append_dev(div2, t20);
+    			append_dev(div2, t19);
     			append_dev(div2, p7);
-    			append_dev(div2, t22);
+    			append_dev(div2, t21);
     			append_dev(div2, p8);
-    			append_dev(div2, t24);
+    			append_dev(div2, t23);
     			append_dev(div2, p9);
-    			append_dev(div2, t26);
+    			append_dev(div2, t25);
 
     			if (!mounted) {
     				dispose = listen_dev(button, "click", click_handler_2, false, false, false, false);
@@ -26064,13 +26226,17 @@ For regular events (kind ${kind}), use:
     		p: function update(new_ctx, dirty) {
     			ctx = new_ctx;
 
+    			if (dirty[0] & /*columnCount*/ 512) {
+    				toggle_class(button, "disabled", /*index*/ ctx[40] === /*columnCount*/ ctx[9] - 1);
+    			}
+
     			if (/*index*/ ctx[40] === /*columnCount*/ ctx[9] - 1) {
     				if (if_block0) {
     					if_block0.p(ctx, dirty);
     				} else {
     					if_block0 = create_if_block_9(ctx);
     					if_block0.c();
-    					if_block0.m(div0, t3);
+    					if_block0.m(div0, t2);
     				}
     			} else if (if_block0) {
     				if_block0.d(1);
@@ -26103,14 +26269,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_7.name,
     		type: "if",
-    		source: "(316:20) {#if !foldedBoxes.includes(index)}",
+    		source: "(353:20) {#if !foldedBoxes.includes(index)}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (323:36) {#if index === columnCount - 1}
+    // (360:36) {#if index === columnCount - 1}
     function create_if_block_9(ctx) {
     	let button;
     	let mounted;
@@ -26120,8 +26286,8 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			button = element("button");
     			button.textContent = "+";
-    			attr_dev(button, "class", "control-btn add-btn svelte-3hfpib");
-    			add_location(button, file, 323, 40, 12031);
+    			attr_dev(button, "class", "control-btn add-btn svelte-1gu8jku");
+    			add_location(button, file, 360, 40, 13655);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, button, anchor);
@@ -26143,14 +26309,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_9.name,
     		type: "if",
-    		source: "(323:36) {#if index === columnCount - 1}",
+    		source: "(360:36) {#if index === columnCount - 1}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (326:36) {#if columnCount > 1 && index > 0}
+    // (363:36) {#if columnCount > 1 && index > 0}
     function create_if_block_8(ctx) {
     	let button;
     	let mounted;
@@ -26164,8 +26330,8 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			button = element("button");
     			button.textContent = "-";
-    			attr_dev(button, "class", "control-btn remove-btn svelte-3hfpib");
-    			add_location(button, file, 326, 40, 12252);
+    			attr_dev(button, "class", "control-btn remove-btn svelte-1gu8jku");
+    			add_location(button, file, 363, 40, 13876);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, button, anchor);
@@ -26189,14 +26355,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_8.name,
     		type: "if",
-    		source: "(326:36) {#if columnCount > 1 && index > 0}",
+    		source: "(363:36) {#if columnCount > 1 && index > 0}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (315:16) {#each Array(columnCount) as _, index}
+    // (352:16) {#each Array(columnCount) as _, index}
     function create_each_block(ctx) {
     	let show_if = !/*foldedBoxes*/ ctx[10].includes(/*index*/ ctx[40]);
     	let if_block_anchor;
@@ -26237,14 +26403,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(315:16) {#each Array(columnCount) as _, index}",
+    		source: "(352:16) {#each Array(columnCount) as _, index}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (352:0) {#if showSettingsDrawer}
+    // (389:0) {#if showSettingsDrawer}
     function create_if_block(ctx) {
     	let div5;
     	let div4;
@@ -26292,32 +26458,32 @@ For regular events (kind ${kind}), use:
     			t8 = space();
     			button2 = element("button");
     			button2.textContent = "Log out";
-    			attr_dev(h2, "class", "svelte-3hfpib");
-    			add_location(h2, file, 355, 16, 15238);
-    			attr_dev(button0, "class", "close-btn svelte-3hfpib");
-    			add_location(button0, file, 356, 16, 15272);
-    			attr_dev(div0, "class", "drawer-header svelte-3hfpib");
-    			add_location(div0, file, 354, 12, 15194);
-    			attr_dev(span, "class", "theme-toggle-label svelte-3hfpib");
-    			add_location(span, file, 391, 24, 17209);
-    			attr_dev(button1, "class", "theme-toggle-btn svelte-3hfpib");
+    			attr_dev(h2, "class", "svelte-1gu8jku");
+    			add_location(h2, file, 392, 16, 16862);
+    			attr_dev(button0, "class", "close-btn svelte-1gu8jku");
+    			add_location(button0, file, 393, 16, 16896);
+    			attr_dev(div0, "class", "drawer-header svelte-1gu8jku");
+    			add_location(div0, file, 391, 12, 16818);
+    			attr_dev(span, "class", "theme-toggle-label svelte-1gu8jku");
+    			add_location(span, file, 428, 24, 18833);
+    			attr_dev(button1, "class", "theme-toggle-btn svelte-1gu8jku");
     			attr_dev(button1, "aria-label", "Toggle theme");
-    			add_location(button1, file, 392, 24, 17280);
-    			attr_dev(div1, "class", "theme-toggle-section svelte-3hfpib");
-    			add_location(div1, file, 390, 20, 17150);
-    			attr_dev(button2, "class", "logout-btn svelte-3hfpib");
-    			add_location(button2, file, 396, 20, 17511);
-    			attr_dev(div2, "class", "settings-actions svelte-3hfpib");
-    			add_location(div2, file, 389, 16, 17099);
-    			attr_dev(div3, "class", "drawer-content svelte-3hfpib");
-    			add_location(div3, file, 358, 12, 15371);
-    			attr_dev(div4, "class", "settings-drawer svelte-3hfpib");
+    			add_location(button1, file, 429, 24, 18904);
+    			attr_dev(div1, "class", "theme-toggle-section svelte-1gu8jku");
+    			add_location(div1, file, 427, 20, 18774);
+    			attr_dev(button2, "class", "logout-btn svelte-1gu8jku");
+    			add_location(button2, file, 433, 20, 19135);
+    			attr_dev(div2, "class", "settings-actions svelte-1gu8jku");
+    			add_location(div2, file, 426, 16, 18723);
+    			attr_dev(div3, "class", "drawer-content svelte-1gu8jku");
+    			add_location(div3, file, 395, 12, 16995);
+    			attr_dev(div4, "class", "settings-drawer svelte-1gu8jku");
     			toggle_class(div4, "dark-theme", /*isDarkTheme*/ ctx[0]);
-    			add_location(div4, file, 353, 8, 15069);
-    			attr_dev(div5, "class", "drawer-overlay svelte-3hfpib");
+    			add_location(div4, file, 390, 8, 16693);
+    			attr_dev(div5, "class", "drawer-overlay svelte-1gu8jku");
     			attr_dev(div5, "role", "button");
     			attr_dev(div5, "tabindex", "0");
-    			add_location(div5, file, 352, 4, 14910);
+    			add_location(div5, file, 389, 4, 16534);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div5, anchor);
@@ -26385,14 +26551,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block.name,
     		type: "if",
-    		source: "(352:0) {#if showSettingsDrawer}",
+    		source: "(389:0) {#if showSettingsDrawer}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (360:16) {#if userProfile}
+    // (397:16) {#if userProfile}
     function create_if_block_1(ctx) {
     	let div2;
     	let div1;
@@ -26431,14 +26597,14 @@ For regular events (kind ${kind}), use:
     			if (if_block2) if_block2.c();
     			t4 = space();
     			if (if_block3) if_block3.c();
-    			attr_dev(h3, "class", "profile-username svelte-3hfpib");
-    			add_location(h3, file, 373, 32, 16338);
-    			attr_dev(div0, "class", "name-row svelte-3hfpib");
-    			add_location(div0, file, 372, 28, 16283);
-    			attr_dev(div1, "class", "profile-hero svelte-3hfpib");
-    			add_location(div1, file, 361, 24, 15508);
-    			attr_dev(div2, "class", "profile-section svelte-3hfpib");
-    			add_location(div2, file, 360, 20, 15454);
+    			attr_dev(h3, "class", "profile-username svelte-1gu8jku");
+    			add_location(h3, file, 410, 32, 17962);
+    			attr_dev(div0, "class", "name-row svelte-1gu8jku");
+    			add_location(div0, file, 409, 28, 17907);
+    			attr_dev(div1, "class", "profile-hero svelte-1gu8jku");
+    			add_location(div1, file, 398, 24, 17132);
+    			attr_dev(div2, "class", "profile-section svelte-1gu8jku");
+    			add_location(div2, file, 397, 20, 17078);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div2, anchor);
@@ -26522,14 +26688,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_1.name,
     		type: "if",
-    		source: "(360:16) {#if userProfile}",
+    		source: "(397:16) {#if userProfile}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (363:28) {#if userProfile.banner}
+    // (400:28) {#if userProfile.banner}
     function create_if_block_5(ctx) {
     	let img;
     	let img_src_value;
@@ -26539,8 +26705,8 @@ For regular events (kind ${kind}), use:
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[1].banner)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Profile banner");
-    			attr_dev(img, "class", "profile-banner svelte-3hfpib");
-    			add_location(img, file, 363, 32, 15620);
+    			attr_dev(img, "class", "profile-banner svelte-1gu8jku");
+    			add_location(img, file, 400, 32, 17244);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, img, anchor);
@@ -26559,14 +26725,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_5.name,
     		type: "if",
-    		source: "(363:28) {#if userProfile.banner}",
+    		source: "(400:28) {#if userProfile.banner}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (369:28) {:else}
+    // (406:28) {:else}
     function create_else_block(ctx) {
     	let div;
 
@@ -26574,8 +26740,8 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "👤";
-    			attr_dev(div, "class", "profile-avatar-placeholder overlap svelte-3hfpib");
-    			add_location(div, file, 369, 32, 16058);
+    			attr_dev(div, "class", "profile-avatar-placeholder overlap svelte-1gu8jku");
+    			add_location(div, file, 406, 32, 17682);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -26590,14 +26756,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_else_block.name,
     		type: "else",
-    		source: "(369:28) {:else}",
+    		source: "(406:28) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (367:28) {#if userProfile.picture}
+    // (404:28) {#if userProfile.picture}
     function create_if_block_4(ctx) {
     	let img;
     	let img_src_value;
@@ -26607,8 +26773,8 @@ For regular events (kind ${kind}), use:
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*userProfile*/ ctx[1].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "User avatar");
-    			attr_dev(img, "class", "profile-avatar overlap svelte-3hfpib");
-    			add_location(img, file, 367, 32, 15907);
+    			attr_dev(img, "class", "profile-avatar overlap svelte-1gu8jku");
+    			add_location(img, file, 404, 32, 17531);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, img, anchor);
@@ -26627,14 +26793,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_4.name,
     		type: "if",
-    		source: "(367:28) {#if userProfile.picture}",
+    		source: "(404:28) {#if userProfile.picture}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (375:32) {#if userProfile.nip05}
+    // (412:32) {#if userProfile.nip05}
     function create_if_block_3(ctx) {
     	let span;
     	let t_value = /*userProfile*/ ctx[1].nip05 + "";
@@ -26644,8 +26810,8 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			span = element("span");
     			t = text(t_value);
-    			attr_dev(span, "class", "profile-nip05-inline svelte-3hfpib");
-    			add_location(span, file, 375, 36, 16501);
+    			attr_dev(span, "class", "profile-nip05-inline svelte-1gu8jku");
+    			add_location(span, file, 412, 36, 18125);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, span, anchor);
@@ -26663,14 +26829,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_3.name,
     		type: "if",
-    		source: "(375:32) {#if userProfile.nip05}",
+    		source: "(412:32) {#if userProfile.nip05}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (382:24) {#if userProfile.about}
+    // (419:24) {#if userProfile.about}
     function create_if_block_2(ctx) {
     	let div;
     	let p;
@@ -26682,10 +26848,10 @@ For regular events (kind ${kind}), use:
     			div = element("div");
     			p = element("p");
     			t = text(t_value);
-    			attr_dev(p, "class", "profile-about svelte-3hfpib");
-    			add_location(p, file, 383, 32, 16903);
-    			attr_dev(div, "class", "about-card svelte-3hfpib");
-    			add_location(div, file, 382, 28, 16846);
+    			attr_dev(p, "class", "profile-about svelte-1gu8jku");
+    			add_location(p, file, 420, 32, 18527);
+    			attr_dev(div, "class", "about-card svelte-1gu8jku");
+    			add_location(div, file, 419, 28, 18470);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -26704,7 +26870,7 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_2.name,
     		type: "if",
-    		source: "(382:24) {#if userProfile.about}",
+    		source: "(419:24) {#if userProfile.about}",
     		ctx
     	});
 
@@ -26826,52 +26992,52 @@ For regular events (kind ${kind}), use:
     			: "/orly.png")) attr_dev(img, "src", img_src_value);
 
     			attr_dev(img, "alt", "Orly Logo");
-    			attr_dev(img, "class", "logo svelte-3hfpib");
-    			add_location(img, file, 226, 16, 7214);
-    			attr_dev(div0, "class", "logo-section svelte-3hfpib");
+    			attr_dev(img, "class", "logo svelte-1gu8jku");
+    			add_location(img, file, 263, 16, 8803);
+    			attr_dev(div0, "class", "logo-section svelte-1gu8jku");
     			toggle_class(div0, "expanded", /*isExpanded*/ ctx[7]);
-    			add_location(div0, file, 225, 12, 7143);
-    			attr_dev(span0, "class", "orly-text svelte-3hfpib");
-    			add_location(span0, file, 235, 16, 7602);
-    			attr_dev(div1, "class", "logo-section svelte-3hfpib");
+    			add_location(div0, file, 262, 12, 8732);
+    			attr_dev(span0, "class", "orly-text svelte-1gu8jku");
+    			add_location(span0, file, 272, 16, 9191);
+    			attr_dev(div1, "class", "logo-section svelte-1gu8jku");
     			toggle_class(div1, "expanded", /*isExpanded*/ ctx[7]);
-    			add_location(div1, file, 234, 12, 7531);
-    			attr_dev(div2, "class", "top-section svelte-3hfpib");
-    			add_location(div2, file, 224, 8, 7105);
-    			attr_dev(div3, "class", "user-avatar-placeholder svelte-3hfpib");
-    			add_location(div3, file, 248, 24, 8323);
-    			attr_dev(span1, "class", "user-name svelte-3hfpib");
-    			add_location(span1, file, 249, 24, 8393);
-    			attr_dev(button0, "class", "user-profile-btn svelte-3hfpib");
+    			add_location(div1, file, 271, 12, 9120);
+    			attr_dev(div2, "class", "top-section svelte-1gu8jku");
+    			add_location(div2, file, 261, 8, 8694);
+    			attr_dev(div3, "class", "user-avatar-placeholder svelte-1gu8jku");
+    			add_location(div3, file, 285, 24, 9912);
+    			attr_dev(span1, "class", "user-name svelte-1gu8jku");
+    			add_location(span1, file, 286, 24, 9982);
+    			attr_dev(button0, "class", "user-profile-btn svelte-1gu8jku");
     			attr_dev(button0, "title", button0_title_value = /*isExpanded*/ ctx[7] ? '' : 'Global');
     			toggle_class(button0, "expanded", /*isExpanded*/ ctx[7]);
     			toggle_class(button0, "active", /*activeView*/ ctx[8] === 'global');
-    			add_location(button0, file, 247, 20, 8133);
-    			attr_dev(div4, "class", "tab-container svelte-3hfpib");
+    			add_location(button0, file, 284, 20, 9722);
+    			attr_dev(div4, "class", "tab-container svelte-1gu8jku");
     			toggle_class(div4, "active", /*activeView*/ ctx[8] === 'global');
-    			add_location(div4, file, 243, 16, 7890);
-    			attr_dev(div5, "class", "user-info svelte-3hfpib");
-    			add_location(div5, file, 242, 12, 7850);
-    			attr_dev(div6, "class", "middle-section svelte-3hfpib");
-    			add_location(div6, file, 240, 8, 7774);
-    			attr_dev(button1, "class", "expander-btn svelte-3hfpib");
-    			add_location(button1, file, 288, 16, 10488);
-    			attr_dev(div7, "class", "control-buttons-container svelte-3hfpib");
-    			add_location(div7, file, 287, 12, 10432);
-    			attr_dev(div8, "class", "bottom-section svelte-3hfpib");
-    			add_location(div8, file, 286, 8, 10391);
-    			attr_dev(div9, "class", "header-content svelte-3hfpib");
-    			add_location(div9, file, 222, 4, 6998);
-    			attr_dev(header, "class", "main-header svelte-3hfpib");
+    			add_location(div4, file, 280, 16, 9479);
+    			attr_dev(div5, "class", "user-info svelte-1gu8jku");
+    			add_location(div5, file, 279, 12, 9439);
+    			attr_dev(div6, "class", "middle-section svelte-1gu8jku");
+    			add_location(div6, file, 277, 8, 9363);
+    			attr_dev(button1, "class", "expander-btn svelte-1gu8jku");
+    			add_location(button1, file, 325, 16, 12077);
+    			attr_dev(div7, "class", "control-buttons-container svelte-1gu8jku");
+    			add_location(div7, file, 324, 12, 12021);
+    			attr_dev(div8, "class", "bottom-section svelte-1gu8jku");
+    			add_location(div8, file, 323, 8, 11980);
+    			attr_dev(div9, "class", "header-content svelte-1gu8jku");
+    			add_location(div9, file, 259, 4, 8587);
+    			attr_dev(header, "class", "main-header svelte-1gu8jku");
     			toggle_class(header, "dark-theme", /*isDarkTheme*/ ctx[0]);
     			toggle_class(header, "expanded", /*isExpanded*/ ctx[7]);
-    			add_location(header, file, 221, 0, 6906);
-    			attr_dev(main, "class", "main-content svelte-3hfpib");
-    			add_location(main, file, 299, 4, 10815);
-    			attr_dev(div10, "class", "app-container svelte-3hfpib");
+    			add_location(header, file, 258, 0, 8495);
+    			attr_dev(main, "class", "main-content svelte-1gu8jku");
+    			add_location(main, file, 336, 4, 12404);
+    			attr_dev(div10, "class", "app-container svelte-1gu8jku");
     			toggle_class(div10, "dark-theme", /*isDarkTheme*/ ctx[0]);
     			toggle_class(div10, "expanded", /*isExpanded*/ ctx[7]);
-    			add_location(div10, file, 297, 0, 10698);
+    			add_location(div10, file, 334, 0, 12287);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -27201,6 +27367,22 @@ For regular events (kind ${kind}), use:
     			localStorage.setItem('nostr_pubkey', pubkey);
     		}
 
+    		// Fetch user relay list and connect to user's relays
+    		try {
+    			console.log('Fetching user relay list...');
+    			const relayList = await fetchUserRelayList(pubkey);
+    			console.log('User relay list:', relayList);
+
+    			if (relayList && relayList.length > 0) {
+    				console.log('Connecting to user relays...');
+    				await nostrClient.connectToUserRelays(relayList);
+    			} else {
+    				console.log('No user relays found, keeping default relays');
+    			}
+    		} catch(error) {
+    			console.error('Failed to fetch user relay list:', error);
+    		} // Continue with default relays if user relay fetch fails
+
     		// Fetch user profile
     		try {
     			const profile = await fetchUserProfile(pubkey);
@@ -27212,7 +27394,7 @@ For regular events (kind ${kind}), use:
     		closeLoginModal();
     	}
 
-    	function handleLogout() {
+    	async function handleLogout() {
     		$$invalidate(4, isLoggedIn = false);
     		$$invalidate(5, userPubkey = '');
     		$$invalidate(1, userProfile = null);
@@ -27225,6 +27407,14 @@ For regular events (kind ${kind}), use:
     			localStorage.removeItem('nostr_auth_method');
     			localStorage.removeItem('nostr_pubkey');
     			localStorage.removeItem('nostr_privkey');
+    		}
+
+    		// Reconnect to default relays
+    		try {
+    			console.log('Reconnecting to default relays after logout...');
+    			await nostrClient.connect();
+    		} catch(error) {
+    			console.error('Failed to reconnect to default relays:', error);
     		}
     	}
 
@@ -27254,11 +27444,23 @@ For regular events (kind ${kind}), use:
 
     	function removeColumn(index) {
     		if (columnCount > 1) {
+    			// Close all columns to the right of the clicked column
     			$$invalidate(9, columnCount = index);
+
+    			// If the column to the left is folded, unfold it
+    			if (index > 0 && foldedBoxes.includes(index - 1)) {
+    				unfoldFromBox(index - 1);
+    			}
     		}
     	}
 
     	function foldBoxes(index) {
+    		// Don't fold if this is the rightmost column and there are no columns to the right
+    		if (index === columnCount - 1) {
+    			console.log('Cannot fold rightmost column - no columns to the right');
+    			return;
+    		}
+
     		// Fold all boxes from 0 to index (inclusive)
     		const newFoldedBoxes = [];
 
@@ -27306,7 +27508,9 @@ For regular events (kind ${kind}), use:
     		LoginModal,
     		getNDK,
     		fetchUserProfile,
+    		fetchUserRelayList,
     		initializeNostrClient,
+    		nostrClient,
     		isDarkTheme,
     		isLogoHovered,
     		showLoginModal,

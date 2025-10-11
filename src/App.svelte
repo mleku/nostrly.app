@@ -1,7 +1,7 @@
 <script>
     import { onMount, afterUpdate } from 'svelte';
     import LoginModal from './LoginModal.svelte';
-    import { getNDK, fetchUserProfile, initializeNostrClient } from './nostr.js';
+    import { getNDK, fetchUserProfile, fetchUserRelayList, initializeNostrClient, nostrClient } from './nostr.js';
     
     let isDarkTheme = false;
     let isLogoHovered = false;
@@ -130,6 +130,23 @@
             localStorage.setItem('nostr_pubkey', pubkey);
         }
         
+        // Fetch user relay list and connect to user's relays
+        try {
+            console.log('Fetching user relay list...');
+            const relayList = await fetchUserRelayList(pubkey);
+            console.log('User relay list:', relayList);
+            
+            if (relayList && relayList.length > 0) {
+                console.log('Connecting to user relays...');
+                await nostrClient.connectToUserRelays(relayList);
+            } else {
+                console.log('No user relays found, keeping default relays');
+            }
+        } catch (error) {
+            console.error('Failed to fetch user relay list:', error);
+            // Continue with default relays if user relay fetch fails
+        }
+        
         // Fetch user profile
         try {
             const profile = await fetchUserProfile(pubkey);
@@ -141,7 +158,7 @@
         closeLoginModal();
     }
 
-    function handleLogout() {
+    async function handleLogout() {
         isLoggedIn = false;
         userPubkey = '';
         userProfile = null;
@@ -154,6 +171,14 @@
             localStorage.removeItem('nostr_auth_method');
             localStorage.removeItem('nostr_pubkey');
             localStorage.removeItem('nostr_privkey');
+        }
+        
+        // Reconnect to default relays
+        try {
+            console.log('Reconnecting to default relays after logout...');
+            await nostrClient.connect();
+        } catch (error) {
+            console.error('Failed to reconnect to default relays:', error);
         }
     }
 
@@ -183,11 +208,23 @@
 
     function removeColumn(index) {
         if (columnCount > 1) {
+            // Close all columns to the right of the clicked column
             columnCount = index;
+            
+            // If the column to the left is folded, unfold it
+            if (index > 0 && foldedBoxes.includes(index - 1)) {
+                unfoldFromBox(index - 1);
+            }
         }
     }
 
     function foldBoxes(index) {
+        // Don't fold if this is the rightmost column and there are no columns to the right
+        if (index === columnCount - 1) {
+            console.log('Cannot fold rightmost column - no columns to the right');
+            return;
+        }
+        
         // Fold all boxes from 0 to index (inclusive)
         const newFoldedBoxes = [];
         for (let i = 0; i <= index; i++) {
@@ -305,7 +342,7 @@
                     <div class="folded-column">
                         {#each foldedBoxes as foldedIndex}
                             <button class="folded-title-btn" on:click={() => unfoldFromBox(foldedIndex)}>
-                                Box {foldedIndex + 1}
+                                {foldedIndex + 1}
                             </button>
                         {/each}
                     </div>
@@ -316,8 +353,8 @@
                     {#if !foldedBoxes.includes(index)}
                         <div class="content-box">
                             <div class="box-header">
-                                <button class="title-btn" on:click={() => foldBoxes(index)}>
-                                    <h3>Box {index + 1}</h3>
+                                <button class="title-btn" class:disabled={index === columnCount - 1} on:click={() => foldBoxes(index)}>
+                                    <h3>{index + 1}</h3>
                                 </button>
                                 <div class="box-controls">
                                     {#if index === columnCount - 1}
@@ -946,13 +983,21 @@
         color: var(--primary);
     }
 
+    .title-btn.disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    .title-btn.disabled:hover h3 {
+        color: var(--text-color);
+    }
+
     .folded-column {
         display: flex;
         flex-direction: column;
         gap: 0.25rem;
         margin-right: 1rem;
-        min-width: 8rem;
-        max-width: 12rem;
+        width: 3rem;
     }
 
     .folded-title-btn {
