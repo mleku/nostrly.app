@@ -337,44 +337,207 @@ export function getNDK() {
 
 // Create extension signer
 export function createExtensionSigner() {
+    console.log('Checking for Nostr extension...');
+    console.log('window.nostr:', window.nostr);
+    console.log('window.nostr type:', typeof window.nostr);
+    
     if (!window.nostr) {
         throw new Error('No Nostr extension found. Please install a NIP-07 compatible extension like nos2x or Alby.');
     }
     
+    // Check if the extension has the required methods
+    if (typeof window.nostr.getPublicKey !== 'function') {
+        throw new Error('Nostr extension does not support getPublicKey method. Please update your extension.');
+    }
+    
+    if (typeof window.nostr.signEvent !== 'function') {
+        throw new Error('Nostr extension does not support signEvent method. Please update your extension.');
+    }
+    
+    console.log('Nostr extension found and validated, creating signer...');
+    
     return {
         async getPublicKey() {
-            return await window.nostr.getPublicKey();
+            try {
+                console.log('Getting public key from extension...');
+                const pubkey = await window.nostr.getPublicKey();
+                console.log('Got public key:', pubkey);
+                
+                if (!pubkey || typeof pubkey !== 'string') {
+                    throw new Error('Invalid public key received from extension');
+                }
+                
+                return pubkey;
+            } catch (error) {
+                console.error('Error getting public key:', error);
+                throw new Error(`Failed to get public key: ${error.message}`);
+            }
         },
         async signEvent(event) {
-            return await window.nostr.signEvent(event);
+            try {
+                console.log('Signing event with extension...');
+                console.log('Event to sign:', event);
+                
+                if (!event || typeof event !== 'object') {
+                    throw new Error('Invalid event object');
+                }
+                
+                const signedEvent = await window.nostr.signEvent(event);
+                console.log('Event signed:', signedEvent);
+                
+                if (!signedEvent || !signedEvent.sig) {
+                    throw new Error('Invalid signed event received from extension');
+                }
+                
+                return signedEvent;
+            } catch (error) {
+                console.error('Error signing event:', error);
+                throw new Error(`Failed to sign event: ${error.message}`);
+            }
         }
     };
+}
+
+// Test extension availability
+export function testExtension() {
+    console.log('Testing Nostr extension availability...');
+    console.log('window.nostr:', window.nostr);
+    console.log('typeof window.nostr:', typeof window.nostr);
+    
+    if (!window.nostr) {
+        return {
+            available: false,
+            error: 'No Nostr extension found'
+        };
+    }
+    
+    const methods = {
+        getPublicKey: typeof window.nostr.getPublicKey === 'function',
+        signEvent: typeof window.nostr.signEvent === 'function',
+        getRelays: typeof window.nostr.getRelays === 'function',
+        nip04: {
+            encrypt: typeof window.nostr.nip04?.encrypt === 'function',
+            decrypt: typeof window.nostr.nip04?.decrypt === 'function'
+        }
+    };
+    
+    console.log('Extension methods available:', methods);
+    
+    return {
+        available: true,
+        methods
+    };
+}
+
+// Simple NIP-07 login without NDK dependency
+export async function loginWithNIP07() {
+    try {
+        console.log('Starting NIP-07 login...');
+        
+        // Check if extension is available
+        if (!window.nostr) {
+            throw new Error('No Nostr extension found. Please install a NIP-07 compatible extension like nos2x or Alby.');
+        }
+        
+        // Check if the extension has the required methods
+        if (typeof window.nostr.getPublicKey !== 'function') {
+            throw new Error('Nostr extension does not support getPublicKey method. Please update your extension.');
+        }
+        
+        console.log('Extension detected, getting public key...');
+        const pubkey = await window.nostr.getPublicKey();
+        console.log('Public key obtained:', pubkey);
+        
+        if (!pubkey || typeof pubkey !== 'string') {
+            throw new Error('Invalid public key received from extension');
+        }
+        
+        // Create a simple signer object
+        const signer = {
+            async getPublicKey() {
+                return pubkey;
+            },
+            async signEvent(event) {
+                if (!window.nostr.signEvent) {
+                    throw new Error('Extension does not support signEvent');
+                }
+                return await window.nostr.signEvent(event);
+            }
+        };
+        
+        console.log('NIP-07 login successful');
+        return {
+            pubkey,
+            profile: null, // Will be fetched separately
+            signer
+        };
+    } catch (error) {
+        console.error('NIP-07 login failed:', error);
+        throw error;
+    }
 }
 
 // Login with extension using NDK
 export async function loginWithExtension() {
     try {
-        const ndk = await initializeNDK();
+        console.log('Starting extension login...');
+        
+        // First check if extension is available
+        if (!window.nostr) {
+            throw new Error('No Nostr extension found. Please install a NIP-07 compatible extension like nos2x or Alby.');
+        }
+        
+        console.log('Extension detected, creating signer...');
         const signer = createExtensionSigner();
+        console.log('Signer created:', signer);
+        
+        // Get the user's public key first
+        console.log('Getting public key...');
+        const pubkey = await signer.getPublicKey();
+        console.log('Public key obtained:', pubkey);
+        
+        // Initialize NDK with the signer
+        console.log('Initializing NDK...');
+        const ndk = await initializeNDK();
+        console.log('NDK initialized:', ndk);
         
         // Set the signer on NDK
+        console.log('Setting signer on NDK...');
         ndk.signer = signer;
         
-        // Get the user's public key
-        const pubkey = await signer.getPublicKey();
-        
         // Get user profile
+        console.log('Fetching user profile...');
         const user = ndk.getUser({ pubkey });
-        await user.fetchProfile();
         
-        return {
+        try {
+            await user.fetchProfile();
+            console.log('User profile fetched:', user.profile);
+        } catch (profileError) {
+            console.warn('Failed to fetch profile, continuing with basic info:', profileError);
+            // Continue even if profile fetch fails
+        }
+        
+        const result = {
             pubkey,
-            profile: user.profile,
+            profile: user.profile || null,
             ndk,
             signer
         };
+        
+        console.log('Extension login successful:', result);
+        return result;
     } catch (error) {
         console.error('Extension login failed:', error);
-        throw error;
+        
+        // Provide more specific error messages
+        if (error.message.includes('No Nostr extension')) {
+            throw new Error('No Nostr extension found. Please install a NIP-07 compatible extension like nos2x or Alby.');
+        } else if (error.message.includes('getPublicKey')) {
+            throw new Error('Failed to get public key from extension. Please check your extension permissions.');
+        } else if (error.message.includes('signEvent')) {
+            throw new Error('Failed to sign event with extension. Please check your extension permissions.');
+        } else {
+            throw new Error(`Extension login failed: ${error.message}`);
+        }
     }
 }

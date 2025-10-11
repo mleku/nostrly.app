@@ -1,6 +1,6 @@
 <script>
     import { createEventDispatcher } from 'svelte';
-    import { loginWithExtension } from './nostr.js';
+    import { loginWithNIP07, loginWithExtension, testExtension } from './nostr.js';
     
     const dispatch = createEventDispatcher();
     
@@ -10,29 +10,51 @@
     let isLoading = false;
     let errorMessage = '';
     let successMessage = '';
+    let extensionTestResult = null;
     
     function closeModal() {
         showModal = false;
         errorMessage = '';
         successMessage = '';
+        extensionTestResult = null;
         dispatch('close');
     }
     
+    function testExtensionHandler() {
+        console.log('Testing extension...');
+        extensionTestResult = testExtension();
+        console.log('Extension test result:', extensionTestResult);
+    }
+    
     async function loginWithExtensionHandler() {
+        console.log('LoginModal: Starting extension login handler...');
         isLoading = true;
         errorMessage = '';
         successMessage = '';
         
         try {
-            // Use NDK extension login
-            const result = await loginWithExtension();
+            console.log('LoginModal: Trying simple NIP-07 login first...');
+            let result;
+            
+            try {
+                // Try simple NIP-07 login first
+                result = await loginWithNIP07();
+                console.log('LoginModal: NIP-07 login successful:', result);
+            } catch (nip07Error) {
+                console.warn('LoginModal: NIP-07 login failed, trying NDK method:', nip07Error);
+                // Fallback to NDK method
+                result = await loginWithExtension();
+                console.log('LoginModal: NDK extension login result:', result);
+            }
             
             if (result.pubkey) {
+                console.log('LoginModal: Login successful, storing auth info...');
                 // Store authentication info
                 localStorage.setItem('nostr_auth_method', 'extension');
                 localStorage.setItem('nostr_pubkey', result.pubkey);
                 
                 successMessage = 'Successfully logged in with extension!';
+                console.log('LoginModal: Dispatching login event...');
                 dispatch('login', {
                     method: 'extension',
                     pubkey: result.pubkey,
@@ -44,8 +66,12 @@
                 setTimeout(() => {
                     closeModal();
                 }, 1000);
+            } else {
+                console.error('LoginModal: No pubkey in result');
+                errorMessage = 'Login failed: No public key received';
             }
         } catch (error) {
+            console.error('LoginModal: Extension login error:', error);
             errorMessage = error.message;
         } finally {
             isLoading = false;
@@ -63,6 +89,32 @@
             <div class="modal-content">
                 <div class="login-section">
                     <p>Login using a NIP-07 compatible browser extension like nos2x or Alby.</p>
+                    
+                    <button 
+                        class="test-extension-btn"
+                        on:click={testExtensionHandler}
+                    >
+                        Test Extension
+                    </button>
+                    
+                    {#if extensionTestResult}
+                        <div class="extension-test-result">
+                            <h4>Extension Test Results:</h4>
+                            {#if extensionTestResult.available}
+                                <p class="success">✓ Extension detected</p>
+                                <div class="methods">
+                                    <p>Available methods:</p>
+                                    <ul>
+                                        <li>getPublicKey: {extensionTestResult.methods.getPublicKey ? '✓' : '✗'}</li>
+                                        <li>signEvent: {extensionTestResult.methods.signEvent ? '✓' : '✗'}</li>
+                                        <li>getRelays: {extensionTestResult.methods.getRelays ? '✓' : '✗'}</li>
+                                    </ul>
+                                </div>
+                            {:else}
+                                <p class="error">✗ {extensionTestResult.error}</p>
+                            {/if}
+                        </div>
+                    {/if}
                     
                     {#if errorMessage}
                         <div class="error-message">
@@ -180,6 +232,66 @@
     .login-extension-btn:disabled {
         background: #ccc;
         cursor: not-allowed;
+    }
+    
+    .test-extension-btn {
+        background: #2196F3;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-bottom: 1rem;
+    }
+    
+    .test-extension-btn:hover {
+        background: #1976D2;
+    }
+    
+    .extension-test-result {
+        background: #f5f5f5;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .extension-test-result h4 {
+        margin: 0 0 0.5rem 0;
+        color: var(--text-color);
+        font-size: 1rem;
+    }
+    
+    .extension-test-result .success {
+        color: #2e7d32;
+        margin: 0.25rem 0;
+    }
+    
+    .extension-test-result .error {
+        color: #c62828;
+        margin: 0.25rem 0;
+    }
+    
+    .extension-test-result .methods {
+        margin-top: 0.5rem;
+    }
+    
+    .extension-test-result .methods p {
+        margin: 0.25rem 0;
+        font-weight: 500;
+    }
+    
+    .extension-test-result .methods ul {
+        margin: 0.25rem 0;
+        padding-left: 1.5rem;
+    }
+    
+    .extension-test-result .methods li {
+        margin: 0.1rem 0;
     }
     
     .error-message {
