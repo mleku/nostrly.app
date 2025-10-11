@@ -13,6 +13,9 @@
     let ndk = null;
     let isExpanded = false;
     let profileFetchAttempted = false;
+    let activeView = 'global'; // 'welcome' or 'global'
+    let columnCount = 1; // Number of columns displayed
+    let foldedBoxes = []; // Array of folded box indices
 
     // Load theme preference from localStorage on component initialization
     if (typeof localStorage !== 'undefined') {
@@ -166,6 +169,41 @@
         isExpanded = !isExpanded;
     }
 
+    function switchToGlobalView() {
+        activeView = 'global';
+    }
+
+    function switchToWelcomeView() {
+        activeView = 'welcome';
+    }
+
+    function addColumn() {
+        columnCount += 1;
+    }
+
+    function removeColumn(index) {
+        if (columnCount > 1) {
+            columnCount = index;
+        }
+    }
+
+    function foldBoxes(index) {
+        // Fold all boxes from 0 to index (inclusive)
+        const newFoldedBoxes = [];
+        for (let i = 0; i <= index; i++) {
+            if (!foldedBoxes.includes(i)) {
+                newFoldedBoxes.push(i);
+            }
+        }
+        foldedBoxes = [...foldedBoxes, ...newFoldedBoxes];
+    }
+
+    function unfoldFromBox(index) {
+        // Unfold from index onwards (including index)
+        foldedBoxes = foldedBoxes.filter(i => i < index);
+    }
+
+
     $: if (typeof document !== 'undefined') {
         if (isDarkTheme) {
             document.body.classList.add('dark-theme');
@@ -199,23 +237,49 @@
             </div>
         </div>
         
-        <!-- Middle Section: User login/avatar (centered vertically) -->
+        <!-- Middle Section: Global and User login/avatar (centered vertically) -->
         <div class="middle-section">
-            {#if isLoggedIn}
-                <div class="user-info">
-                    <button class="user-profile-btn" class:expanded={isExpanded} on:click={openSettingsDrawer}>
-                        {#if userProfile?.picture}
-                            <img src={userProfile.picture} alt="User avatar" class="user-avatar" />
-                        {:else}
-                            <div class="user-avatar-placeholder">👤</div>
-                        {/if}
-                        <span class="user-name">
-                            {userProfile?.name || userPubkey.slice(0, 8) + '...'}
-                        </span>
+            <!-- Global Button -->
+            <div class="user-info">
+                <div class="tab-container" class:active={activeView === 'global'}>
+                    {#if activeView === 'global' && !isExpanded}
+                        <div class="vertical-label">Global</div>
+                    {/if}
+                    <button class="user-profile-btn" class:expanded={isExpanded} class:active={activeView === 'global'} on:click={switchToGlobalView} title={isExpanded ? '' : 'Global'}>
+                        <div class="user-avatar-placeholder">🌍</div>
+                        <span class="user-name">Global</span>
                     </button>
                 </div>
+            </div>
+            
+            <!-- User Button -->
+            {#if isLoggedIn}
+                <div class="user-info">
+                    <div class="tab-container" class:active={activeView === 'welcome'}>
+                        {#if activeView === 'welcome' && !isExpanded}
+                            <div class="vertical-label">User</div>
+                        {/if}
+                        <button class="user-profile-btn" class:expanded={isExpanded} class:active={activeView === 'welcome'} on:click={openSettingsDrawer} title={isExpanded ? '' : (userProfile?.name || userPubkey.slice(0, 8) + '...')}>
+                            {#if userProfile?.picture}
+                                <img src={userProfile.picture} alt="User avatar" class="user-avatar" />
+                            {:else}
+                                <div class="user-avatar-placeholder">👤</div>
+                            {/if}
+                            <span class="user-name">
+                                {userProfile?.name || userPubkey.slice(0, 8) + '...'}
+                            </span>
+                        </button>
+                    </div>
+                </div>
             {:else}
-                <button class="login-btn" on:click={openLoginModal}>🔑<span class="login-text"> Log in</span></button>
+                <div class="user-info">
+                    <div class="tab-container" class:active={activeView === 'welcome'}>
+                        {#if activeView === 'welcome' && !isExpanded}
+                            <div class="vertical-label">Login</div>
+                        {/if}
+                        <button class="login-btn" class:expanded={isExpanded} class:active={activeView === 'welcome'} on:click={openLoginModal} title={isExpanded ? '' : 'Log in'}>🔑<span class="login-text"> Log in</span></button>
+                    </div>
+                </div>
             {/if}
         </div>
         
@@ -234,7 +298,53 @@
 <div class="app-container" class:dark-theme={isDarkTheme} class:expanded={isExpanded}>
     <!-- Main Content -->
     <main class="main-content">
-        <p>Welcome to nostrly.app - A Nostr client application.</p>
+        {#if activeView === 'global'}
+            <div class="global-container">
+                <!-- Folded Boxes Column -->
+                {#if foldedBoxes.length > 0}
+                    <div class="folded-column">
+                        {#each foldedBoxes as foldedIndex}
+                            <button class="folded-title-btn" on:click={() => unfoldFromBox(foldedIndex)}>
+                                Box {foldedIndex + 1}
+                            </button>
+                        {/each}
+                    </div>
+                {/if}
+                
+                <!-- Active Boxes -->
+                {#each Array(columnCount) as _, index}
+                    {#if !foldedBoxes.includes(index)}
+                        <div class="content-box">
+                            <div class="box-header">
+                                <button class="title-btn" on:click={() => foldBoxes(index)}>
+                                    <h3>Box {index + 1}</h3>
+                                </button>
+                                <div class="box-controls">
+                                    {#if index === columnCount - 1}
+                                        <button class="control-btn add-btn" on:click={addColumn}>+</button>
+                                    {/if}
+                                    {#if columnCount > 1 && index > 0}
+                                        <button class="control-btn remove-btn" on:click={() => removeColumn(index)}>-</button>
+                                    {/if}
+                                </div>
+                            </div>
+                            <p>This is dummy content for box {index + 1}. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                            <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+                            <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.</p>
+                            <p>Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.</p>
+                            <p>Sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.</p>
+                            <p>Sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam.</p>
+                            <p>Nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur.</p>
+                            <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
+                            <p>Similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio.</p>
+                            <p>Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus.</p>
+                        </div>
+                    {/if}
+                {/each}
+            </div>
+        {:else}
+            <p>Welcome to nostrly.app - A Nostr client application.</p>
+        {/if}
     </main>
 </div>
 
@@ -463,6 +573,7 @@
         width: 100%;
     }
 
+
     .bottom-section {
         display: flex;
         flex-direction: column;
@@ -608,6 +719,33 @@
         padding: 0;
         width: 100%;
     }
+
+    .tab-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        position: relative;
+    }
+
+    .tab-container.active {
+        background-color: var(--bg-color);
+        border-radius: 8px 0 0 8px;
+        margin-right: -1px;
+        padding: 0.5em 0.5em 0.5em 0;
+    }
+
+    .vertical-label {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        transform: rotate(180deg);
+        font-size: 0.8em;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 0.5em;
+        white-space: nowrap;
+        letter-spacing: 0.1em;
+    }
     
     .user-profile-btn {
         border: 0 none;
@@ -623,6 +761,7 @@
         margin: 0;
         transition: background-color 0.2s;
         font-size: 1em;
+        height: 3em;
     }
 
     .user-profile-btn.expanded {
@@ -639,20 +778,21 @@
     .user-avatar, .user-avatar-placeholder {
         width: 2em;
         height: 2em;
-        /* font-size: 2em; */
         border-radius: 50%;
         object-fit: cover;
         flex-shrink: 0;
         padding:0.5em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .user-avatar-placeholder {
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: var(--primary);
         color: white;
-        font-size: 0.6em;
+        font-size: 1em;
     }
     
     .user-name {
@@ -660,27 +800,40 @@
         width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
+        height: 2em;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
     }
 
     .user-profile-btn.expanded .user-name {
-        font-size: 1.2em;
+        font-size: 1em;
         padding:0.5em;
         margin:0;
         text-align: left;
         flex: 1;
     }
 
+    .user-profile-btn.active {
+        background-color: var(--primary);
+        color: white;
+    }
+
+    .login-btn.active {
+        background-color: var(--primary);
+        color: white;
+    }
+
+
 
     /* App Container */
     .app-container {
         display: flex;
-        margin-left: 3em;
         height: 100vh;
-        transition: margin-left 0.3s ease;
-    }
-
-    .app-container.expanded {
-        margin-left: 8em;
+        width: 100vw;
+        position: fixed;
+        top: 0;
+        left: 0;
     }
 
     /* Main Content */
@@ -688,8 +841,17 @@
         flex: 1;
         padding: 2rem;
         overflow-y: auto;
+        overflow-x: hidden;
         background-color: var(--bg-color);
         color: var(--text-color);
+        margin-left: 3em;
+        transition: margin-left 0.3s ease;
+        width: calc(100vw - 3em);
+    }
+
+    .app-container.expanded .main-content {
+        margin-left: 12em;
+        width: calc(100vw - 12em);
     }
 
 
@@ -698,6 +860,135 @@
         font-size: 1.2em;
         color: var(--text-color);
     }
+
+    /* Global Container */
+    .global-container {
+        display: flex;
+        flex-direction: row;
+        height: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .content-box {
+        flex: 1 1 0;
+        min-width: 0;
+        max-width: 32em;
+        border: none;
+        padding: 1em;
+        background-color: var(--bg-color);
+        overflow-y: auto;
+        overflow-x: hidden;
+        max-height: calc(100vh - 4rem);
+    }
+
+    .box-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+    }
+
+    .content-box h3 {
+        margin: 0;
+        color: var(--text-color);
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .box-controls {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .control-btn {
+        width: 1.5rem;
+        height: 1.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background-color: var(--button-bg);
+        color: var(--text-color);
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+    }
+
+    .control-btn:hover {
+        background-color: var(--button-hover-bg);
+    }
+
+    .add-btn:hover {
+        background-color: var(--primary);
+        color: white;
+    }
+
+    .remove-btn:hover {
+        background-color: var(--warning);
+        color: white;
+    }
+
+    .title-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+        text-align: left;
+    }
+
+    .title-btn:hover h3 {
+        color: var(--primary);
+    }
+
+    .folded-column {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-right: 1rem;
+        min-width: 8rem;
+        max-width: 12rem;
+    }
+
+    .folded-title-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background-color: var(--button-bg);
+        color: var(--text-color);
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-align: left;
+        transition: background-color 0.2s;
+        height: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        white-space: nowrap;
+    }
+
+    .folded-title-btn:hover {
+        background-color: var(--button-hover-bg);
+    }
+
+    .content-box p {
+        margin: 0 0 1rem 0;
+        color: var(--text-color);
+        line-height: 1.6;
+        text-align: left;
+        font-size: 0.9rem;
+    }
+
+    .content-box p:last-child {
+        margin-bottom: 0;
+    }
+
 
     @media (max-width: 640px) {
         .main-header {
@@ -708,12 +999,14 @@
             width: 6em;
         }
         
-        .app-container {
+        .main-content {
             margin-left: 3em;
+            width: calc(100vw - 3em);
         }
         
-        .app-container.expanded {
+        .app-container.expanded .main-content {
             margin-left: 6em;
+            width: calc(100vw - 6em);
         }
         
         .header-content {
@@ -793,6 +1086,18 @@
         .expander-btn {
             width: 100%;
         }
+
+        .global-container {
+            padding: 0;
+            gap: 0;
+        }
+
+        .content-box {
+            flex: 0 0 250px;
+            padding: 0.75rem;
+            max-height: calc(100vh - 2rem);
+        }
+
     }
 
     /* Settings Drawer */
@@ -908,7 +1213,7 @@
 
     .profile-username {
         margin: 0;
-        font-size: 0.5rem;
+        font-size: 2em;
         color: #000;
         text-shadow: 0 2px 4px rgba(255,255,255,0.8);
         font-weight: 600;
