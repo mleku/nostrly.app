@@ -25739,7 +25739,7 @@ For regular events (kind ${kind}), use:
     	return child_ctx;
     }
 
-    // (344:4) {:else}
+    // (367:4) {:else}
     function create_else_block_1$2(ctx) {
     	let each_blocks = [];
     	let each_1_lookup = new Map();
@@ -25813,14 +25813,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_else_block_1$2.name,
     		type: "else",
-    		source: "(344:4) {:else}",
+    		source: "(367:4) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (332:48) 
+    // (355:48) 
     function create_if_block_1$2(ctx) {
     	let div;
 
@@ -25839,7 +25839,7 @@ For regular events (kind ${kind}), use:
     			div = element("div");
     			if_block.c();
     			attr_dev(div, "class", "empty-feed svelte-1qlbd9m");
-    			add_location(div, file$2, 332, 8, 11466);
+    			add_location(div, file$2, 355, 8, 12114);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -25866,14 +25866,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_1$2.name,
     		type: "if",
-    		source: "(332:48) ",
+    		source: "(355:48) ",
     		ctx
     	});
 
     	return block;
     }
 
-    // (330:4) {#if isLoading && events.length === 0}
+    // (353:4) {#if isLoading && events.length === 0}
     function create_if_block$2(ctx) {
     	let div;
 
@@ -25882,7 +25882,7 @@ For regular events (kind ${kind}), use:
     			div = element("div");
     			div.textContent = "Loading feed...";
     			attr_dev(div, "class", "loading svelte-1qlbd9m");
-    			add_location(div, file$2, 330, 8, 11366);
+    			add_location(div, file$2, 353, 8, 12014);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -25897,14 +25897,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block$2.name,
     		type: "if",
-    		source: "(330:4) {#if isLoading && events.length === 0}",
+    		source: "(353:4) {#if isLoading && events.length === 0}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (355:20) {:else}
+    // (378:20) {:else}
     function create_else_block_2$2(ctx) {
     	let span;
 
@@ -25913,7 +25913,7 @@ For regular events (kind ${kind}), use:
     			span = element("span");
     			span.textContent = "💬";
     			attr_dev(span, "class", "thread-indicator svelte-1qlbd9m");
-    			add_location(span, file$2, 355, 24, 12439);
+    			add_location(span, file$2, 378, 24, 13087);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, span, anchor);
@@ -25927,14 +25927,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_else_block_2$2.name,
     		type: "else",
-    		source: "(355:20) {:else}",
+    		source: "(378:20) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (353:20) {#if isReply(event)}
+    // (376:20) {#if isReply(event)}
     function create_if_block_6$1(ctx) {
     	let span;
 
@@ -25943,7 +25943,7 @@ For regular events (kind ${kind}), use:
     			span = element("span");
     			span.textContent = "↩";
     			attr_dev(span, "class", "reply-indicator svelte-1qlbd9m");
-    			add_location(span, file$2, 353, 24, 12348);
+    			add_location(span, file$2, 376, 24, 12996);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, span, anchor);
@@ -25957,14 +25957,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_6$1.name,
     		type: "if",
-    		source: "(353:20) {#if isReply(event)}",
+    		source: "(376:20) {#if isReply(event)}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (345:8) {#each filterEvents(events) as event (event.id)}
+    // (368:8) {#each filterEvents(events) as event (event.id)}
     function create_each_block$1(key_1, ctx) {
     	let button;
     	let div0;
@@ -26017,17 +26017,17 @@ For regular events (kind ${kind}), use:
     			div1 = element("div");
     			t6 = text(t6_value);
     			attr_dev(span0, "class", "event-author svelte-1qlbd9m");
-    			add_location(span0, file$2, 350, 20, 12136);
+    			add_location(span0, file$2, 373, 20, 12784);
     			attr_dev(span1, "class", "event-time svelte-1qlbd9m");
-    			add_location(span1, file$2, 351, 20, 12220);
+    			add_location(span1, file$2, 374, 20, 12868);
     			attr_dev(div0, "class", "event-header svelte-1qlbd9m");
-    			add_location(div0, file$2, 349, 16, 12089);
+    			add_location(div0, file$2, 372, 16, 12737);
     			attr_dev(div1, "class", "event-content svelte-1qlbd9m");
-    			add_location(div1, file$2, 358, 16, 12545);
+    			add_location(div1, file$2, 381, 16, 13193);
     			attr_dev(button, "class", "event-card svelte-1qlbd9m");
     			toggle_class(button, "reply", isReply$1(/*event*/ ctx[23]));
     			toggle_class(button, "clickable", true);
-    			add_location(button, file$2, 345, 12, 11891);
+    			add_location(button, file$2, 368, 12, 12539);
     			this.first = button;
     		},
     		m: function mount(target, anchor) {
@@ -26083,14 +26083,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_each_block$1.name,
     		type: "each",
-    		source: "(345:8) {#each filterEvents(events) as event (event.id)}",
+    		source: "(368:8) {#each filterEvents(events) as event (event.id)}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (365:8) {#if loadingMore}
+    // (388:8) {#if loadingMore}
     function create_if_block_5$2(ctx) {
     	let div;
 
@@ -26099,7 +26099,7 @@ For regular events (kind ${kind}), use:
     			div = element("div");
     			div.textContent = "Loading more...";
     			attr_dev(div, "class", "loading-more svelte-1qlbd9m");
-    			add_location(div, file$2, 365, 12, 12717);
+    			add_location(div, file$2, 388, 12, 13365);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -26113,14 +26113,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_5$2.name,
     		type: "if",
-    		source: "(365:8) {#if loadingMore}",
+    		source: "(388:8) {#if loadingMore}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (340:12) {:else}
+    // (363:12) {:else}
     function create_else_block$2(ctx) {
     	let t;
 
@@ -26140,14 +26140,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_else_block$2.name,
     		type: "else",
-    		source: "(340:12) {:else}",
+    		source: "(363:12) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (338:47) 
+    // (361:47) 
     function create_if_block_4$2(ctx) {
     	let t;
 
@@ -26167,14 +26167,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_4$2.name,
     		type: "if",
-    		source: "(338:47) ",
+    		source: "(361:47) ",
     		ctx
     	});
 
     	return block;
     }
 
-    // (336:45) 
+    // (359:45) 
     function create_if_block_3$2(ctx) {
     	let t;
 
@@ -26194,14 +26194,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_3$2.name,
     		type: "if",
-    		source: "(336:45) ",
+    		source: "(359:45) ",
     		ctx
     	});
 
     	return block;
     }
 
-    // (334:12) {#if feedFilter === 'replies'}
+    // (357:12) {#if feedFilter === 'replies'}
     function create_if_block_2$2(ctx) {
     	let t;
 
@@ -26221,7 +26221,7 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_2$2.name,
     		type: "if",
-    		source: "(334:12) {#if feedFilter === 'replies'}",
+    		source: "(357:12) {#if feedFilter === 'replies'}",
     		ctx
     	});
 
@@ -26250,7 +26250,7 @@ For regular events (kind ${kind}), use:
     			div = element("div");
     			if_block.c();
     			attr_dev(div, "class", "nostr-feed svelte-1qlbd9m");
-    			add_location(div, file$2, 328, 0, 11239);
+    			add_location(div, file$2, 351, 0, 11887);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -26460,30 +26460,20 @@ For regular events (kind ${kind}), use:
 
     				if (addEvent(event)) {
     					console.log(`Loaded ${events.length} events`);
-
-    					// Mark as loaded once when we get our first batch
-    					if (!hasLoadedOnce && events.length > 0) {
-    						hasLoadedOnce = true;
-    						console.log('Initial load completed');
-    					}
     				}
     			});
 
-    			// Set a timeout to stop loading if no events come in
+    			// Set a timeout to mark initial load as complete
     			setTimeout(
     				() => {
-    					if (events.length === 0) {
-    						console.log('No events received, stopping loading');
-    						$$invalidate(2, isLoading = false);
-    					} else if (!hasLoadedOnce) {
-    						// Mark as loaded even if timeout occurs
+    					if (!hasLoadedOnce) {
     						hasLoadedOnce = true;
-
-    						console.log('Initial load completed (timeout)');
+    						$$invalidate(2, isLoading = false);
+    						console.log('Initial load completed');
     					}
     				},
-    				10000
-    			);
+    				5000
+    			); // Reduced timeout for faster initial load completion
     		} catch(error) {
     			console.error('Failed to load events:', error);
     		} finally {
@@ -26493,9 +26483,10 @@ For regular events (kind ${kind}), use:
 
     	// Load more events (for infinite scroll)
     	async function loadMoreEvents() {
-    		if (loadingMore || !hasMore || !oldestEventTime) return;
+    		if (loadingMore || !hasMore || !oldestEventTime || !hasLoadedOnce) return;
     		$$invalidate(3, loadingMore = true);
     		console.log('Loading more events...');
+    		let eventsLoaded = 0;
 
     		try {
     			const moreSubscriptionId = nostrClient.subscribe(
@@ -26507,6 +26498,7 @@ For regular events (kind ${kind}), use:
     				},
     				event => {
     					if (addEvent(event)) {
+    						eventsLoaded++;
     						console.log(`Total events: ${events.length}`);
     					}
     				}
@@ -26517,6 +26509,12 @@ For regular events (kind ${kind}), use:
     				() => {
     					nostrClient.unsubscribe(moreSubscriptionId);
     					$$invalidate(3, loadingMore = false);
+
+    					// If no events were loaded, we've reached the end
+    					if (eventsLoaded === 0) {
+    						hasMore = false;
+    						console.log('No more events to load');
+    					}
     				},
     				3000
     			);
@@ -26529,11 +26527,18 @@ For regular events (kind ${kind}), use:
     	// Handle scroll to detect when to load more
     	function handleScroll(event) {
     		const { scrollTop, scrollHeight, clientHeight } = event.target;
-    		const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
 
-    		// Load more when scrolled to 70% of content for more responsive loading
-    		if (scrollPercentage > 0.7 && hasMore && !loadingMore) {
-    			console.log('Scroll triggered load more');
+    		// Calculate how many events are visible and loaded
+    		const eventHeight = 80; // Approximate height of each event
+
+    		const visibleEvents = Math.ceil(clientHeight / eventHeight);
+    		const loadedEvents = events.length;
+
+    		// Load more when within 10 events of the end
+    		const eventsFromEnd = loadedEvents - visibleEvents - Math.floor(scrollTop / eventHeight);
+
+    		if (eventsFromEnd <= 10 && hasMore && !loadingMore && hasLoadedOnce) {
+    			console.log('Scroll triggered load more - within 10 events of end');
     			loadMoreEvents();
     		}
     	}
@@ -26582,8 +26587,25 @@ For regular events (kind ${kind}), use:
     		}
 
     		if (nostrClient.relays.size > 0) {
-    			// Reset the loaded flag to allow fresh loading
+    			// Reset all state for fresh loading
     			hasLoadedOnce = false;
+
+    			hasMore = true;
+    			$$invalidate(3, loadingMore = false);
+    			$$invalidate(1, events = []);
+    			eventIds.clear();
+    			pendingEvents = [];
+    			oldestEventTime = null;
+
+    			if (subscriptionId) {
+    				nostrClient.unsubscribe(subscriptionId);
+    				subscriptionId = null;
+    			}
+
+    			if (sortTimeout) {
+    				clearTimeout(sortTimeout);
+    				sortTimeout = null;
+    			}
 
     			loadEvents();
     		} else {

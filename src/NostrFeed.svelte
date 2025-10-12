@@ -122,27 +122,18 @@
                     console.log('Received event:', event);
                     if (addEvent(event)) {
                         console.log(`Loaded ${events.length} events`);
-                        
-                        // Mark as loaded once when we get our first batch
-                        if (!hasLoadedOnce && events.length > 0) {
-                            hasLoadedOnce = true;
-                            console.log('Initial load completed');
-                        }
                     }
                 }
             );
             
-            // Set a timeout to stop loading if no events come in
+            // Set a timeout to mark initial load as complete
             setTimeout(() => {
-                if (events.length === 0) {
-                    console.log('No events received, stopping loading');
-                    isLoading = false;
-                } else if (!hasLoadedOnce) {
-                    // Mark as loaded even if timeout occurs
+                if (!hasLoadedOnce) {
                     hasLoadedOnce = true;
-                    console.log('Initial load completed (timeout)');
+                    isLoading = false;
+                    console.log('Initial load completed');
                 }
-            }, 10000);
+            }, 5000); // Reduced timeout for faster initial load completion
             
         } catch (error) {
             console.error('Failed to load events:', error);
@@ -153,10 +144,12 @@
 
     // Load more events (for infinite scroll)
     async function loadMoreEvents() {
-        if (loadingMore || !hasMore || !oldestEventTime) return;
+        if (loadingMore || !hasMore || !oldestEventTime || !hasLoadedOnce) return;
         
         loadingMore = true;
         console.log('Loading more events...');
+        
+        let eventsLoaded = 0;
         
         try {
             const moreSubscriptionId = nostrClient.subscribe(
@@ -167,6 +160,7 @@
                 },
                 (event) => {
                     if (addEvent(event)) {
+                        eventsLoaded++;
                         console.log(`Total events: ${events.length}`);
                     }
                 }
@@ -176,6 +170,12 @@
             setTimeout(() => {
                 nostrClient.unsubscribe(moreSubscriptionId);
                 loadingMore = false;
+                
+                // If no events were loaded, we've reached the end
+                if (eventsLoaded === 0) {
+                    hasMore = false;
+                    console.log('No more events to load');
+                }
             }, 3000);
             
         } catch (error) {
@@ -187,11 +187,17 @@
     // Handle scroll to detect when to load more
     function handleScroll(event) {
         const { scrollTop, scrollHeight, clientHeight } = event.target;
-        const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
         
-        // Load more when scrolled to 70% of content for more responsive loading
-        if (scrollPercentage > 0.7 && hasMore && !loadingMore) {
-            console.log('Scroll triggered load more');
+        // Calculate how many events are visible and loaded
+        const eventHeight = 80; // Approximate height of each event
+        const visibleEvents = Math.ceil(clientHeight / eventHeight);
+        const loadedEvents = events.length;
+        
+        // Load more when within 10 events of the end
+        const eventsFromEnd = loadedEvents - visibleEvents - Math.floor(scrollTop / eventHeight);
+        
+        if (eventsFromEnd <= 10 && hasMore && !loadingMore && hasLoadedOnce) {
+            console.log('Scroll triggered load more - within 10 events of end');
             loadMoreEvents();
         }
     }
@@ -270,10 +276,27 @@
             await new Promise(resolve => setTimeout(resolve, 200));
             attempts++;
         }
-        
+
         if (nostrClient.relays.size > 0) {
-            // Reset the loaded flag to allow fresh loading
+            // Reset all state for fresh loading
             hasLoadedOnce = false;
+            hasMore = true;
+            loadingMore = false;
+            events = [];
+            eventIds.clear();
+            pendingEvents = [];
+            oldestEventTime = null;
+            
+            if (subscriptionId) {
+                nostrClient.unsubscribe(subscriptionId);
+                subscriptionId = null;
+            }
+            
+            if (sortTimeout) {
+                clearTimeout(sortTimeout);
+                sortTimeout = null;
+            }
+            
             loadEvents();
         } else {
             console.error('Nostr client not ready for reload');
