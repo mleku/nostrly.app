@@ -11,6 +11,8 @@
     let replies = [];
     let isLoading = false;
     let subscriptionId = null;
+    let replyChain = []; // Array of ancestor events in the reply chain
+    let showPreviousReplies = false; // Toggle for showing previous replies
 
     // Fetch the original event
     async function fetchOriginalEvent() {
@@ -116,6 +118,80 @@
         dispatch('eventSelect', reply.id);
     }
 
+    // Fetch reply chain (ancestors)
+    async function fetchReplyChain() {
+        if (!originalEvent || !isReply(originalEvent)) {
+            replyChain = [];
+            return;
+        }
+
+        const chain = [];
+        let currentEvent = originalEvent;
+        
+        // Follow the chain backwards
+        while (isReply(currentEvent)) {
+            const parentId = getReplyToEventId(currentEvent);
+            if (!parentId) break;
+
+            try {
+                const parentEvent = await fetchEventById(parentId);
+                if (parentEvent) {
+                    chain.unshift(parentEvent); // Add to beginning of array
+                    currentEvent = parentEvent;
+                } else {
+                    break;
+                }
+            } catch (error) {
+                console.error('Failed to fetch parent event:', error);
+                break;
+            }
+        }
+
+        replyChain = chain;
+    }
+
+    // Fetch a single event by ID
+    async function fetchEventById(eventId) {
+        return new Promise((resolve) => {
+            let found = false;
+            const subscriptionId = nostrClient.subscribe(
+                { ids: [eventId] },
+                (event) => {
+                    if (event && event.id === eventId) {
+                        found = true;
+                        resolve(event);
+                    }
+                }
+            );
+            
+            // Timeout if no event found
+            setTimeout(() => {
+                if (!found) {
+                    nostrClient.unsubscribe(subscriptionId);
+                    resolve(null);
+                }
+            }, 3000);
+        });
+    }
+
+    // Handle chain item click
+    function handleChainItemClick(event) {
+        console.log('Opening thread for chain item:', event.id);
+        dispatch('eventSelect', event.id);
+    }
+
+    // Toggle previous replies visibility
+    function togglePreviousReplies() {
+        showPreviousReplies = !showPreviousReplies;
+    }
+
+    // Truncate content to first line with ellipsis
+    function truncateContent(content) {
+        if (!content) return '';
+        const firstLine = content.split('\n')[0];
+        return firstLine.length > 100 ? firstLine.substring(0, 100) + '...' : firstLine;
+    }
+
     // Handle keyboard events for accessibility
     function handleKeydown(event) {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -157,6 +233,7 @@
         // Reset state for new thread
         originalEvent = null;
         replies = [];
+        replyChain = [];
         isLoading = false;
         
         // Clean up previous subscription
@@ -168,6 +245,11 @@
         // Fetch new thread
         fetchOriginalEvent();
         fetchReplies();
+    }
+
+    // React to originalEvent changes to fetch reply chain
+    $: if (originalEvent) {
+        fetchReplyChain();
     }
 
     onDestroy(() => {
@@ -187,6 +269,26 @@
         {#if isLoading && !originalEvent}
             <div class="loading">Loading thread...</div>
         {:else if originalEvent}
+            <!-- Previous replies section -->
+            {#if replyChain.length > 0}
+                <div class="previous-replies-section">
+                    <button class="previous-replies-toggle" on:click={togglePreviousReplies}>
+                        <span class="toggle-text">Previous replies</span>
+                        <span class="toggle-icon">{showPreviousReplies ? '▼' : '▶'}</span>
+                    </button>
+                    
+                    {#if showPreviousReplies}
+                        <div class="previous-replies-list">
+                            {#each replyChain as chainEvent (chainEvent.id)}
+                                <button class="previous-reply-item" on:click={() => handleChainItemClick(chainEvent)}>
+                                    {truncateContent(chainEvent.content)}
+                                </button>
+                            {/each}
+                        </div>
+                    {/if}
+                </div>
+            {/if}
+            
             <!-- Original event at the top -->
             {#if isReply(originalEvent)}
                 <button class="original-event clickable" on:click={handleOriginalEventClick}>
@@ -336,7 +438,7 @@
 
     .reply-event {
         border-bottom: 1px solid var(--border-color);
-        padding: 1rem 0;
+        padding: 0.5em;
     }
 
     .reply-event:last-child {
@@ -393,6 +495,70 @@
         opacity: 0.8;
     }
 
+    .previous-replies-section {
+        margin-bottom: 1rem;
+    }
+
+    .previous-replies-toggle {
+        width: 100%;
+        background: none;
+        border: none;
+        padding: 0.5rem;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--text-color);
+        font-size: 0.9rem;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+
+    .previous-replies-toggle:hover {
+        opacity: 1;
+    }
+
+    .toggle-text {
+        font-weight: 500;
+    }
+
+    .toggle-icon {
+        font-size: 0.8rem;
+    }
+
+    .previous-replies-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin-top: 0.5rem;
+    }
+
+    .previous-reply-item {
+        background: none;
+        border: none;
+        padding: 0.5rem 0;
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+        font-size: 0.9rem;
+        color: var(--text-color);
+        opacity: 0.8;
+        transition: opacity 0.2s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .previous-reply-item:hover {
+        opacity: 1;
+        background-color: var(--button-hover-bg);
+    }
+
+    .previous-reply-item:last-child {
+        border-bottom: none;
+    }
+
     .thread-indicator {
         color: var(--text-color);
         font-size: 0.9rem;
@@ -404,6 +570,7 @@
         word-wrap: break-word;
         white-space: pre-wrap;
         color: var(--text-color);
+        padding:0.5em;
     }
 
     /* Custom scrollbar styling */
