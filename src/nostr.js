@@ -541,3 +541,6 @@ export async function loginWithExtension() {
         }
     }
 }
+
+// Export getLatestProfileEvent and parseProfileFromEvent for direct cache access
+export { getLatestProfileEvent, parseProfileFromEvent };

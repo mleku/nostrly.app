@@ -2,6 +2,7 @@
     import { onMount, onDestroy, createEventDispatcher } from 'svelte';
     import { nostrClient } from './nostr.js';
     import { getUserProfile, getCachedUserProfile, loadUserProfiles } from './profileManager.js';
+    import NostrProfileLink from './NostrProfileLink.svelte';
 
     export let feedFilter = 'notes';
 
@@ -277,13 +278,35 @@
         return mediaExtensions.some(ext => urlLower.includes(`.${ext}`));
     }
 
+    // Check if URL is a nostr link
+    function isNostrUrl(url) {
+        return url.startsWith('nostr:nprofile') || url.startsWith('nostr:npub');
+    }
+
+    // Extract pubkey from nostr URL
+    function extractPubkeyFromNostrUrl(url) {
+        if (url.startsWith('nostr:npub')) {
+            // Extract npub from nostr:npub1...
+            const npub = url.replace('nostr:npub', '');
+            // For now, we'll need to decode the npub to get the pubkey
+            // This is a simplified approach - in a real implementation you'd use proper bech32 decoding
+            return npub; // We'll use the npub directly for now
+        } else if (url.startsWith('nostr:nprofile')) {
+            // Extract nprofile from nostr:nprofile1...
+            const nprofile = url.replace('nostr:nprofile', '');
+            return nprofile; // We'll use the nprofile directly for now
+        }
+        return null;
+    }
+
     // Extract URLs from text content
     function extractUrls(text) {
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        // Match nostr: links surrounded by whitespace or at start/end of text
+        const urlRegex = /(https?:\/\/[^\s]+|nostr:(?:nprofile|npub)1[a-z0-9]+)/g;
         return text.match(urlRegex) || [];
     }
 
-    // Render content with media blocks
+    // Render content with media blocks and linkify URLs
     function renderContentWithMedia(content) {
         const urls = extractUrls(content);
         let renderedContent = content;
@@ -292,6 +315,14 @@
             if (isMediaUrl(url)) {
                 const mediaBlock = createMediaBlock(url);
                 renderedContent = renderedContent.replace(url, mediaBlock);
+            } else if (isNostrUrl(url)) {
+                // Replace nostr links with placeholder - will be replaced by components
+                const placeholder = `__NOSTR_LINK_${Math.random().toString(36).substring(7)}__`;
+                renderedContent = renderedContent.replace(url, placeholder);
+            } else {
+                // Linkify non-media URLs
+                const linkHtml = `<a href="${url}" target="_blank" rel="noopener noreferrer" class="content-link">${url}</a>`;
+                renderedContent = renderedContent.replace(url, linkHtml);
             }
         });
         
@@ -311,6 +342,65 @@
         }
         
         return url; // Return original URL if not recognized media type
+    }
+
+    // Create nostr profile link HTML
+    function createNostrProfileLink(url) {
+        const identifier = extractPubkeyFromNostrUrl(url);
+        if (!identifier) return url;
+
+        // Return a placeholder that will be replaced by Svelte components
+        return `__NOSTR_LINK_PLACEHOLDER_${url}__`;
+    }
+
+    // Extract nostr links from content for component rendering
+    function extractNostrLinks(content) {
+        const urls = extractUrls(content);
+        return urls.filter(url => isNostrUrl(url));
+    }
+
+    // Split content into segments for rendering nostr links as components
+    function splitContentForNostrLinks(content) {
+        const urls = extractUrls(content);
+        const nostrUrls = urls.filter(url => isNostrUrl(url));
+        
+        if (nostrUrls.length === 0) {
+            return [{ type: 'html', content: renderContentWithMedia(content) }];
+        }
+        
+        let segments = [];
+        let remainingContent = content;
+        
+        // Sort nostr URLs by their position in the content to process them in order
+        const sortedNostrUrls = nostrUrls.sort((a, b) => {
+            const indexA = remainingContent.indexOf(a);
+            const indexB = remainingContent.indexOf(b);
+            return indexA - indexB;
+        });
+        
+        sortedNostrUrls.forEach(url => {
+            const urlIndex = remainingContent.indexOf(url);
+            if (urlIndex !== -1) {
+                // Add text before the nostr link
+                if (urlIndex > 0) {
+                    const beforeText = remainingContent.substring(0, urlIndex);
+                    segments.push({ type: 'html', content: renderContentWithMedia(beforeText) });
+                }
+                
+                // Add the nostr link as a component
+                segments.push({ type: 'nostr', url: url });
+                
+                // Update remaining content
+                remainingContent = remainingContent.substring(urlIndex + url.length);
+            }
+        });
+        
+        // Add any remaining content
+        if (remainingContent.length > 0) {
+            segments.push({ type: 'html', content: renderContentWithMedia(remainingContent) });
+        }
+        
+        return segments;
     }
 
     // Fetch profiles for all unique pubkeys in events using global profile manager
@@ -470,7 +560,13 @@
                     {/if}
                 </div>
                 <div class="event-content">
-                    {@html renderContentWithMedia(event.content)}
+                    {#each splitContentForNostrLinks(event.content) as segment}
+                        {#if segment.type === 'html'}
+                            {@html segment.content}
+                        {:else if segment.type === 'nostr'}
+                            <NostrProfileLink url={segment.url} />
+                        {/if}
+                    {/each}
                 </div>
             </button>
         {/each}
@@ -601,42 +697,6 @@
         color: var(--text-color);
         padding-left:1em;
         max-width: 30em;
-    }
-
-    .media-block {
-        margin: 0.5rem 0;
-        width: 100%;
-        max-width: 32em;
-        border-radius: 0;
-        overflow: hidden;
-        background-color: var(--button-hover-bg);
-        box-sizing: border-box;
-    }
-
-    .image-block img {
-        width: 100% !important;
-        max-width: 32em !important;
-        height: auto !important;
-        display: block !important;
-        border-radius: 0;
-        object-fit: fill !important;
-        box-sizing: border-box;
-    }
-
-    .video-block video {
-        width: 100% !important;
-        max-width: 32em !important;
-        height: auto !important;
-        display: block !important;
-        border-radius: 0;
-        object-fit: fill !important;
-        box-sizing: border-box;
-    }
-
-    .audio-block audio {
-        width: 100%;
-        display: block;
-        border-radius: 0;
     }
 
     /* Custom scrollbar styling */

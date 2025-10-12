@@ -22,6 +22,7 @@
     let feedFilter = 'notes'; // 'notes', 'replies', 'reposts'
     let viewHistory = []; // Stack of view states for navigation history
     let currentHistoryIndex = -1; // Current position in history
+    let sidebarPosition = 'left'; // 'left' or 'right'
 
     // Load UI state from localStorage on component initialization
     if (typeof localStorage !== 'undefined') {
@@ -46,6 +47,12 @@
         const savedActiveView = localStorage.getItem('activeView');
         if (savedActiveView) {
             activeView = savedActiveView;
+        }
+        
+        // Load sidebar position
+        const savedSidebarPosition = localStorage.getItem('sidebarPosition');
+        if (savedSidebarPosition) {
+            sidebarPosition = savedSidebarPosition;
         }
         
         // Load selected event ID (thread state)
@@ -225,6 +232,13 @@
         isExpanded = !isExpanded;
     }
 
+    function setSidebarPosition(position) {
+        sidebarPosition = position;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('sidebarPosition', position);
+        }
+    }
+
     function switchToGlobalView() {
         activeView = 'global';
     }
@@ -399,7 +413,7 @@
 </script>
 
 <!-- Header -->
-<header class="main-header" class:dark-theme={isDarkTheme} class:expanded={isExpanded}>
+<header class="main-header" class:dark-theme={isDarkTheme} class:expanded={isExpanded} class:sidebar-right={sidebarPosition === 'right'}>
     <div class="header-content">
         <!-- Top Section: Logo and ORLY text (top-left justified) -->
         <div class="top-section">
@@ -475,19 +489,32 @@
 </header>
 
 <!-- Main Content Area -->
-<div class="app-container" class:dark-theme={isDarkTheme} class:expanded={isExpanded}>
+<div class="app-container" class:dark-theme={isDarkTheme} class:expanded={isExpanded} class:sidebar-right={sidebarPosition === 'right'}>
     <!-- Main Content -->
     <main class="main-content">
         {#if activeView === 'global'}
-            <div class="global-container" class:split={selectedEventId}>
-                <div class="left-panel">
-                    <VerticalColumn showReloadButton={true} {feedFilter} on:filterChange={(e) => setFeedFilter(e.detail)}>
-                        <NostrFeed {feedFilter} on:eventSelect={(e) => handleEventSelect(e.detail)} />
-                    </VerticalColumn>
-                </div>
-                {#if selectedEventId}
+            <div class="global-container" class:split={selectedEventId} class:sidebar-right={sidebarPosition === 'right'}>
+                {#if sidebarPosition === 'left'}
+                    <div class="left-panel">
+                        <VerticalColumn showReloadButton={true} {feedFilter} on:filterChange={(e) => setFeedFilter(e.detail)}>
+                            <NostrFeed {feedFilter} on:eventSelect={(e) => handleEventSelect(e.detail)} />
+                        </VerticalColumn>
+                    </div>
+                    {#if selectedEventId}
+                        <div class="right-panel">
+                            <ReplyThread key={selectedEventId} eventId={selectedEventId} onClose={closeReplyThread} on:eventSelect={(e) => handleEventSelect(e.detail)} />
+                        </div>
+                    {/if}
+                {:else}
+                    {#if selectedEventId}
+                        <div class="left-panel">
+                            <ReplyThread key={selectedEventId} eventId={selectedEventId} onClose={closeReplyThread} on:eventSelect={(e) => handleEventSelect(e.detail)} />
+                        </div>
+                    {/if}
                     <div class="right-panel">
-                        <ReplyThread key={selectedEventId} eventId={selectedEventId} onClose={closeReplyThread} on:eventSelect={(e) => handleEventSelect(e.detail)} />
+                        <VerticalColumn showReloadButton={true} {feedFilter} on:filterChange={(e) => setFeedFilter(e.detail)}>
+                            <NostrFeed {feedFilter} on:eventSelect={(e) => handleEventSelect(e.detail)} />
+                        </VerticalColumn>
                     </div>
                 {/if}
             </div>
@@ -499,7 +526,7 @@
 
 <!-- Settings Drawer -->
 {#if showSettingsDrawer}
-    <div class="drawer-overlay" on:click={closeSettingsDrawer} on:keydown={(e) => e.key === 'Escape' && closeSettingsDrawer()} role="button" tabindex="0">
+    <div class="drawer-overlay" class:sidebar-right={sidebarPosition === 'right'} on:click={closeSettingsDrawer} on:keydown={(e) => e.key === 'Escape' && closeSettingsDrawer()} role="button" tabindex="0">
         <div class="settings-drawer" class:dark-theme={isDarkTheme} on:click|stopPropagation on:keydown|stopPropagation>
             <div class="drawer-header">
                 <h2>Settings</h2>
@@ -545,6 +572,18 @@
                             </button>
                             <button class="theme-btn" class:active={isDarkTheme} on:click={() => setTheme(true)} aria-label="Dark theme">
                                 🌙 Dark
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="sidebar-position-section">
+                        <span class="sidebar-position-label">Sidebar Position:</span>
+                        <div class="sidebar-position-buttons">
+                            <button class="sidebar-position-btn" class:active={sidebarPosition === 'left'} on:click={() => setSidebarPosition('left')} aria-label="Left sidebar">
+                                ← Left
+                            </button>
+                            <button class="sidebar-position-btn" class:active={sidebarPosition === 'right'} on:click={() => setSidebarPosition('right')} aria-label="Right sidebar">
+                                → Right
                             </button>
                         </div>
                     </div>
@@ -603,9 +642,15 @@
         bottom: 0;
         z-index: 1000;
         color: var(--text-color);
-        transition: width 0.3s ease;
+        transition: width 0.3s ease, left 0.3s ease, right 0.3s ease;
         margin: 0;
         padding: 0;
+    }
+
+    /* Right sidebar header positioning */
+    .main-header.sidebar-right {
+        left: auto;
+        right: 0;
     }
 
     .main-header.expanded {
@@ -1008,8 +1053,21 @@
         bottom: 0;
     }
 
+    /* Right sidebar positioning */
+    .app-container.sidebar-right .main-content {
+        left: 0;
+        right: 3em;
+        width: calc(100vw - 3em);
+    }
+
     .app-container.expanded .main-content {
         left: 12em;
+        width: calc(100vw - 12em);
+    }
+
+    .app-container.sidebar-right.expanded .main-content {
+        left: 0;
+        right: 12em;
         width: calc(100vw - 12em);
     }
 
@@ -1179,6 +1237,11 @@
         display: flex;
         justify-content: flex-start;
     }
+
+    /* Right sidebar drawer overlay positioning */
+    .drawer-overlay.sidebar-right {
+        justify-content: flex-end;
+    }
     
     .settings-drawer {
         width: 640px;
@@ -1187,9 +1250,19 @@
         overflow-y: auto;
         animation: slideInLeft 0.3s ease;
     }
+
+    /* Right sidebar drawer positioning */
+    .drawer-overlay.sidebar-right .settings-drawer {
+        animation: slideInRight 0.3s ease;
+    }
     
     @keyframes slideInLeft {
         from { transform: translateX(-100%); }
+        to { transform: translateX(0); }
+    }
+
+    @keyframes slideInRight {
+        from { transform: translateX(100%); }
         to { transform: translateX(0); }
     }
     
@@ -1357,6 +1430,53 @@
     }
     
     .theme-btn.active:hover {
+        background-color: var(--primary-color);
+        opacity: 0.9;
+    }
+
+    .sidebar-position-section {
+        margin-top: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .sidebar-position-label {
+        font-weight: 500;
+        color: var(--text-color);
+        font-size: 0.9rem;
+    }
+
+    .sidebar-position-buttons {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .sidebar-position-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background-color: var(--button-bg);
+        color: var(--text-color);
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .sidebar-position-btn:hover {
+        background-color: var(--button-hover-bg);
+    }
+
+    .sidebar-position-btn.active {
+        background-color: var(--primary-color);
+        color: var(--text-color);
+        border-color: var(--primary-color);
+    }
+
+    .sidebar-position-btn.active:hover {
         background-color: var(--primary-color);
         opacity: 0.9;
     }
