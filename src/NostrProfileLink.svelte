@@ -3,6 +3,7 @@
     import { getUserProfile, getCachedUserProfile } from './profileManager.js';
     import { getLatestProfileEvent, parseProfileFromEvent } from './nostr.js';
     import { nip19 } from 'nostr-tools';
+    import InlineEvent from './InlineEvent.svelte';
     
     export let url;
     
@@ -10,9 +11,11 @@
     let loading = true;
     let error = false;
     let fallbackPubkey = null;
+    let isEventLink = false;
+    let eventId = null;
     
-    // Extract pubkey from nostr URL using nostr-tools
-    function extractPubkeyFromNostrUrl(url) {
+    // Extract identifier from nostr URL using nostr-tools
+    function extractIdentifierFromNostrUrl(url) {
         try {
             if (url.startsWith('nostr:npub')) {
                 // Extract npub from nostr:npub1... -> npub1...
@@ -25,7 +28,7 @@
                 
                 const decoded = nip19.decode(npub);
                 if (decoded.type === 'npub') {
-                    return decoded.data;
+                    return { type: 'npub', data: decoded.data };
                 }
             } else if (url.startsWith('nostr:nprofile')) {
                 // Extract nprofile from nostr:nprofile1... -> nprofile1...
@@ -38,7 +41,20 @@
                 
                 const decoded = nip19.decode(nprofile);
                 if (decoded.type === 'nprofile') {
-                    return decoded.data.pubkey;
+                    return { type: 'nprofile', data: decoded.data };
+                }
+            } else if (url.startsWith('nostr:nevent')) {
+                // Extract nevent from nostr:nevent1... -> nevent1...
+                const nevent = url.replace('nostr:', '');
+                
+                // Check if nevent looks complete
+                if (nevent.length < 100) {
+                    return null;
+                }
+                
+                const decoded = nip19.decode(nevent);
+                if (decoded.type === 'nevent') {
+                    return { type: 'nevent', data: decoded.data };
                 }
             }
         } catch (err) {
@@ -66,7 +82,7 @@
     }
     
     onMount(async () => {
-        const identifier = extractPubkeyFromNostrUrl(url);
+        const identifier = extractIdentifierFromNostrUrl(url);
         
         if (!identifier) {
             fallbackPubkey = extractFallbackPubkey(url);
@@ -75,9 +91,28 @@
             return;
         }
         
+        // Handle nevent links - render as inline event
+        if (identifier.type === 'nevent') {
+            isEventLink = true;
+            eventId = identifier.data.id;
+            loading = false;
+            return;
+        }
+        
+        // Handle nprofile links that point to kind 1 events
+        if (identifier.type === 'nprofile' && identifier.data.kind === 1) {
+            isEventLink = true;
+            eventId = identifier.data.id;
+            loading = false;
+            return;
+        }
+        
+        // Handle regular profile links (npub, nprofile)
+        const pubkey = identifier.type === 'npub' ? identifier.data : identifier.data.pubkey;
+        
         try {
             // First check the local IndexedDB cache for kind 0 events
-            const cachedEvent = await getLatestProfileEvent(identifier);
+            const cachedEvent = await getLatestProfileEvent(pubkey);
             if (cachedEvent) {
                 profile = parseProfileFromEvent(cachedEvent);
                 loading = false;
@@ -85,7 +120,7 @@
             }
             
             // Then check the profile manager cache
-            const cachedProfile = getCachedUserProfile(identifier);
+            const cachedProfile = getCachedUserProfile(pubkey);
             if (cachedProfile) {
                 profile = cachedProfile;
                 loading = false;
@@ -93,7 +128,7 @@
             }
             
             // If not cached anywhere, fetch it from relays
-            profile = await getUserProfile(identifier);
+            profile = await getUserProfile(pubkey);
             loading = false;
         } catch (err) {
             console.error('Failed to fetch profile for nostr link:', err);
@@ -105,6 +140,8 @@
 
 {#if loading}
     <span class="nostr-profile-link loading">Loading profile...</span>
+{:else if isEventLink}
+    <InlineEvent eventId={eventId} />
 {:else if error || !profile}
     <span class="nostr-profile-link invalid">
         <div class="nostr-avatar-placeholder">👤</div>

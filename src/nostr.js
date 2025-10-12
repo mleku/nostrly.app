@@ -542,5 +542,82 @@ export async function loginWithExtension() {
     }
 }
 
+// Fetch a specific event by ID
+export async function fetchEvent(eventId) {
+    return new Promise(async (resolve, reject) => {
+        console.log(`Fetching event: ${eventId}`);
+
+        let resolved = false;
+        let foundEvent = null;
+        let debounceTimer = null;
+        let overallTimer = null;
+        let subscriptionId = null;
+
+        function cleanup() {
+            if (subscriptionId) {
+                try { nostrClient.unsubscribe(subscriptionId); } catch {}
+            }
+            if (debounceTimer) clearTimeout(debounceTimer);
+            if (overallTimer) clearTimeout(overallTimer);
+        }
+
+        // 1) Try cached event first
+        try {
+            const cachedEvent = await getEvent(eventId);
+            if (cachedEvent) {
+                console.log('Using cached event');
+                resolved = true;
+                resolve(cachedEvent);
+            }
+        } catch (e) {
+            console.warn('Failed to load cached event', e);
+        }
+
+        // 2) Set overall timeout
+        overallTimer = setTimeout(() => {
+            if (!foundEvent) {
+                console.log('Event fetch timeout reached');
+                if (!resolved) reject(new Error('Event fetch timeout'));
+            } else if (!resolved) {
+                resolve(foundEvent);
+            }
+            cleanup();
+        }, 10000);
+
+        // 3) Subscribe for the event
+        setTimeout(() => {
+            console.log('Starting event subscription...');
+            subscriptionId = nostrClient.subscribe(
+                {
+                    ids: [eventId]
+                },
+                (event) => {
+                    if (!event || event.id !== eventId) return;
+                    console.log('Event received:', event);
+
+                    foundEvent = event;
+
+                    // Debounce to wait for more relays
+                    if (debounceTimer) clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(async () => {
+                        try {
+                            if (foundEvent) {
+                                await putEvent(foundEvent); // cache the event
+                                if (!resolved) {
+                                    resolved = true;
+                                    resolve(foundEvent);
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('Failed to cache event', e);
+                        }
+                        cleanup();
+                    }, 1000);
+                }
+            );
+        }, 100);
+    });
+}
+
 // Export getLatestProfileEvent and parseProfileFromEvent for direct cache access
 export { getLatestProfileEvent, parseProfileFromEvent };

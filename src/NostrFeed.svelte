@@ -119,8 +119,16 @@
             // Wait a bit for connections to be ready
             await new Promise(resolve => setTimeout(resolve, 1000));
             
+            // Determine which kinds to fetch based on feed filter
+            let kinds = [1]; // Default to text notes
+            if (feedFilter === 'reposts') {
+                kinds = [6]; // Fetch repost events
+            } else if (feedFilter === 'all') {
+                kinds = [1, 6]; // Fetch both text notes and reposts
+            }
+            
             subscriptionId = nostrClient.subscribe(
-                { kinds: [1], limit: 50 }, // Text notes only, limit initial load
+                { kinds: kinds, limit: 50 }, // Dynamic kinds based on filter
                 (event) => {
                     console.log('Received event:', event);
                     if (addEvent(event)) {
@@ -155,9 +163,17 @@
         let eventsLoaded = 0;
         
         try {
+            // Determine which kinds to fetch based on feed filter
+            let kinds = [1]; // Default to text notes
+            if (feedFilter === 'reposts') {
+                kinds = [6]; // Fetch repost events
+            } else if (feedFilter === 'all') {
+                kinds = [1, 6]; // Fetch both text notes and reposts
+            }
+            
             const moreSubscriptionId = nostrClient.subscribe(
                 { 
-                    kinds: [1],
+                    kinds: kinds,
                     until: oldestEventTime - 1, // Get events older than the oldest we have
                     limit: 20 // Limit each batch
                 },
@@ -236,6 +252,25 @@
         return replyTag ? replyTag[1] : null;
     }
 
+    // Parse embedded event from kind 6 repost
+    function parseRepostedEvent(repostEvent) {
+        try {
+            if (repostEvent.kind !== 6) return null;
+            
+            // Kind 6 events contain the original event in the content field as JSON
+            const originalEvent = JSON.parse(repostEvent.content);
+            
+            // Validate that it's a proper event object
+            if (originalEvent && typeof originalEvent === 'object' && 
+                originalEvent.id && originalEvent.pubkey && originalEvent.content !== undefined) {
+                return originalEvent;
+            }
+        } catch (error) {
+            console.error('Failed to parse reposted event:', error);
+        }
+        return null;
+    }
+
     // Handle event click
     function handleEventClick(event) {
         if (isReply(event)) {
@@ -280,7 +315,7 @@
 
     // Check if URL is a nostr link
     function isNostrUrl(url) {
-        return url.startsWith('nostr:nprofile') || url.startsWith('nostr:npub');
+        return url.startsWith('nostr:nprofile') || url.startsWith('nostr:npub') || url.startsWith('nostr:nevent');
     }
 
     // Extract pubkey from nostr URL
@@ -302,7 +337,7 @@
     // Extract URLs from text content
     function extractUrls(text) {
         // Match nostr: links surrounded by whitespace or at start/end of text
-        const urlRegex = /(https?:\/\/[^\s]+|nostr:(?:nprofile|npub)1[a-z0-9]+)/g;
+        const urlRegex = /(https?:\/\/[^\s]+|nostr:(?:nprofile|npub|nevent)1[a-z0-9]+)/g;
         return text.match(urlRegex) || [];
     }
 
@@ -532,43 +567,107 @@
         </div>
     {:else}
         {#each filterEvents(events) as event (event.id)}
-            <button class="event-card" 
-                    class:reply={isReply(event)}
-                    class:clickable={true}
-                    on:click={() => handleEventClick(event)}>
-                <div class="event-header">
-                    <div class="event-author">
-                        {#if getCachedUserProfile(event.pubkey)}
-                            {@const profile = getCachedUserProfile(event.pubkey)}
-                            <div class="author-info">
-                                {#if profile.picture}
-                                    <img src={profile.picture} alt="Avatar" class="avatar" />
-                                {:else}
-                                    <div class="avatar-placeholder"></div>
-                                {/if}
-                                <span class="username">{profile.name || profile.display_name || event.pubkey.slice(0, 8) + '...'}</span>
+            {#if event.kind === 6}
+                <!-- Repost Event -->
+                {@const repostedEvent = parseRepostedEvent(event)}
+                <button class="event-card repost-card" 
+                        class:clickable={true}
+                        on:click={() => handleEventClick(repostedEvent || event)}>
+                    <div class="repost-header">
+                        <div class="repost-author">
+                            {#if getCachedUserProfile(event.pubkey)}
+                                {@const profile = getCachedUserProfile(event.pubkey)}
+                                <div class="author-info">
+                                    {#if profile.picture}
+                                        <img src={profile.picture} alt="Avatar" class="avatar" />
+                                    {:else}
+                                        <div class="avatar-placeholder"></div>
+                                    {/if}
+                                    <span class="username">{profile.name || profile.display_name || event.pubkey.slice(0, 8) + '...'}</span>
+                                </div>
+                            {:else}
+                                <span class="pubkey-fallback">{event.pubkey.slice(0, 8)}...</span>
+                            {/if}
+                        </div>
+                        <span class="repost-indicator">🔄 Reposted</span>
+                        <span class="event-time">{formatTime(event.created_at)}</span>
+                    </div>
+                    {#if repostedEvent}
+                        <div class="reposted-content">
+                            <div class="reposted-header">
+                                <div class="reposted-author">
+                                    {#if getCachedUserProfile(repostedEvent.pubkey)}
+                                        {@const originalProfile = getCachedUserProfile(repostedEvent.pubkey)}
+                                        <div class="author-info">
+                                            {#if originalProfile.picture}
+                                                <img src={originalProfile.picture} alt="Avatar" class="avatar" />
+                                            {:else}
+                                                <div class="avatar-placeholder"></div>
+                                            {/if}
+                                            <span class="username">{originalProfile.name || originalProfile.display_name || repostedEvent.pubkey.slice(0, 8) + '...'}</span>
+                                        </div>
+                                    {:else}
+                                        <span class="pubkey-fallback">{repostedEvent.pubkey.slice(0, 8)}...</span>
+                                    {/if}
+                                </div>
+                                <span class="event-time">{formatTime(repostedEvent.created_at)}</span>
                             </div>
+                            <div class="event-content">
+                                {#each splitContentForNostrLinks(repostedEvent.content) as segment}
+                                    {#if segment.type === 'html'}
+                                        {@html segment.content}
+                                    {:else if segment.type === 'nostr'}
+                                        <NostrProfileLink url={segment.url} />
+                                    {/if}
+                                {/each}
+                            </div>
+                        </div>
+                    {:else}
+                        <div class="event-content error">
+                            Failed to parse reposted event
+                        </div>
+                    {/if}
+                </button>
+            {:else}
+                <!-- Regular Event -->
+                <button class="event-card" 
+                        class:reply={isReply(event)}
+                        class:clickable={true}
+                        on:click={() => handleEventClick(event)}>
+                    <div class="event-header">
+                        <div class="event-author">
+                            {#if getCachedUserProfile(event.pubkey)}
+                                {@const profile = getCachedUserProfile(event.pubkey)}
+                                <div class="author-info">
+                                    {#if profile.picture}
+                                        <img src={profile.picture} alt="Avatar" class="avatar" />
+                                    {:else}
+                                        <div class="avatar-placeholder"></div>
+                                    {/if}
+                                    <span class="username">{profile.name || profile.display_name || event.pubkey.slice(0, 8) + '...'}</span>
+                                </div>
+                            {:else}
+                                <span class="pubkey-fallback">{event.pubkey.slice(0, 8)}...</span>
+                            {/if}
+                        </div>
+                        <span class="event-time">{formatTime(event.created_at)}</span>
+                        {#if isReply(event)}
+                            <span class="reply-indicator">↩</span>
                         {:else}
-                            <span class="pubkey-fallback">{event.pubkey.slice(0, 8)}...</span>
+                            <span class="thread-indicator">💬</span>
                         {/if}
                     </div>
-                    <span class="event-time">{formatTime(event.created_at)}</span>
-                    {#if isReply(event)}
-                        <span class="reply-indicator">↩</span>
-                    {:else}
-                        <span class="thread-indicator">💬</span>
-                    {/if}
-                </div>
-                <div class="event-content">
-                    {#each splitContentForNostrLinks(event.content) as segment}
-                        {#if segment.type === 'html'}
-                            {@html segment.content}
-                        {:else if segment.type === 'nostr'}
-                            <NostrProfileLink url={segment.url} />
-                        {/if}
-                    {/each}
-                </div>
-            </button>
+                    <div class="event-content">
+                        {#each splitContentForNostrLinks(event.content) as segment}
+                            {#if segment.type === 'html'}
+                                {@html segment.content}
+                            {:else if segment.type === 'nostr'}
+                                <NostrProfileLink url={segment.url} />
+                            {/if}
+                        {/each}
+                    </div>
+                </button>
+            {/if}
         {/each}
         
         {#if loadingMore}
@@ -623,6 +722,11 @@
 
     .event-card.reply {
         padding-left: calc(1rem - 3px);
+    }
+
+    .event-card.repost-card {
+        border-left: 3px solid var(--primary-color);
+        background-color: var(--card-bg, rgba(0, 0, 0, 0.02));
     }
 
     .event-header {
@@ -697,6 +801,41 @@
         color: var(--text-color);
         padding-left:1em;
         max-width: 30em;
+    }
+
+    .repost-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .repost-indicator {
+        color: var(--primary-color);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .reposted-content {
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        margin-top: 0.5rem;
+        background-color: var(--background-color);
+    }
+
+    .reposted-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .reposted-content .event-content {
+        padding-left: 0;
+        margin-top: 0;
     }
 
     /* Custom scrollbar styling */

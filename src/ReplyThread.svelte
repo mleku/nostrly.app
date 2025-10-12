@@ -273,7 +273,7 @@
 
     // Check if URL is a nostr link
     function isNostrUrl(url) {
-        return url.startsWith('nostr:nprofile') || url.startsWith('nostr:npub');
+        return url.startsWith('nostr:nprofile') || url.startsWith('nostr:npub') || url.startsWith('nostr:nevent');
     }
 
     // Extract pubkey from nostr URL
@@ -295,7 +295,7 @@
     // Extract URLs from text content
     function extractUrls(text) {
         // Match nostr: links surrounded by whitespace or at start/end of text
-        const urlRegex = /(https?:\/\/[^\s]+|nostr:(?:nprofile|npub)1[a-z0-9]+)/g;
+        const urlRegex = /(https?:\/\/[^\s]+|nostr:(?:nprofile|npub|nevent)1[a-z0-9]+)/g;
         return text.match(urlRegex) || [];
     }
 
