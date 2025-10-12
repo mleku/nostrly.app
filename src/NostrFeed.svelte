@@ -192,13 +192,14 @@
         // Calculate how many events are visible and loaded
         const eventHeight = 80; // Approximate height of each event
         const visibleEvents = Math.ceil(clientHeight / eventHeight);
-        const loadedEvents = events.length;
+        const filteredEvents = filterEvents(events);
+        const loadedEvents = filteredEvents.length;
         
-        // Load more when within 10 events of the end
+        // Load more when within 3 events of the end (reduced from 10 for better UX)
         const eventsFromEnd = loadedEvents - visibleEvents - Math.floor(scrollTop / eventHeight);
         
-        if (eventsFromEnd <= 10 && hasMore && !loadingMore && hasLoadedOnce) {
-            console.log('Scroll triggered load more - within 10 events of end');
+        if (eventsFromEnd <= 3 && hasMore && !loadingMore && hasLoadedOnce) {
+            console.log('Scroll triggered load more - within 3 events of end');
             loadMoreEvents();
         }
     }
@@ -266,6 +267,49 @@
         } else {
             return date.toLocaleDateString();
         }
+    }
+
+    // Check if URL is a media file
+    function isMediaUrl(url) {
+        const mediaExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg', 'm4a'];
+        const urlLower = url.toLowerCase();
+        return mediaExtensions.some(ext => urlLower.includes(`.${ext}`));
+    }
+
+    // Extract URLs from text content
+    function extractUrls(text) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.match(urlRegex) || [];
+    }
+
+    // Render content with media blocks
+    function renderContentWithMedia(content) {
+        const urls = extractUrls(content);
+        let renderedContent = content;
+        
+        urls.forEach(url => {
+            if (isMediaUrl(url)) {
+                const mediaBlock = createMediaBlock(url);
+                renderedContent = renderedContent.replace(url, mediaBlock);
+            }
+        });
+        
+        return renderedContent;
+    }
+
+    // Create media block HTML
+    function createMediaBlock(url) {
+        const urlLower = url.toLowerCase();
+        
+        if (urlLower.includes('.mp4') || urlLower.includes('.webm')) {
+            return `<div class="media-block video-block"><video controls><source src="${url}" type="video/mp4">Your browser does not support the video tag.</video></div>`;
+        } else if (urlLower.includes('.mp3') || urlLower.includes('.wav') || urlLower.includes('.ogg') || urlLower.includes('.m4a')) {
+            return `<div class="media-block audio-block"><audio controls><source src="${url}" type="audio/mpeg">Your browser does not support the audio tag.</audio></div>`;
+        } else if (urlLower.includes('.jpg') || urlLower.includes('.jpeg') || urlLower.includes('.png') || urlLower.includes('.gif') || urlLower.includes('.webp') || urlLower.includes('.svg')) {
+            return `<div class="media-block image-block"><img src="${url}" alt="Media content" loading="lazy" /></div>`;
+        }
+        
+        return url; // Return original URL if not recognized media type
     }
 
     // Fetch user profile (kind 0 metadata)
@@ -381,6 +425,17 @@
         fetchAllUserProfiles();
     }
 
+    // Reactive statement to load more events when filtered results are low
+    $: if (hasLoadedOnce && !loadingMore && hasMore) {
+        const filteredEvents = filterEvents(events);
+        const minEventsForFilter = feedFilter === 'replies' ? 20 : 10; // Replies need more events due to filtering
+        
+        if (filteredEvents.length < minEventsForFilter) {
+            console.log(`Filtered events (${filteredEvents.length}) below minimum (${minEventsForFilter}), loading more...`);
+            loadMoreEvents();
+        }
+    }
+
     onMount(async () => {
         // Only load if we haven't loaded once before
         if (!hasLoadedOnce) {
@@ -462,7 +517,7 @@
                     {/if}
                 </div>
                 <div class="event-content">
-                    {event.content}
+                    {@html renderContentWithMedia(event.content)}
                 </div>
             </button>
         {/each}
@@ -591,6 +646,44 @@
         word-wrap: break-word;
         white-space: pre-wrap;
         color: var(--text-color);
+        padding-left:1em;
+        max-width: 30em;
+    }
+
+    .media-block {
+        margin: 0.5rem 0;
+        width: 100%;
+        max-width: 32em;
+        border-radius: 0;
+        overflow: hidden;
+        background-color: var(--button-hover-bg);
+        box-sizing: border-box;
+    }
+
+    .image-block img {
+        width: 100% !important;
+        max-width: 32em !important;
+        height: auto !important;
+        display: block !important;
+        border-radius: 0;
+        object-fit: fill !important;
+        box-sizing: border-box;
+    }
+
+    .video-block video {
+        width: 100% !important;
+        max-width: 32em !important;
+        height: auto !important;
+        display: block !important;
+        border-radius: 0;
+        object-fit: fill !important;
+        box-sizing: border-box;
+    }
+
+    .audio-block audio {
+        width: 100%;
+        display: block;
+        border-radius: 0;
     }
 
     /* Custom scrollbar styling */

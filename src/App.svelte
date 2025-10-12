@@ -140,6 +140,14 @@
         }
     }
 
+    function setTheme(dark) {
+        isDarkTheme = dark;
+        // Save theme preference to localStorage
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('isDarkTheme', JSON.stringify(isDarkTheme));
+        }
+    }
+
     function handleLogoMouseEnter() {
         isLogoHovered = true;
     }
@@ -530,9 +538,14 @@
                 <div class="settings-actions">
                     <div class="theme-toggle-section">
                         <span class="theme-toggle-label">Theme:</span>
-                        <button class="theme-toggle-btn" on:click={toggleTheme} aria-label="Toggle theme">
-                            {isDarkTheme ? '☀️ Light' : '🌙 Dark'}
-                        </button>
+                        <div class="theme-buttons">
+                            <button class="theme-btn" class:active={!isDarkTheme} on:click={() => setTheme(false)} aria-label="Light theme">
+                                ☀️ Light
+                            </button>
+                            <button class="theme-btn" class:active={isDarkTheme} on:click={() => setTheme(true)} aria-label="Dark theme">
+                                🌙 Dark
+                            </button>
+                        </div>
                     </div>
                     <button class="logout-btn" on:click={handleLogout}>Log out</button>
                 </div>
@@ -553,6 +566,7 @@
     :global(body) {
         margin: 0;
         padding: 0;
+        overflow-x: hidden;
         --bg-color: #ddd;
         --header-bg: #eee;
         --border-color: #dee2e6;
@@ -984,8 +998,8 @@
         overflow-x: hidden;
         background-color: var(--bg-color);
         color: var(--text-color);
-        margin-left: 3em;
-        transition: margin-left 0.3s ease;
+        left: 3em;
+        transition: left 0.3s ease;
         width: calc(100vw - 3em);
         height: 100vh;
         position: fixed;
@@ -994,7 +1008,7 @@
     }
 
     .app-container.expanded .main-content {
-        margin-left: 12em;
+        left: 12em;
         width: calc(100vw - 12em);
     }
 
@@ -1184,20 +1198,19 @@
         justify-content: space-between;
         background: var(--header-bg);
         padding: 1rem;
-        border-bottom: 1px solid var(--border-color);
     }
     
     .drawer-header h2 {
         margin: 0;
         color: var(--text-color);
-        font-size: 1.2rem;
+        font-size: 1em;
         font-weight: 600;
     }
     
     .close-btn {
         background: none;
         border: none;
-        font-size: 1.2rem;
+        font-size: 1em;
         cursor: pointer;
         color: var(--text-color);
         padding: 0.25rem;
@@ -1313,7 +1326,12 @@
         font-size: 0.9rem;
     }
     
-    .theme-toggle-btn {
+    .theme-buttons {
+        display: flex;
+        gap: 0.25rem;
+    }
+    
+    .theme-btn {
         padding: 0.5rem 1rem;
         border: 1px solid var(--border-color);
         border-radius: 6px;
@@ -1327,8 +1345,19 @@
         gap: 0.25rem;
     }
     
-    .theme-toggle-btn:hover {
+    .theme-btn:hover {
         background-color: var(--button-hover-bg);
+    }
+    
+    .theme-btn.active {
+        background-color: var(--primary-color);
+        color: var(--text-color);
+        border-color: var(--primary-color);
+    }
+    
+    .theme-btn.active:hover {
+        background-color: var(--primary-color);
+        opacity: 0.9;
     }
 
     .logout-btn {

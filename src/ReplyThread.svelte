@@ -12,10 +12,7 @@
     let isLoading = false;
     let subscriptionId = null;
     let replyChain = []; // Array of ancestor events in the reply chain
-    let showPreviousReplies = false; // Toggle for showing previous replies
     let userProfiles = new Map(); // Cache for user profiles (pubkey -> profile)
-    let laterReplies = []; // Events that reply to the same root but are not direct replies to the current event
-    let rootEvent = null; // The root event of the thread
 
     // Fetch the original event
     async function fetchOriginalEvent() {
@@ -193,13 +190,6 @@
         }
 
         replyChain = chain;
-        
-        // Set the root event (the last event in the chain that is not a reply)
-        if (chain.length > 0) {
-            rootEvent = chain[chain.length - 1];
-        } else if (originalEvent && !isReply(originalEvent)) {
-            rootEvent = originalEvent;
-        }
     }
 
     // Fetch a single event by ID
@@ -272,6 +262,49 @@
         }
     }
 
+    // Check if URL is a media file
+    function isMediaUrl(url) {
+        const mediaExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mp3', 'wav', 'ogg', 'm4a'];
+        const urlLower = url.toLowerCase();
+        return mediaExtensions.some(ext => urlLower.includes(`.${ext}`));
+    }
+
+    // Extract URLs from text content
+    function extractUrls(text) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.match(urlRegex) || [];
+    }
+
+    // Render content with media blocks
+    function renderContentWithMedia(content) {
+        const urls = extractUrls(content);
+        let renderedContent = content;
+        
+        urls.forEach(url => {
+            if (isMediaUrl(url)) {
+                const mediaBlock = createMediaBlock(url);
+                renderedContent = renderedContent.replace(url, mediaBlock);
+            }
+        });
+        
+        return renderedContent;
+    }
+
+    // Create media block HTML
+    function createMediaBlock(url) {
+        const urlLower = url.toLowerCase();
+        
+        if (urlLower.includes('.mp4') || urlLower.includes('.webm')) {
+            return `<div class="media-block video-block"><video controls><source src="${url}" type="video/mp4">Your browser does not support the video tag.</video></div>`;
+        } else if (urlLower.includes('.mp3') || urlLower.includes('.wav') || urlLower.includes('.ogg') || urlLower.includes('.m4a')) {
+            return `<div class="media-block audio-block"><audio controls><source src="${url}" type="audio/mpeg">Your browser does not support the audio tag.</audio></div>`;
+        } else if (urlLower.includes('.jpg') || urlLower.includes('.jpeg') || urlLower.includes('.png') || urlLower.includes('.gif') || urlLower.includes('.webp') || urlLower.includes('.svg')) {
+            return `<div class="media-block image-block"><img src="${url}" alt="Media content" loading="lazy" /></div>`;
+        }
+        
+        return url; // Return original URL if not recognized media type
+    }
+
     // Fetch user profile (kind 0 metadata)
     async function fetchUserProfile(pubkey) {
         if (userProfiles.has(pubkey)) {
@@ -334,12 +367,6 @@
                 uniquePubkeys.add(chainEvent.pubkey);
             }
         });
-        
-        laterReplies.forEach(laterReply => {
-            if (laterReply.pubkey) {
-                uniquePubkeys.add(laterReply.pubkey);
-            }
-        });
 
         const fetchPromises = Array.from(uniquePubkeys).map(pubkey => {
             if (!userProfiles.has(pubkey)) {
@@ -352,12 +379,8 @@
     }
 
     // Reactive statements
-    $: if (originalEvent || replies.length > 0 || replyChain.length > 0 || laterReplies.length > 0) {
+    $: if (originalEvent || replies.length > 0 || replyChain.length > 0) {
         fetchAllUserProfiles();
-    }
-
-    $: if (rootEvent) {
-        fetchLaterReplies();
     }
 
     onMount(() => {
@@ -375,6 +398,7 @@
         replies = [];
         replyChain = [];
         isLoading = false;
+        // Don't reset showPreviousReplies to preserve user's preference
         
         // Clean up previous subscription
         if (subscriptionId) {
@@ -417,40 +441,34 @@
             <!-- Previous replies section -->
             {#if replyChain.length > 0}
                 <div class="previous-replies-section">
-                    <button class="previous-replies-toggle" on:click={togglePreviousReplies}>
-                        <span class="toggle-text">Previous replies</span>
-                        <span class="toggle-icon">{showPreviousReplies ? '▼' : '▶'}</span>
-                    </button>
-                    
-                    {#if showPreviousReplies}
-                        <div class="previous-replies-list">
-                            {#each replyChain as chainEvent (chainEvent.id)}
-                                <button class="previous-reply-item" on:click={() => handleChainItemClick(chainEvent)}>
-                                    <div class="chain-event-header">
-                                        <div class="event-author">
-                                            {#if getUserProfile(chainEvent.pubkey)}
-                                                {@const profile = getUserProfile(chainEvent.pubkey)}
-                                                <div class="author-info">
-                                                    {#if profile.picture}
-                                                        <img src={profile.picture} alt="Avatar" class="avatar-small" />
-                                                    {:else}
-                                                        <div class="avatar-placeholder-small"></div>
-                                                    {/if}
-                                                    <span class="username-small">{profile.name || profile.display_name || chainEvent.pubkey.slice(0, 8) + '...'}</span>
-                                                </div>
-                                            {:else}
-                                                <span class="pubkey-fallback-small">{chainEvent.pubkey.slice(0, 8)}...</span>
-                                            {/if}
-                                        </div>
-                                        <span class="event-time-small">{formatTime(chainEvent.created_at)}</span>
+                    <h4>Previous replies ({replyChain.length})</h4>
+                    <div class="previous-replies-list">
+                        {#each replyChain as chainEvent (chainEvent.id)}
+                            <button class="previous-reply-item" on:click={() => handleChainItemClick(chainEvent)}>
+                                <div class="chain-event-header">
+                                    <div class="event-author">
+                                        {#if getUserProfile(chainEvent.pubkey)}
+                                            {@const profile = getUserProfile(chainEvent.pubkey)}
+                                            <div class="author-info">
+                                                {#if profile.picture}
+                                                    <img src={profile.picture} alt="Avatar" class="avatar-small" />
+                                                {:else}
+                                                    <div class="avatar-placeholder-small"></div>
+                                                {/if}
+                                                <span class="username-small">{profile.name || profile.display_name || chainEvent.pubkey.slice(0, 8) + '...'}</span>
+                                            </div>
+                                        {:else}
+                                            <span class="pubkey-fallback-small">{chainEvent.pubkey.slice(0, 8)}...</span>
+                                        {/if}
                                     </div>
-                                    <div class="chain-event-content">
-                                        {truncateContent(chainEvent.content)}
-                                    </div>
-                                </button>
-                            {/each}
-                        </div>
-                    {/if}
+                                    <span class="event-time-small">{formatTime(chainEvent.created_at)}</span>
+                                </div>
+                                <div class="chain-event-content">
+                                    {@html renderContentWithMedia(chainEvent.content)}
+                                </div>
+                            </button>
+                        {/each}
+                    </div>
                 </div>
             {/if}
             
@@ -477,7 +495,7 @@
                         <span class="reply-indicator">↩</span>
                     </div>
                     <div class="event-content">
-                        {originalEvent.content}
+                        {@html renderContentWithMedia(originalEvent.content)}
                     </div>
                 </button>
             {:else}
@@ -502,7 +520,7 @@
                         <span class="root-indicator">root</span>
                     </div>
                     <div class="event-content">
-                        {originalEvent.content}
+                        {@html renderContentWithMedia(originalEvent.content)}
                     </div>
                 </div>
             {/if}
@@ -533,7 +551,7 @@
                                 <span class="thread-indicator">💬</span>
                             </div>
                             <div class="event-content">
-                                {reply.content}
+                                {@html renderContentWithMedia(reply.content)}
                             </div>
                         </button>
                     {/each}
@@ -542,37 +560,6 @@
                 <div class="no-replies">No replies yet</div>
             {/if}
             
-            <!-- Later Replies -->
-            {#if laterReplies.length > 0}
-                <div class="later-replies-section">
-                    <h4>Later replies ({laterReplies.length})</h4>
-                    {#each laterReplies as laterReply (laterReply.id)}
-                        <button class="later-reply-item" on:click={() => handleReplyClick(laterReply)}>
-                            <div class="chain-event-header">
-                                <div class="event-author">
-                                    {#if getUserProfile(laterReply.pubkey)}
-                                        {@const profile = getUserProfile(laterReply.pubkey)}
-                                        <div class="author-info">
-                                            {#if profile.picture}
-                                                <img src={profile.picture} alt="Avatar" class="avatar-small" />
-                                            {:else}
-                                                <div class="avatar-placeholder-small"></div>
-                                            {/if}
-                                            <span class="username-small">{profile.name || profile.display_name || laterReply.pubkey.slice(0, 8) + '...'}</span>
-                                        </div>
-                                    {:else}
-                                        <span class="pubkey-fallback-small">{laterReply.pubkey.slice(0, 8)}...</span>
-                                    {/if}
-                                </div>
-                                <span class="event-time-small">{formatTime(laterReply.created_at)}</span>
-                            </div>
-                            <div class="chain-event-content">
-                                {laterReply.content}
-                            </div>
-                        </button>
-                    {/each}
-                </div>
-            {/if}
         {:else}
             <div class="error">Event not found</div>
         {/if}
@@ -720,7 +707,6 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        background-color: var(--header-bg);
         padding: 0.25rem 0.5rem;
         border:none;
     }
@@ -776,32 +762,14 @@
         margin-bottom: 1rem;
     }
 
-    .previous-replies-toggle {
-        width: 100%;
-        background: none;
-        border: none;
-        padding: 0.5rem;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    .previous-replies-section h4 {
+        margin: 0 0 0.5rem 0;
         color: var(--text-color);
         font-size: 0.9rem;
-        opacity: 0.7;
-        transition: opacity 0.2s;
-    }
-
-    .previous-replies-toggle:hover {
-        opacity: 1;
-    }
-
-    .toggle-text {
         font-weight: 500;
+        opacity: 0.8;
     }
 
-    .toggle-icon {
-        font-size: 0.8rem;
-    }
 
     .previous-replies-list {
         display: flex;
@@ -900,42 +868,42 @@
         padding-left:1em;
     }
 
-    .later-replies-section {
-        margin-top: 1rem;
-        border-top: 1px solid var(--border-color);
-        padding-top: 1rem;
-    }
-
-    .later-replies-section h4 {
-        margin: 0 0 0.5rem 0;
-        color: var(--text-color);
-        font-size: 0.9rem;
-        font-weight: 500;
-        opacity: 0.8;
-    }
-
-    .later-reply-item {
-        background: none;
-        border: none;
-        padding: 0.75rem 0;
-        cursor: pointer;
-        text-align: left;
-        font-family: inherit;
-        font-size: 0.9rem;
-        color: var(--text-color);
-        opacity: 0.8;
-        transition: opacity 0.2s;
-        border-bottom: 1px solid var(--border-color);
+    .media-block {
+        margin: 0.5rem 0;
         width: 100%;
+        max-width: 24em;
+        border-radius: 0;
+        overflow: hidden;
+        background-color: var(--button-hover-bg);
+        box-sizing: border-box;
     }
 
-    .later-reply-item:hover {
-        opacity: 1;
+    .image-block img {
+        width: 100% !important;
+        max-width: 24em !important;
+        height: auto !important;
+        display: block !important;
+        border-radius: 0;
+        object-fit: contain !important;
+        box-sizing: border-box;
     }
 
-    .later-reply-item:last-child {
-        border-bottom: none;
+    .video-block video {
+        width: 100% !important;
+        max-width: 24em !important;
+        height: auto !important;
+        display: block !important;
+        border-radius: 0;
+        object-fit: contain !important;
+        box-sizing: border-box;
     }
+
+    .audio-block audio {
+        width: 100%;
+        display: block;
+        border-radius: 0;
+    }
+
 
     /* Custom scrollbar styling */
     .thread-content::-webkit-scrollbar {

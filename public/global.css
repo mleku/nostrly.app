@@ -7,7 +7,7 @@ html, body {
 body {
 	color: #333;
 	margin: 0;
-	padding: 8px;
+	padding: 0;
 	box-sizing: border-box;
 	font-family: "Noto Sans",-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
@@ -60,4 +60,20 @@ button:not(:disabled):active {
 
 button:focus {
 	border-color: #666;
+}
+
+/* Global media constraints for @html rendered content */
+.image-block img,
+.video-block video {
+	max-width: 32em !important;
+	width: 100% !important;
+	height: auto !important;
+	object-fit: fill !important;
+	box-sizing: border-box !important;
+}
+
+.media-block {
+	max-width: 32em !important;
+	width: 100% !important;
+	box-sizing: border-box !important;
 }
