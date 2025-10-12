@@ -128,7 +128,7 @@
     }
 
     .column-content::-webkit-scrollbar-track {
-        background: var(--button-hover-bg);
+        background: var(--bg-color);
         border-radius: 4px;
     }
 
@@ -144,7 +144,7 @@
     /* Firefox scrollbar styling */
     .column-content {
         scrollbar-width: thin;
-        scrollbar-color: var(--border-color) var(--button-hover-bg);
+        scrollbar-color: var(--border-color) var(--bg-color);
     }
 
     /* Mobile responsive */

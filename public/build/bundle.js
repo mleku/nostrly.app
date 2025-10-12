@@ -25422,7 +25422,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			button = element("button");
     			button.textContent = "↺";
-    			attr_dev(button, "class", "reload-btn svelte-1sdx712");
+    			attr_dev(button, "class", "reload-btn svelte-1j1amlw");
     			attr_dev(button, "title", "Reload feed");
     			add_location(button, file$3, 40, 12, 1333);
     		},
@@ -25490,22 +25490,22 @@ For regular events (kind ${kind}), use:
     			t6 = space();
     			div2 = element("div");
     			if (default_slot) default_slot.c();
-    			attr_dev(button0, "class", "filter-btn svelte-1sdx712");
+    			attr_dev(button0, "class", "filter-btn svelte-1j1amlw");
     			toggle_class(button0, "active", /*feedFilter*/ ctx[2] === 'notes');
     			add_location(button0, file$3, 23, 12, 648);
-    			attr_dev(button1, "class", "filter-btn svelte-1sdx712");
+    			attr_dev(button1, "class", "filter-btn svelte-1j1amlw");
     			toggle_class(button1, "active", /*feedFilter*/ ctx[2] === 'replies');
     			add_location(button1, file$3, 28, 12, 857);
-    			attr_dev(button2, "class", "filter-btn svelte-1sdx712");
+    			attr_dev(button2, "class", "filter-btn svelte-1j1amlw");
     			toggle_class(button2, "active", /*feedFilter*/ ctx[2] === 'reposts');
     			add_location(button2, file$3, 33, 12, 1072);
-    			attr_dev(div0, "class", "filter-buttons svelte-1sdx712");
+    			attr_dev(div0, "class", "filter-buttons svelte-1j1amlw");
     			add_location(div0, file$3, 22, 8, 607);
-    			attr_dev(div1, "class", "column-header svelte-1sdx712");
+    			attr_dev(div1, "class", "column-header svelte-1j1amlw");
     			add_location(div1, file$3, 21, 4, 571);
-    			attr_dev(div2, "class", "column-content svelte-1sdx712");
+    			attr_dev(div2, "class", "column-content svelte-1j1amlw");
     			add_location(div2, file$3, 43, 4, 1444);
-    			attr_dev(div3, "class", "vertical-column svelte-1sdx712");
+    			attr_dev(div3, "class", "vertical-column svelte-1j1amlw");
     			set_style(div3, "width", /*width*/ ctx[0]);
     			add_location(div3, file$3, 20, 0, 514);
     		},
@@ -25845,7 +25845,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			if_block.c();
-    			attr_dev(div, "class", "empty-feed svelte-e3v806");
+    			attr_dev(div, "class", "empty-feed svelte-ctqw3y");
     			add_location(div, file$2, 423, 8, 14392);
     		},
     		m: function mount(target, anchor) {
@@ -25888,7 +25888,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "Loading feed...";
-    			attr_dev(div, "class", "loading svelte-e3v806");
+    			attr_dev(div, "class", "loading svelte-ctqw3y");
     			add_location(div, file$2, 421, 8, 14292);
     		},
     		m: function mount(target, anchor) {
@@ -25923,7 +25923,7 @@ For regular events (kind ${kind}), use:
     			span = element("span");
     			t0 = text(t0_value);
     			t1 = text("...");
-    			attr_dev(span, "class", "pubkey-fallback svelte-e3v806");
+    			attr_dev(span, "class", "pubkey-fallback svelte-ctqw3y");
     			add_location(span, file$2, 453, 28, 15811);
     		},
     		m: function mount(target, anchor) {
@@ -25973,9 +25973,9 @@ For regular events (kind ${kind}), use:
     			t0 = space();
     			span = element("span");
     			t1 = text(t1_value);
-    			attr_dev(span, "class", "username svelte-e3v806");
+    			attr_dev(span, "class", "username svelte-ctqw3y");
     			add_location(span, file$2, 450, 32, 15611);
-    			attr_dev(div, "class", "author-info svelte-e3v806");
+    			attr_dev(div, "class", "author-info svelte-ctqw3y");
     			add_location(div, file$2, 444, 28, 15252);
     		},
     		m: function mount(target, anchor) {
@@ -26024,7 +26024,7 @@ For regular events (kind ${kind}), use:
     	const block = {
     		c: function create() {
     			div = element("div");
-    			attr_dev(div, "class", "avatar-placeholder svelte-e3v806");
+    			attr_dev(div, "class", "avatar-placeholder svelte-ctqw3y");
     			add_location(div, file$2, 448, 36, 15502);
     		},
     		m: function mount(target, anchor) {
@@ -26057,7 +26057,7 @@ For regular events (kind ${kind}), use:
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[30].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Avatar");
-    			attr_dev(img, "class", "avatar svelte-e3v806");
+    			attr_dev(img, "class", "avatar svelte-ctqw3y");
     			add_location(img, file$2, 446, 36, 15368);
     		},
     		m: function mount(target, anchor) {
@@ -26092,7 +26092,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			span = element("span");
     			span.textContent = "💬";
-    			attr_dev(span, "class", "thread-indicator svelte-e3v806");
+    			attr_dev(span, "class", "thread-indicator svelte-ctqw3y");
     			add_location(span, file$2, 460, 24, 16174);
     		},
     		m: function mount(target, anchor) {
@@ -26122,7 +26122,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			span = element("span");
     			span.textContent = "↩";
-    			attr_dev(span, "class", "reply-indicator svelte-e3v806");
+    			attr_dev(span, "class", "reply-indicator svelte-ctqw3y");
     			add_location(span, file$2, 458, 24, 16083);
     		},
     		m: function mount(target, anchor) {
@@ -26208,15 +26208,15 @@ For regular events (kind ${kind}), use:
     			t3 = space();
     			div2 = element("div");
     			t4 = text(t4_value);
-    			attr_dev(div0, "class", "event-author svelte-e3v806");
+    			attr_dev(div0, "class", "event-author svelte-ctqw3y");
     			add_location(div0, file$2, 441, 20, 15062);
-    			attr_dev(span, "class", "event-time svelte-e3v806");
+    			attr_dev(span, "class", "event-time svelte-ctqw3y");
     			add_location(span, file$2, 456, 20, 15955);
-    			attr_dev(div1, "class", "event-header svelte-e3v806");
+    			attr_dev(div1, "class", "event-header svelte-ctqw3y");
     			add_location(div1, file$2, 440, 16, 15015);
-    			attr_dev(div2, "class", "event-content svelte-e3v806");
+    			attr_dev(div2, "class", "event-content svelte-ctqw3y");
     			add_location(div2, file$2, 463, 16, 16280);
-    			attr_dev(button, "class", "event-card svelte-e3v806");
+    			attr_dev(button, "class", "event-card svelte-ctqw3y");
     			toggle_class(button, "reply", isReply$1(/*event*/ ctx[27]));
     			toggle_class(button, "clickable", true);
     			add_location(button, file$2, 436, 12, 14817);
@@ -26302,7 +26302,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "Loading more...";
-    			attr_dev(div, "class", "loading-more svelte-e3v806");
+    			attr_dev(div, "class", "loading-more svelte-ctqw3y");
     			add_location(div, file$2, 470, 12, 16452);
     		},
     		m: function mount(target, anchor) {
@@ -26453,7 +26453,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			if_block.c();
-    			attr_dev(div, "class", "nostr-feed svelte-e3v806");
+    			attr_dev(div, "class", "nostr-feed svelte-ctqw3y");
     			add_location(div, file$2, 419, 0, 14165);
     		},
     		l: function claim(nodes) {
@@ -27063,54 +27063,67 @@ For regular events (kind ${kind}), use:
 
     function get_each_context(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[24] = list[i];
+    	child_ctx[28] = list[i];
     	return child_ctx;
     }
 
     function get_if_ctx(ctx) {
     	const child_ctx = ctx.slice();
-    	const constants_0 = /*getUserProfile*/ child_ctx[10](/*reply*/ child_ctx[24].pubkey);
-    	child_ctx[27] = constants_0;
-    	return child_ctx;
-    }
-
-    function get_if_ctx_2(ctx) {
-    	const child_ctx = ctx.slice();
-    	const constants_0 = /*getUserProfile*/ child_ctx[10](/*originalEvent*/ child_ctx[1].pubkey);
-    	child_ctx[27] = constants_0;
-    	return child_ctx;
-    }
-
-    function get_if_ctx_1(ctx) {
-    	const child_ctx = ctx.slice();
-    	const constants_0 = /*getUserProfile*/ child_ctx[10](/*originalEvent*/ child_ctx[1].pubkey);
-    	child_ctx[27] = constants_0;
+    	const constants_0 = /*getUserProfile*/ child_ctx[11](/*laterReply*/ child_ctx[28].pubkey);
+    	child_ctx[31] = constants_0;
     	return child_ctx;
     }
 
     function get_each_context_1(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[28] = list[i];
+    	child_ctx[32] = list[i];
+    	return child_ctx;
+    }
+
+    function get_if_ctx_1(ctx) {
+    	const child_ctx = ctx.slice();
+    	const constants_0 = /*getUserProfile*/ child_ctx[11](/*reply*/ child_ctx[32].pubkey);
+    	child_ctx[31] = constants_0;
     	return child_ctx;
     }
 
     function get_if_ctx_3(ctx) {
     	const child_ctx = ctx.slice();
-    	const constants_0 = /*getUserProfile*/ child_ctx[10](/*chainEvent*/ child_ctx[28].pubkey);
-    	child_ctx[27] = constants_0;
+    	const constants_0 = /*getUserProfile*/ child_ctx[11](/*originalEvent*/ child_ctx[1].pubkey);
+    	child_ctx[31] = constants_0;
     	return child_ctx;
     }
 
-    // (479:8) {:else}
-    function create_else_block_10(ctx) {
+    function get_if_ctx_2(ctx) {
+    	const child_ctx = ctx.slice();
+    	const constants_0 = /*getUserProfile*/ child_ctx[11](/*originalEvent*/ child_ctx[1].pubkey);
+    	child_ctx[31] = constants_0;
+    	return child_ctx;
+    }
+
+    function get_each_context_2(ctx, list, i) {
+    	const child_ctx = ctx.slice();
+    	child_ctx[35] = list[i];
+    	return child_ctx;
+    }
+
+    function get_if_ctx_4(ctx) {
+    	const child_ctx = ctx.slice();
+    	const constants_0 = /*getUserProfile*/ child_ctx[11](/*chainEvent*/ child_ctx[35].pubkey);
+    	child_ctx[31] = constants_0;
+    	return child_ctx;
+    }
+
+    // (576:8) {:else}
+    function create_else_block_12(ctx) {
     	let div;
 
     	const block = {
     		c: function create() {
     			div = element("div");
     			div.textContent = "Event not found";
-    			attr_dev(div, "class", "error svelte-15qbgh3");
-    			add_location(div, file$1, 479, 12, 18899);
+    			attr_dev(div, "class", "error svelte-1t6p1va");
+    			add_location(div, file$1, 576, 12, 23529);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -27123,40 +27136,42 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_10.name,
+    		id: create_else_block_12.name,
     		type: "else",
-    		source: "(479:8) {:else}",
+    		source: "(576:8) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (351:32) 
+    // (416:32) 
     function create_if_block_1$1(ctx) {
     	let t0;
     	let show_if;
     	let t1;
-    	let if_block2_anchor;
-    	let if_block0 = /*replyChain*/ ctx[3].length > 0 && create_if_block_10$1(ctx);
+    	let t2;
+    	let if_block3_anchor;
+    	let if_block0 = /*replyChain*/ ctx[3].length > 0 && create_if_block_13(ctx);
 
     	function select_block_type_3(ctx, dirty) {
-    		if (dirty & /*originalEvent*/ 2) show_if = null;
+    		if (dirty[0] & /*originalEvent*/ 2) show_if = null;
     		if (show_if == null) show_if = !!isReply(/*originalEvent*/ ctx[1]);
-    		if (show_if) return create_if_block_5$1;
-    		return create_else_block_5;
+    		if (show_if) return create_if_block_8$1;
+    		return create_else_block_7;
     	}
 
-    	let current_block_type = select_block_type_3(ctx, -1);
+    	let current_block_type = select_block_type_3(ctx, [-1, -1]);
     	let if_block1 = current_block_type(ctx);
 
     	function select_block_type_8(ctx, dirty) {
-    		if (/*replies*/ ctx[2].length > 0) return create_if_block_2$1;
-    		return create_else_block_2$1;
+    		if (/*replies*/ ctx[2].length > 0) return create_if_block_5$1;
+    		return create_else_block_4;
     	}
 
     	let current_block_type_1 = select_block_type_8(ctx);
     	let if_block2 = current_block_type_1(ctx);
+    	let if_block3 = /*laterReplies*/ ctx[4].length > 0 && create_if_block_2$1(ctx);
 
     	const block = {
     		c: function create() {
@@ -27165,7 +27180,9 @@ For regular events (kind ${kind}), use:
     			if_block1.c();
     			t1 = space();
     			if_block2.c();
-    			if_block2_anchor = empty();
+    			t2 = space();
+    			if (if_block3) if_block3.c();
+    			if_block3_anchor = empty();
     		},
     		m: function mount(target, anchor) {
     			if (if_block0) if_block0.m(target, anchor);
@@ -27173,14 +27190,16 @@ For regular events (kind ${kind}), use:
     			if_block1.m(target, anchor);
     			insert_dev(target, t1, anchor);
     			if_block2.m(target, anchor);
-    			insert_dev(target, if_block2_anchor, anchor);
+    			insert_dev(target, t2, anchor);
+    			if (if_block3) if_block3.m(target, anchor);
+    			insert_dev(target, if_block3_anchor, anchor);
     		},
     		p: function update(ctx, dirty) {
     			if (/*replyChain*/ ctx[3].length > 0) {
     				if (if_block0) {
     					if_block0.p(ctx, dirty);
     				} else {
-    					if_block0 = create_if_block_10$1(ctx);
+    					if_block0 = create_if_block_13(ctx);
     					if_block0.c();
     					if_block0.m(t0.parentNode, t0);
     				}
@@ -27209,8 +27228,21 @@ For regular events (kind ${kind}), use:
 
     				if (if_block2) {
     					if_block2.c();
-    					if_block2.m(if_block2_anchor.parentNode, if_block2_anchor);
+    					if_block2.m(t2.parentNode, t2);
     				}
+    			}
+
+    			if (/*laterReplies*/ ctx[4].length > 0) {
+    				if (if_block3) {
+    					if_block3.p(ctx, dirty);
+    				} else {
+    					if_block3 = create_if_block_2$1(ctx);
+    					if_block3.c();
+    					if_block3.m(if_block3_anchor.parentNode, if_block3_anchor);
+    				}
+    			} else if (if_block3) {
+    				if_block3.d(1);
+    				if_block3 = null;
     			}
     		},
     		d: function destroy(detaching) {
@@ -27219,7 +27251,9 @@ For regular events (kind ${kind}), use:
     			if_block1.d(detaching);
     			if (detaching) detach_dev(t1);
     			if_block2.d(detaching);
-    			if (detaching) detach_dev(if_block2_anchor);
+    			if (detaching) detach_dev(t2);
+    			if (if_block3) if_block3.d(detaching);
+    			if (detaching) detach_dev(if_block3_anchor);
     		}
     	};
 
@@ -27227,14 +27261,14 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block_1$1.name,
     		type: "if",
-    		source: "(351:32) ",
+    		source: "(416:32) ",
     		ctx
     	});
 
     	return block;
     }
 
-    // (349:8) {#if isLoading && !originalEvent}
+    // (414:8) {#if isLoading && !originalEvent}
     function create_if_block$1(ctx) {
     	let div;
 
@@ -27242,8 +27276,8 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "Loading thread...";
-    			attr_dev(div, "class", "loading svelte-15qbgh3");
-    			add_location(div, file$1, 349, 12, 11206);
+    			attr_dev(div, "class", "loading svelte-1t6p1va");
+    			add_location(div, file$1, 414, 12, 13880);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -27258,26 +27292,26 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_if_block$1.name,
     		type: "if",
-    		source: "(349:8) {#if isLoading && !originalEvent}",
+    		source: "(414:8) {#if isLoading && !originalEvent}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (353:12) {#if replyChain.length > 0}
-    function create_if_block_10$1(ctx) {
+    // (418:12) {#if replyChain.length > 0}
+    function create_if_block_13(ctx) {
     	let div;
     	let button;
     	let span0;
     	let t1;
     	let span1;
-    	let t2_value = (/*showPreviousReplies*/ ctx[5] ? '▼' : '▶') + "";
+    	let t2_value = (/*showPreviousReplies*/ ctx[6] ? '▼' : '▶') + "";
     	let t2;
     	let t3;
     	let mounted;
     	let dispose;
-    	let if_block = /*showPreviousReplies*/ ctx[5] && create_if_block_11$1(ctx);
+    	let if_block = /*showPreviousReplies*/ ctx[6] && create_if_block_14(ctx);
 
     	const block = {
     		c: function create() {
@@ -27290,14 +27324,14 @@ For regular events (kind ${kind}), use:
     			t2 = text(t2_value);
     			t3 = space();
     			if (if_block) if_block.c();
-    			attr_dev(span0, "class", "toggle-text svelte-15qbgh3");
-    			add_location(span0, file$1, 355, 24, 11543);
-    			attr_dev(span1, "class", "toggle-icon svelte-15qbgh3");
-    			add_location(span1, file$1, 356, 24, 11617);
-    			attr_dev(button, "class", "previous-replies-toggle svelte-15qbgh3");
-    			add_location(button, file$1, 354, 20, 11445);
-    			attr_dev(div, "class", "previous-replies-section svelte-15qbgh3");
-    			add_location(div, file$1, 353, 16, 11386);
+    			attr_dev(span0, "class", "toggle-text svelte-1t6p1va");
+    			add_location(span0, file$1, 420, 24, 14217);
+    			attr_dev(span1, "class", "toggle-icon svelte-1t6p1va");
+    			add_location(span1, file$1, 421, 24, 14291);
+    			attr_dev(button, "class", "previous-replies-toggle svelte-1t6p1va");
+    			add_location(button, file$1, 419, 20, 14119);
+    			attr_dev(div, "class", "previous-replies-section svelte-1t6p1va");
+    			add_location(div, file$1, 418, 16, 14060);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -27310,18 +27344,18 @@ For regular events (kind ${kind}), use:
     			if (if_block) if_block.m(div, null);
 
     			if (!mounted) {
-    				dispose = listen_dev(button, "click", /*togglePreviousReplies*/ ctx[9], false, false, false, false);
+    				dispose = listen_dev(button, "click", /*togglePreviousReplies*/ ctx[10], false, false, false, false);
     				mounted = true;
     			}
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*showPreviousReplies*/ 32 && t2_value !== (t2_value = (/*showPreviousReplies*/ ctx[5] ? '▼' : '▶') + "")) set_data_dev(t2, t2_value);
+    			if (dirty[0] & /*showPreviousReplies*/ 64 && t2_value !== (t2_value = (/*showPreviousReplies*/ ctx[6] ? '▼' : '▶') + "")) set_data_dev(t2, t2_value);
 
-    			if (/*showPreviousReplies*/ ctx[5]) {
+    			if (/*showPreviousReplies*/ ctx[6]) {
     				if (if_block) {
     					if_block.p(ctx, dirty);
     				} else {
-    					if_block = create_if_block_11$1(ctx);
+    					if_block = create_if_block_14(ctx);
     					if_block.c();
     					if_block.m(div, null);
     				}
@@ -27340,29 +27374,29 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_10$1.name,
+    		id: create_if_block_13.name,
     		type: "if",
-    		source: "(353:12) {#if replyChain.length > 0}",
+    		source: "(418:12) {#if replyChain.length > 0}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (360:20) {#if showPreviousReplies}
-    function create_if_block_11$1(ctx) {
+    // (425:20) {#if showPreviousReplies}
+    function create_if_block_14(ctx) {
     	let div;
     	let each_blocks = [];
     	let each_1_lookup = new Map_1();
-    	let each_value_1 = /*replyChain*/ ctx[3];
-    	validate_each_argument(each_value_1);
-    	const get_key = ctx => /*chainEvent*/ ctx[28].id;
-    	validate_each_keys(ctx, each_value_1, get_each_context_1, get_key);
+    	let each_value_2 = /*replyChain*/ ctx[3];
+    	validate_each_argument(each_value_2);
+    	const get_key = ctx => /*chainEvent*/ ctx[35].id;
+    	validate_each_keys(ctx, each_value_2, get_each_context_2, get_key);
 
-    	for (let i = 0; i < each_value_1.length; i += 1) {
-    		let child_ctx = get_each_context_1(ctx, each_value_1, i);
+    	for (let i = 0; i < each_value_2.length; i += 1) {
+    		let child_ctx = get_each_context_2(ctx, each_value_2, i);
     		let key = get_key(child_ctx);
-    		each_1_lookup.set(key, each_blocks[i] = create_each_block_1(key, child_ctx));
+    		each_1_lookup.set(key, each_blocks[i] = create_each_block_2(key, child_ctx));
     	}
 
     	const block = {
@@ -27373,8 +27407,8 @@ For regular events (kind ${kind}), use:
     				each_blocks[i].c();
     			}
 
-    			attr_dev(div, "class", "previous-replies-list svelte-15qbgh3");
-    			add_location(div, file$1, 360, 24, 11805);
+    			attr_dev(div, "class", "previous-replies-list svelte-1t6p1va");
+    			add_location(div, file$1, 425, 24, 14479);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -27386,11 +27420,11 @@ For regular events (kind ${kind}), use:
     			}
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*handleChainItemClick, replyChain, truncateContent, formatTime, getUserProfile*/ 1288) {
-    				each_value_1 = /*replyChain*/ ctx[3];
-    				validate_each_argument(each_value_1);
-    				validate_each_keys(ctx, each_value_1, get_each_context_1, get_key);
-    				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_1, each_1_lookup, div, destroy_block, create_each_block_1, null, get_each_context_1);
+    			if (dirty[0] & /*handleChainItemClick, replyChain, getUserProfile*/ 2568) {
+    				each_value_2 = /*replyChain*/ ctx[3];
+    				validate_each_argument(each_value_2);
+    				validate_each_keys(ctx, each_value_2, get_each_context_2, get_key);
+    				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_2, each_1_lookup, div, destroy_block, create_each_block_2, null, get_each_context_2);
     			}
     		},
     		d: function destroy(detaching) {
@@ -27404,19 +27438,19 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_11$1.name,
+    		id: create_if_block_14.name,
     		type: "if",
-    		source: "(360:20) {#if showPreviousReplies}",
+    		source: "(425:20) {#if showPreviousReplies}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (376:44) {:else}
-    function create_else_block_9(ctx) {
+    // (441:44) {:else}
+    function create_else_block_11(ctx) {
     	let span;
-    	let t0_value = /*chainEvent*/ ctx[28].pubkey.slice(0, 8) + "";
+    	let t0_value = /*chainEvent*/ ctx[35].pubkey.slice(0, 8) + "";
     	let t0;
     	let t1;
 
@@ -27425,8 +27459,8 @@ For regular events (kind ${kind}), use:
     			span = element("span");
     			t0 = text(t0_value);
     			t1 = text("...");
-    			attr_dev(span, "class", "pubkey-fallback-small svelte-15qbgh3");
-    			add_location(span, file$1, 376, 48, 13168);
+    			attr_dev(span, "class", "pubkey-fallback-small svelte-1t6p1va");
+    			add_location(span, file$1, 441, 48, 15842);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, span, anchor);
@@ -27434,7 +27468,7 @@ For regular events (kind ${kind}), use:
     			append_dev(span, t1);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*replyChain*/ 8 && t0_value !== (t0_value = /*chainEvent*/ ctx[28].pubkey.slice(0, 8) + "")) set_data_dev(t0, t0_value);
+    			if (dirty[0] & /*replyChain*/ 8 && t0_value !== (t0_value = /*chainEvent*/ ctx[35].pubkey.slice(0, 8) + "")) set_data_dev(t0, t0_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(span);
@@ -27443,26 +27477,26 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_9.name,
+    		id: create_else_block_11.name,
     		type: "else",
-    		source: "(376:44) {:else}",
+    		source: "(441:44) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (366:44) {#if getUserProfile(chainEvent.pubkey)}
-    function create_if_block_12$1(ctx) {
+    // (431:44) {#if getUserProfile(chainEvent.pubkey)}
+    function create_if_block_15(ctx) {
     	let div;
     	let t0;
     	let span;
-    	let t1_value = (/*profile*/ ctx[27].name || /*profile*/ ctx[27].display_name || /*chainEvent*/ ctx[28].pubkey.slice(0, 8) + '...') + "";
+    	let t1_value = (/*profile*/ ctx[31].name || /*profile*/ ctx[31].display_name || /*chainEvent*/ ctx[35].pubkey.slice(0, 8) + '...') + "";
     	let t1;
 
     	function select_block_type_2(ctx, dirty) {
-    		if (/*profile*/ ctx[27].picture) return create_if_block_13;
-    		return create_else_block_8;
+    		if (/*profile*/ ctx[31].picture) return create_if_block_16;
+    		return create_else_block_10;
     	}
 
     	let current_block_type = select_block_type_2(ctx);
@@ -27475,10 +27509,10 @@ For regular events (kind ${kind}), use:
     			t0 = space();
     			span = element("span");
     			t1 = text(t1_value);
-    			attr_dev(span, "class", "username-small svelte-15qbgh3");
-    			add_location(span, file$1, 373, 52, 12897);
-    			attr_dev(div, "class", "author-info svelte-15qbgh3");
-    			add_location(div, file$1, 367, 48, 12406);
+    			attr_dev(span, "class", "username-small svelte-1t6p1va");
+    			add_location(span, file$1, 438, 52, 15571);
+    			attr_dev(div, "class", "author-info svelte-1t6p1va");
+    			add_location(div, file$1, 432, 48, 15080);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -27500,7 +27534,7 @@ For regular events (kind ${kind}), use:
     				}
     			}
 
-    			if (dirty & /*replyChain*/ 8 && t1_value !== (t1_value = (/*profile*/ ctx[27].name || /*profile*/ ctx[27].display_name || /*chainEvent*/ ctx[28].pubkey.slice(0, 8) + '...') + "")) set_data_dev(t1, t1_value);
+    			if (dirty[0] & /*replyChain*/ 8 && t1_value !== (t1_value = (/*profile*/ ctx[31].name || /*profile*/ ctx[31].display_name || /*chainEvent*/ ctx[35].pubkey.slice(0, 8) + '...') + "")) set_data_dev(t1, t1_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(div);
@@ -27510,24 +27544,24 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_12$1.name,
+    		id: create_if_block_15.name,
     		type: "if",
-    		source: "(366:44) {#if getUserProfile(chainEvent.pubkey)}",
+    		source: "(431:44) {#if getUserProfile(chainEvent.pubkey)}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (371:52) {:else}
-    function create_else_block_8(ctx) {
+    // (436:52) {:else}
+    function create_else_block_10(ctx) {
     	let div;
 
     	const block = {
     		c: function create() {
     			div = element("div");
-    			attr_dev(div, "class", "avatar-placeholder-small svelte-15qbgh3");
-    			add_location(div, file$1, 371, 56, 12742);
+    			attr_dev(div, "class", "avatar-placeholder-small svelte-1t6p1va");
+    			add_location(div, file$1, 436, 56, 15416);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -27540,33 +27574,33 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_8.name,
+    		id: create_else_block_10.name,
     		type: "else",
-    		source: "(371:52) {:else}",
+    		source: "(436:52) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (369:52) {#if profile.picture}
-    function create_if_block_13(ctx) {
+    // (434:52) {#if profile.picture}
+    function create_if_block_16(ctx) {
     	let img;
     	let img_src_value;
 
     	const block = {
     		c: function create() {
     			img = element("img");
-    			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[27].picture)) attr_dev(img, "src", img_src_value);
+    			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[31].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Avatar");
-    			attr_dev(img, "class", "avatar-small svelte-15qbgh3");
-    			add_location(img, file$1, 369, 56, 12562);
+    			attr_dev(img, "class", "avatar-small svelte-1t6p1va");
+    			add_location(img, file$1, 434, 56, 15236);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, img, anchor);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*replyChain*/ 8 && !src_url_equal(img.src, img_src_value = /*profile*/ ctx[27].picture)) {
+    			if (dirty[0] & /*replyChain*/ 8 && !src_url_equal(img.src, img_src_value = /*profile*/ ctx[31].picture)) {
     				attr_dev(img, "src", img_src_value);
     			}
     		},
@@ -27577,50 +27611,50 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_13.name,
+    		id: create_if_block_16.name,
     		type: "if",
-    		source: "(369:52) {#if profile.picture}",
+    		source: "(434:52) {#if profile.picture}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (362:28) {#each replyChain as chainEvent (chainEvent.id)}
-    function create_each_block_1(key_1, ctx) {
+    // (427:28) {#each replyChain as chainEvent (chainEvent.id)}
+    function create_each_block_2(key_1, ctx) {
     	let button;
     	let div1;
     	let div0;
     	let show_if;
     	let t0;
     	let span;
-    	let t1_value = formatTime(/*chainEvent*/ ctx[28].created_at) + "";
+    	let t1_value = formatTime(/*chainEvent*/ ctx[35].created_at) + "";
     	let t1;
     	let t2;
     	let div2;
-    	let t3_value = truncateContent(/*chainEvent*/ ctx[28].content) + "";
+    	let t3_value = truncateContent(/*chainEvent*/ ctx[35].content) + "";
     	let t3;
     	let t4;
     	let mounted;
     	let dispose;
 
     	function select_block_type_1(ctx, dirty) {
-    		if (dirty & /*replyChain*/ 8) show_if = null;
-    		if (show_if == null) show_if = !!/*getUserProfile*/ ctx[10](/*chainEvent*/ ctx[28].pubkey);
-    		if (show_if) return create_if_block_12$1;
-    		return create_else_block_9;
+    		if (dirty[0] & /*replyChain*/ 8) show_if = null;
+    		if (show_if == null) show_if = !!/*getUserProfile*/ ctx[11](/*chainEvent*/ ctx[35].pubkey);
+    		if (show_if) return create_if_block_15;
+    		return create_else_block_11;
     	}
 
     	function select_block_ctx(ctx, type) {
-    		if (type === create_if_block_12$1) return get_if_ctx_3(ctx);
+    		if (type === create_if_block_15) return get_if_ctx_4(ctx);
     		return ctx;
     	}
 
-    	let current_block_type = select_block_type_1(ctx, -1);
+    	let current_block_type = select_block_type_1(ctx, [-1, -1]);
     	let if_block = current_block_type(select_block_ctx(ctx, current_block_type));
 
     	function click_handler() {
-    		return /*click_handler*/ ctx[13](/*chainEvent*/ ctx[28]);
+    		return /*click_handler*/ ctx[15](/*chainEvent*/ ctx[35]);
     	}
 
     	const block = {
@@ -27638,16 +27672,16 @@ For regular events (kind ${kind}), use:
     			div2 = element("div");
     			t3 = text(t3_value);
     			t4 = space();
-    			attr_dev(div0, "class", "event-author svelte-15qbgh3");
-    			add_location(div0, file$1, 364, 40, 12146);
-    			attr_dev(span, "class", "event-time-small svelte-15qbgh3");
-    			add_location(span, file$1, 379, 40, 13383);
-    			attr_dev(div1, "class", "chain-event-header svelte-15qbgh3");
-    			add_location(div1, file$1, 363, 36, 12073);
-    			attr_dev(div2, "class", "chain-event-content svelte-15qbgh3");
-    			add_location(div2, file$1, 381, 36, 13536);
-    			attr_dev(button, "class", "previous-reply-item svelte-15qbgh3");
-    			add_location(button, file$1, 362, 32, 11950);
+    			attr_dev(div0, "class", "event-author svelte-1t6p1va");
+    			add_location(div0, file$1, 429, 40, 14820);
+    			attr_dev(span, "class", "event-time-small svelte-1t6p1va");
+    			add_location(span, file$1, 444, 40, 16057);
+    			attr_dev(div1, "class", "chain-event-header svelte-1t6p1va");
+    			add_location(div1, file$1, 428, 36, 14747);
+    			attr_dev(div2, "class", "chain-event-content svelte-1t6p1va");
+    			add_location(div2, file$1, 446, 36, 16210);
+    			attr_dev(button, "class", "previous-reply-item svelte-1t6p1va");
+    			add_location(button, file$1, 427, 32, 14624);
     			this.first = button;
     		},
     		m: function mount(target, anchor) {
@@ -27683,8 +27717,8 @@ For regular events (kind ${kind}), use:
     				}
     			}
 
-    			if (dirty & /*replyChain*/ 8 && t1_value !== (t1_value = formatTime(/*chainEvent*/ ctx[28].created_at) + "")) set_data_dev(t1, t1_value);
-    			if (dirty & /*replyChain*/ 8 && t3_value !== (t3_value = truncateContent(/*chainEvent*/ ctx[28].content) + "")) set_data_dev(t3, t3_value);
+    			if (dirty[0] & /*replyChain*/ 8 && t1_value !== (t1_value = formatTime(/*chainEvent*/ ctx[35].created_at) + "")) set_data_dev(t1, t1_value);
+    			if (dirty[0] & /*replyChain*/ 8 && t3_value !== (t3_value = truncateContent(/*chainEvent*/ ctx[35].content) + "")) set_data_dev(t3, t3_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(button);
@@ -27696,17 +27730,17 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_each_block_1.name,
+    		id: create_each_block_2.name,
     		type: "each",
-    		source: "(362:28) {#each replyChain as chainEvent (chainEvent.id)}",
+    		source: "(427:28) {#each replyChain as chainEvent (chainEvent.id)}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (418:12) {:else}
-    function create_else_block_5(ctx) {
+    // (483:12) {:else}
+    function create_else_block_7(ctx) {
     	let div3;
     	let div1;
     	let div0;
@@ -27723,18 +27757,18 @@ For regular events (kind ${kind}), use:
     	let t5;
 
     	function select_block_type_6(ctx, dirty) {
-    		if (dirty & /*originalEvent*/ 2) show_if = null;
-    		if (show_if == null) show_if = !!/*getUserProfile*/ ctx[10](/*originalEvent*/ ctx[1].pubkey);
-    		if (show_if) return create_if_block_8$1;
-    		return create_else_block_7;
+    		if (dirty[0] & /*originalEvent*/ 2) show_if = null;
+    		if (show_if == null) show_if = !!/*getUserProfile*/ ctx[11](/*originalEvent*/ ctx[1].pubkey);
+    		if (show_if) return create_if_block_11$1;
+    		return create_else_block_9;
     	}
 
     	function select_block_ctx(ctx, type) {
-    		if (type === create_if_block_8$1) return get_if_ctx_2(ctx);
+    		if (type === create_if_block_11$1) return get_if_ctx_3(ctx);
     		return ctx;
     	}
 
-    	let current_block_type = select_block_type_6(ctx, -1);
+    	let current_block_type = select_block_type_6(ctx, [-1, -1]);
     	let if_block = current_block_type(select_block_ctx(ctx, current_block_type));
 
     	const block = {
@@ -27752,18 +27786,18 @@ For regular events (kind ${kind}), use:
     			t4 = space();
     			div2 = element("div");
     			t5 = text(t5_value);
-    			attr_dev(div0, "class", "event-author svelte-15qbgh3");
-    			add_location(div0, file$1, 420, 24, 15564);
-    			attr_dev(span0, "class", "event-time svelte-15qbgh3");
-    			add_location(span0, file$1, 435, 24, 16549);
-    			attr_dev(span1, "class", "root-indicator svelte-15qbgh3");
-    			add_location(span1, file$1, 436, 24, 16644);
-    			attr_dev(div1, "class", "event-header svelte-15qbgh3");
-    			add_location(div1, file$1, 419, 20, 15513);
-    			attr_dev(div2, "class", "event-content svelte-15qbgh3");
-    			add_location(div2, file$1, 438, 20, 16732);
-    			attr_dev(div3, "class", "original-event svelte-15qbgh3");
-    			add_location(div3, file$1, 418, 16, 15464);
+    			attr_dev(div0, "class", "event-author svelte-1t6p1va");
+    			add_location(div0, file$1, 485, 24, 18238);
+    			attr_dev(span0, "class", "event-time svelte-1t6p1va");
+    			add_location(span0, file$1, 500, 24, 19223);
+    			attr_dev(span1, "class", "root-indicator svelte-1t6p1va");
+    			add_location(span1, file$1, 501, 24, 19318);
+    			attr_dev(div1, "class", "event-header svelte-1t6p1va");
+    			add_location(div1, file$1, 484, 20, 18187);
+    			attr_dev(div2, "class", "event-content svelte-1t6p1va");
+    			add_location(div2, file$1, 503, 20, 19406);
+    			attr_dev(div3, "class", "original-event svelte-1t6p1va");
+    			add_location(div3, file$1, 483, 16, 18138);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div3, anchor);
@@ -27792,8 +27826,8 @@ For regular events (kind ${kind}), use:
     				}
     			}
 
-    			if (dirty & /*originalEvent*/ 2 && t1_value !== (t1_value = formatTime(/*originalEvent*/ ctx[1].created_at) + "")) set_data_dev(t1, t1_value);
-    			if (dirty & /*originalEvent*/ 2 && t5_value !== (t5_value = /*originalEvent*/ ctx[1].content + "")) set_data_dev(t5, t5_value);
+    			if (dirty[0] & /*originalEvent*/ 2 && t1_value !== (t1_value = formatTime(/*originalEvent*/ ctx[1].created_at) + "")) set_data_dev(t1, t1_value);
+    			if (dirty[0] & /*originalEvent*/ 2 && t5_value !== (t5_value = /*originalEvent*/ ctx[1].content + "")) set_data_dev(t5, t5_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(div3);
@@ -27803,17 +27837,17 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_5.name,
+    		id: create_else_block_7.name,
     		type: "else",
-    		source: "(418:12) {:else}",
+    		source: "(483:12) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (393:12) {#if isReply(originalEvent)}
-    function create_if_block_5$1(ctx) {
+    // (458:12) {#if isReply(originalEvent)}
+    function create_if_block_8$1(ctx) {
     	let button;
     	let div1;
     	let div0;
@@ -27832,18 +27866,18 @@ For regular events (kind ${kind}), use:
     	let dispose;
 
     	function select_block_type_4(ctx, dirty) {
-    		if (dirty & /*originalEvent*/ 2) show_if = null;
-    		if (show_if == null) show_if = !!/*getUserProfile*/ ctx[10](/*originalEvent*/ ctx[1].pubkey);
-    		if (show_if) return create_if_block_6$1;
-    		return create_else_block_4;
+    		if (dirty[0] & /*originalEvent*/ 2) show_if = null;
+    		if (show_if == null) show_if = !!/*getUserProfile*/ ctx[11](/*originalEvent*/ ctx[1].pubkey);
+    		if (show_if) return create_if_block_9$1;
+    		return create_else_block_6;
     	}
 
     	function select_block_ctx(ctx, type) {
-    		if (type === create_if_block_6$1) return get_if_ctx_1(ctx);
+    		if (type === create_if_block_9$1) return get_if_ctx_2(ctx);
     		return ctx;
     	}
 
-    	let current_block_type = select_block_type_4(ctx, -1);
+    	let current_block_type = select_block_type_4(ctx, [-1, -1]);
     	let if_block = current_block_type(select_block_ctx(ctx, current_block_type));
 
     	const block = {
@@ -27861,18 +27895,18 @@ For regular events (kind ${kind}), use:
     			t4 = space();
     			div2 = element("div");
     			t5 = text(t5_value);
-    			attr_dev(div0, "class", "event-author svelte-15qbgh3");
-    			add_location(div0, file$1, 395, 24, 14133);
-    			attr_dev(span0, "class", "event-time svelte-15qbgh3");
-    			add_location(span0, file$1, 410, 24, 15118);
-    			attr_dev(span1, "class", "reply-indicator svelte-15qbgh3");
-    			add_location(span1, file$1, 411, 24, 15213);
-    			attr_dev(div1, "class", "event-header svelte-15qbgh3");
-    			add_location(div1, file$1, 394, 20, 14082);
-    			attr_dev(div2, "class", "event-content svelte-15qbgh3");
-    			add_location(div2, file$1, 413, 20, 15299);
-    			attr_dev(button, "class", "original-event clickable svelte-15qbgh3");
-    			add_location(button, file$1, 393, 16, 13984);
+    			attr_dev(div0, "class", "event-author svelte-1t6p1va");
+    			add_location(div0, file$1, 460, 24, 16807);
+    			attr_dev(span0, "class", "event-time svelte-1t6p1va");
+    			add_location(span0, file$1, 475, 24, 17792);
+    			attr_dev(span1, "class", "reply-indicator svelte-1t6p1va");
+    			add_location(span1, file$1, 476, 24, 17887);
+    			attr_dev(div1, "class", "event-header svelte-1t6p1va");
+    			add_location(div1, file$1, 459, 20, 16756);
+    			attr_dev(div2, "class", "event-content svelte-1t6p1va");
+    			add_location(div2, file$1, 478, 20, 17973);
+    			attr_dev(button, "class", "original-event clickable svelte-1t6p1va");
+    			add_location(button, file$1, 458, 16, 16658);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, button, anchor);
@@ -27889,7 +27923,7 @@ For regular events (kind ${kind}), use:
     			append_dev(div2, t5);
 
     			if (!mounted) {
-    				dispose = listen_dev(button, "click", /*handleOriginalEventClick*/ ctx[6], false, false, false, false);
+    				dispose = listen_dev(button, "click", /*handleOriginalEventClick*/ ctx[7], false, false, false, false);
     				mounted = true;
     			}
     		},
@@ -27906,8 +27940,8 @@ For regular events (kind ${kind}), use:
     				}
     			}
 
-    			if (dirty & /*originalEvent*/ 2 && t1_value !== (t1_value = formatTime(/*originalEvent*/ ctx[1].created_at) + "")) set_data_dev(t1, t1_value);
-    			if (dirty & /*originalEvent*/ 2 && t5_value !== (t5_value = /*originalEvent*/ ctx[1].content + "")) set_data_dev(t5, t5_value);
+    			if (dirty[0] & /*originalEvent*/ 2 && t1_value !== (t1_value = formatTime(/*originalEvent*/ ctx[1].created_at) + "")) set_data_dev(t1, t1_value);
+    			if (dirty[0] & /*originalEvent*/ 2 && t5_value !== (t5_value = /*originalEvent*/ ctx[1].content + "")) set_data_dev(t5, t5_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(button);
@@ -27919,17 +27953,17 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_5$1.name,
+    		id: create_if_block_8$1.name,
     		type: "if",
-    		source: "(393:12) {#if isReply(originalEvent)}",
+    		source: "(458:12) {#if isReply(originalEvent)}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (432:28) {:else}
-    function create_else_block_7(ctx) {
+    // (497:28) {:else}
+    function create_else_block_9(ctx) {
     	let span;
     	let t0_value = /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + "";
     	let t0;
@@ -27940,8 +27974,8 @@ For regular events (kind ${kind}), use:
     			span = element("span");
     			t0 = text(t0_value);
     			t1 = text("...");
-    			attr_dev(span, "class", "pubkey-fallback svelte-15qbgh3");
-    			add_location(span, file$1, 432, 32, 16385);
+    			attr_dev(span, "class", "pubkey-fallback svelte-1t6p1va");
+    			add_location(span, file$1, 497, 32, 19059);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, span, anchor);
@@ -27949,7 +27983,7 @@ For regular events (kind ${kind}), use:
     			append_dev(span, t1);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*originalEvent*/ 2 && t0_value !== (t0_value = /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + "")) set_data_dev(t0, t0_value);
+    			if (dirty[0] & /*originalEvent*/ 2 && t0_value !== (t0_value = /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + "")) set_data_dev(t0, t0_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(span);
@@ -27958,26 +27992,26 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_7.name,
+    		id: create_else_block_9.name,
     		type: "else",
-    		source: "(432:28) {:else}",
+    		source: "(497:28) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (422:28) {#if getUserProfile(originalEvent.pubkey)}
-    function create_if_block_8$1(ctx) {
+    // (487:28) {#if getUserProfile(originalEvent.pubkey)}
+    function create_if_block_11$1(ctx) {
     	let div;
     	let t0;
     	let span;
-    	let t1_value = (/*profile*/ ctx[27].name || /*profile*/ ctx[27].display_name || /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + '...') + "";
+    	let t1_value = (/*profile*/ ctx[31].name || /*profile*/ ctx[31].display_name || /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + '...') + "";
     	let t1;
 
     	function select_block_type_7(ctx, dirty) {
-    		if (/*profile*/ ctx[27].picture) return create_if_block_9$1;
-    		return create_else_block_6;
+    		if (/*profile*/ ctx[31].picture) return create_if_block_12$1;
+    		return create_else_block_8;
     	}
 
     	let current_block_type = select_block_type_7(ctx);
@@ -27990,10 +28024,10 @@ For regular events (kind ${kind}), use:
     			t0 = space();
     			span = element("span");
     			t1 = text(t1_value);
-    			attr_dev(span, "class", "username svelte-15qbgh3");
-    			add_location(span, file$1, 429, 36, 16165);
-    			attr_dev(div, "class", "author-info svelte-15qbgh3");
-    			add_location(div, file$1, 423, 32, 15782);
+    			attr_dev(span, "class", "username svelte-1t6p1va");
+    			add_location(span, file$1, 494, 36, 18839);
+    			attr_dev(div, "class", "author-info svelte-1t6p1va");
+    			add_location(div, file$1, 488, 32, 18456);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -28015,7 +28049,7 @@ For regular events (kind ${kind}), use:
     				}
     			}
 
-    			if (dirty & /*originalEvent*/ 2 && t1_value !== (t1_value = (/*profile*/ ctx[27].name || /*profile*/ ctx[27].display_name || /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + '...') + "")) set_data_dev(t1, t1_value);
+    			if (dirty[0] & /*originalEvent*/ 2 && t1_value !== (t1_value = (/*profile*/ ctx[31].name || /*profile*/ ctx[31].display_name || /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + '...') + "")) set_data_dev(t1, t1_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(div);
@@ -28025,24 +28059,24 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_8$1.name,
+    		id: create_if_block_11$1.name,
     		type: "if",
-    		source: "(422:28) {#if getUserProfile(originalEvent.pubkey)}",
+    		source: "(487:28) {#if getUserProfile(originalEvent.pubkey)}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (427:36) {:else}
-    function create_else_block_6(ctx) {
+    // (492:36) {:else}
+    function create_else_block_8(ctx) {
     	let div;
 
     	const block = {
     		c: function create() {
     			div = element("div");
-    			attr_dev(div, "class", "avatar-placeholder svelte-15qbgh3");
-    			add_location(div, file$1, 427, 40, 16048);
+    			attr_dev(div, "class", "avatar-placeholder svelte-1t6p1va");
+    			add_location(div, file$1, 492, 40, 18722);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -28055,33 +28089,33 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_6.name,
+    		id: create_else_block_8.name,
     		type: "else",
-    		source: "(427:36) {:else}",
+    		source: "(492:36) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (425:36) {#if profile.picture}
-    function create_if_block_9$1(ctx) {
+    // (490:36) {#if profile.picture}
+    function create_if_block_12$1(ctx) {
     	let img;
     	let img_src_value;
 
     	const block = {
     		c: function create() {
     			img = element("img");
-    			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[27].picture)) attr_dev(img, "src", img_src_value);
+    			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[31].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Avatar");
-    			attr_dev(img, "class", "avatar svelte-15qbgh3");
-    			add_location(img, file$1, 425, 40, 15906);
+    			attr_dev(img, "class", "avatar svelte-1t6p1va");
+    			add_location(img, file$1, 490, 40, 18580);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, img, anchor);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*originalEvent*/ 2 && !src_url_equal(img.src, img_src_value = /*profile*/ ctx[27].picture)) {
+    			if (dirty[0] & /*originalEvent*/ 2 && !src_url_equal(img.src, img_src_value = /*profile*/ ctx[31].picture)) {
     				attr_dev(img, "src", img_src_value);
     			}
     		},
@@ -28092,17 +28126,17 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_9$1.name,
+    		id: create_if_block_12$1.name,
     		type: "if",
-    		source: "(425:36) {#if profile.picture}",
+    		source: "(490:36) {#if profile.picture}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (407:28) {:else}
-    function create_else_block_4(ctx) {
+    // (472:28) {:else}
+    function create_else_block_6(ctx) {
     	let span;
     	let t0_value = /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + "";
     	let t0;
@@ -28113,8 +28147,8 @@ For regular events (kind ${kind}), use:
     			span = element("span");
     			t0 = text(t0_value);
     			t1 = text("...");
-    			attr_dev(span, "class", "pubkey-fallback svelte-15qbgh3");
-    			add_location(span, file$1, 407, 32, 14954);
+    			attr_dev(span, "class", "pubkey-fallback svelte-1t6p1va");
+    			add_location(span, file$1, 472, 32, 17628);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, span, anchor);
@@ -28122,7 +28156,7 @@ For regular events (kind ${kind}), use:
     			append_dev(span, t1);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*originalEvent*/ 2 && t0_value !== (t0_value = /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + "")) set_data_dev(t0, t0_value);
+    			if (dirty[0] & /*originalEvent*/ 2 && t0_value !== (t0_value = /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + "")) set_data_dev(t0, t0_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(span);
@@ -28131,26 +28165,26 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_4.name,
+    		id: create_else_block_6.name,
     		type: "else",
-    		source: "(407:28) {:else}",
+    		source: "(472:28) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (397:28) {#if getUserProfile(originalEvent.pubkey)}
-    function create_if_block_6$1(ctx) {
+    // (462:28) {#if getUserProfile(originalEvent.pubkey)}
+    function create_if_block_9$1(ctx) {
     	let div;
     	let t0;
     	let span;
-    	let t1_value = (/*profile*/ ctx[27].name || /*profile*/ ctx[27].display_name || /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + '...') + "";
+    	let t1_value = (/*profile*/ ctx[31].name || /*profile*/ ctx[31].display_name || /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + '...') + "";
     	let t1;
 
     	function select_block_type_5(ctx, dirty) {
-    		if (/*profile*/ ctx[27].picture) return create_if_block_7$1;
-    		return create_else_block_3$1;
+    		if (/*profile*/ ctx[31].picture) return create_if_block_10$1;
+    		return create_else_block_5;
     	}
 
     	let current_block_type = select_block_type_5(ctx);
@@ -28163,10 +28197,10 @@ For regular events (kind ${kind}), use:
     			t0 = space();
     			span = element("span");
     			t1 = text(t1_value);
-    			attr_dev(span, "class", "username svelte-15qbgh3");
-    			add_location(span, file$1, 404, 36, 14734);
-    			attr_dev(div, "class", "author-info svelte-15qbgh3");
-    			add_location(div, file$1, 398, 32, 14351);
+    			attr_dev(span, "class", "username svelte-1t6p1va");
+    			add_location(span, file$1, 469, 36, 17408);
+    			attr_dev(div, "class", "author-info svelte-1t6p1va");
+    			add_location(div, file$1, 463, 32, 17025);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -28188,7 +28222,7 @@ For regular events (kind ${kind}), use:
     				}
     			}
 
-    			if (dirty & /*originalEvent*/ 2 && t1_value !== (t1_value = (/*profile*/ ctx[27].name || /*profile*/ ctx[27].display_name || /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + '...') + "")) set_data_dev(t1, t1_value);
+    			if (dirty[0] & /*originalEvent*/ 2 && t1_value !== (t1_value = (/*profile*/ ctx[31].name || /*profile*/ ctx[31].display_name || /*originalEvent*/ ctx[1].pubkey.slice(0, 8) + '...') + "")) set_data_dev(t1, t1_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(div);
@@ -28198,24 +28232,24 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_6$1.name,
+    		id: create_if_block_9$1.name,
     		type: "if",
-    		source: "(397:28) {#if getUserProfile(originalEvent.pubkey)}",
+    		source: "(462:28) {#if getUserProfile(originalEvent.pubkey)}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (402:36) {:else}
-    function create_else_block_3$1(ctx) {
+    // (467:36) {:else}
+    function create_else_block_5(ctx) {
     	let div;
 
     	const block = {
     		c: function create() {
     			div = element("div");
-    			attr_dev(div, "class", "avatar-placeholder svelte-15qbgh3");
-    			add_location(div, file$1, 402, 40, 14617);
+    			attr_dev(div, "class", "avatar-placeholder svelte-1t6p1va");
+    			add_location(div, file$1, 467, 40, 17291);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -28228,33 +28262,33 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_3$1.name,
+    		id: create_else_block_5.name,
     		type: "else",
-    		source: "(402:36) {:else}",
+    		source: "(467:36) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (400:36) {#if profile.picture}
-    function create_if_block_7$1(ctx) {
+    // (465:36) {#if profile.picture}
+    function create_if_block_10$1(ctx) {
     	let img;
     	let img_src_value;
 
     	const block = {
     		c: function create() {
     			img = element("img");
-    			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[27].picture)) attr_dev(img, "src", img_src_value);
+    			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[31].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Avatar");
-    			attr_dev(img, "class", "avatar svelte-15qbgh3");
-    			add_location(img, file$1, 400, 40, 14475);
+    			attr_dev(img, "class", "avatar svelte-1t6p1va");
+    			add_location(img, file$1, 465, 40, 17149);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, img, anchor);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*originalEvent*/ 2 && !src_url_equal(img.src, img_src_value = /*profile*/ ctx[27].picture)) {
+    			if (dirty[0] & /*originalEvent*/ 2 && !src_url_equal(img.src, img_src_value = /*profile*/ ctx[31].picture)) {
     				attr_dev(img, "src", img_src_value);
     			}
     		},
@@ -28265,25 +28299,25 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_7$1.name,
+    		id: create_if_block_10$1.name,
     		type: "if",
-    		source: "(400:36) {#if profile.picture}",
+    		source: "(465:36) {#if profile.picture}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (476:12) {:else}
-    function create_else_block_2$1(ctx) {
+    // (541:12) {:else}
+    function create_else_block_4(ctx) {
     	let div;
 
     	const block = {
     		c: function create() {
     			div = element("div");
     			div.textContent = "No replies yet";
-    			attr_dev(div, "class", "no-replies svelte-15qbgh3");
-    			add_location(div, file$1, 476, 16, 18808);
+    			attr_dev(div, "class", "no-replies svelte-1t6p1va");
+    			add_location(div, file$1, 541, 16, 21482);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -28296,17 +28330,17 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_2$1.name,
+    		id: create_else_block_4.name,
     		type: "else",
-    		source: "(476:12) {:else}",
+    		source: "(541:12) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (446:12) {#if replies.length > 0}
-    function create_if_block_2$1(ctx) {
+    // (511:12) {#if replies.length > 0}
+    function create_if_block_5$1(ctx) {
     	let div;
     	let h4;
     	let t0;
@@ -28316,15 +28350,15 @@ For regular events (kind ${kind}), use:
     	let t3;
     	let each_blocks = [];
     	let each_1_lookup = new Map_1();
-    	let each_value = /*replies*/ ctx[2];
-    	validate_each_argument(each_value);
-    	const get_key = ctx => /*reply*/ ctx[24].id;
-    	validate_each_keys(ctx, each_value, get_each_context, get_key);
+    	let each_value_1 = /*replies*/ ctx[2];
+    	validate_each_argument(each_value_1);
+    	const get_key = ctx => /*reply*/ ctx[32].id;
+    	validate_each_keys(ctx, each_value_1, get_each_context_1, get_key);
 
-    	for (let i = 0; i < each_value.length; i += 1) {
-    		let child_ctx = get_each_context(ctx, each_value, i);
+    	for (let i = 0; i < each_value_1.length; i += 1) {
+    		let child_ctx = get_each_context_1(ctx, each_value_1, i);
     		let key = get_key(child_ctx);
-    		each_1_lookup.set(key, each_blocks[i] = create_each_block(key, child_ctx));
+    		each_1_lookup.set(key, each_blocks[i] = create_each_block_1(key, child_ctx));
     	}
 
     	const block = {
@@ -28340,10 +28374,10 @@ For regular events (kind ${kind}), use:
     				each_blocks[i].c();
     			}
 
-    			attr_dev(h4, "class", "svelte-15qbgh3");
-    			add_location(h4, file$1, 447, 20, 17021);
-    			attr_dev(div, "class", "replies-section svelte-15qbgh3");
-    			add_location(div, file$1, 446, 16, 16971);
+    			attr_dev(h4, "class", "svelte-1t6p1va");
+    			add_location(h4, file$1, 512, 20, 19695);
+    			attr_dev(div, "class", "replies-section svelte-1t6p1va");
+    			add_location(div, file$1, 511, 16, 19645);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -28360,13 +28394,13 @@ For regular events (kind ${kind}), use:
     			}
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*replies*/ 4 && t1_value !== (t1_value = /*replies*/ ctx[2].length + "")) set_data_dev(t1, t1_value);
+    			if (dirty[0] & /*replies*/ 4 && t1_value !== (t1_value = /*replies*/ ctx[2].length + "")) set_data_dev(t1, t1_value);
 
-    			if (dirty & /*handleReplyClick, replies, formatTime, getUserProfile*/ 1156) {
-    				each_value = /*replies*/ ctx[2];
-    				validate_each_argument(each_value);
-    				validate_each_keys(ctx, each_value, get_each_context, get_key);
-    				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value, each_1_lookup, div, destroy_block, create_each_block, null, get_each_context);
+    			if (dirty[0] & /*handleReplyClick, replies, getUserProfile*/ 2308) {
+    				each_value_1 = /*replies*/ ctx[2];
+    				validate_each_argument(each_value_1);
+    				validate_each_keys(ctx, each_value_1, get_each_context_1, get_key);
+    				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value_1, each_1_lookup, div, destroy_block, create_each_block_1, null, get_each_context_1);
     			}
     		},
     		d: function destroy(detaching) {
@@ -28380,19 +28414,19 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_2$1.name,
+    		id: create_if_block_5$1.name,
     		type: "if",
-    		source: "(446:12) {#if replies.length > 0}",
+    		source: "(511:12) {#if replies.length > 0}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (463:36) {:else}
-    function create_else_block_1$1(ctx) {
+    // (528:36) {:else}
+    function create_else_block_3$1(ctx) {
     	let span;
-    	let t0_value = /*reply*/ ctx[24].pubkey.slice(0, 8) + "";
+    	let t0_value = /*reply*/ ctx[32].pubkey.slice(0, 8) + "";
     	let t0;
     	let t1;
 
@@ -28401,8 +28435,8 @@ For regular events (kind ${kind}), use:
     			span = element("span");
     			t0 = text(t0_value);
     			t1 = text("...");
-    			attr_dev(span, "class", "pubkey-fallback svelte-15qbgh3");
-    			add_location(span, file$1, 463, 40, 18197);
+    			attr_dev(span, "class", "pubkey-fallback svelte-1t6p1va");
+    			add_location(span, file$1, 528, 40, 20871);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, span, anchor);
@@ -28410,7 +28444,7 @@ For regular events (kind ${kind}), use:
     			append_dev(span, t1);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*replies*/ 4 && t0_value !== (t0_value = /*reply*/ ctx[24].pubkey.slice(0, 8) + "")) set_data_dev(t0, t0_value);
+    			if (dirty[0] & /*replies*/ 4 && t0_value !== (t0_value = /*reply*/ ctx[32].pubkey.slice(0, 8) + "")) set_data_dev(t0, t0_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(span);
@@ -28419,26 +28453,26 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block_1$1.name,
+    		id: create_else_block_3$1.name,
     		type: "else",
-    		source: "(463:36) {:else}",
+    		source: "(528:36) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (453:36) {#if getUserProfile(reply.pubkey)}
-    function create_if_block_3$1(ctx) {
+    // (518:36) {#if getUserProfile(reply.pubkey)}
+    function create_if_block_6$1(ctx) {
     	let div;
     	let t0;
     	let span;
-    	let t1_value = (/*profile*/ ctx[27].name || /*profile*/ ctx[27].display_name || /*reply*/ ctx[24].pubkey.slice(0, 8) + '...') + "";
+    	let t1_value = (/*profile*/ ctx[31].name || /*profile*/ ctx[31].display_name || /*reply*/ ctx[32].pubkey.slice(0, 8) + '...') + "";
     	let t1;
 
     	function select_block_type_10(ctx, dirty) {
-    		if (/*profile*/ ctx[27].picture) return create_if_block_4$1;
-    		return create_else_block$1;
+    		if (/*profile*/ ctx[31].picture) return create_if_block_7$1;
+    		return create_else_block_2$1;
     	}
 
     	let current_block_type = select_block_type_10(ctx);
@@ -28451,10 +28485,10 @@ For regular events (kind ${kind}), use:
     			t0 = space();
     			span = element("span");
     			t1 = text(t1_value);
-    			attr_dev(span, "class", "username svelte-15qbgh3");
-    			add_location(span, file$1, 460, 44, 17961);
-    			attr_dev(div, "class", "author-info svelte-15qbgh3");
-    			add_location(div, file$1, 454, 40, 17530);
+    			attr_dev(span, "class", "username svelte-1t6p1va");
+    			add_location(span, file$1, 525, 44, 20635);
+    			attr_dev(div, "class", "author-info svelte-1t6p1va");
+    			add_location(div, file$1, 519, 40, 20204);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -28476,7 +28510,7 @@ For regular events (kind ${kind}), use:
     				}
     			}
 
-    			if (dirty & /*replies*/ 4 && t1_value !== (t1_value = (/*profile*/ ctx[27].name || /*profile*/ ctx[27].display_name || /*reply*/ ctx[24].pubkey.slice(0, 8) + '...') + "")) set_data_dev(t1, t1_value);
+    			if (dirty[0] & /*replies*/ 4 && t1_value !== (t1_value = (/*profile*/ ctx[31].name || /*profile*/ ctx[31].display_name || /*reply*/ ctx[32].pubkey.slice(0, 8) + '...') + "")) set_data_dev(t1, t1_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(div);
@@ -28486,24 +28520,24 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_3$1.name,
+    		id: create_if_block_6$1.name,
     		type: "if",
-    		source: "(453:36) {#if getUserProfile(reply.pubkey)}",
+    		source: "(518:36) {#if getUserProfile(reply.pubkey)}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (458:44) {:else}
-    function create_else_block$1(ctx) {
+    // (523:44) {:else}
+    function create_else_block_2$1(ctx) {
     	let div;
 
     	const block = {
     		c: function create() {
     			div = element("div");
-    			attr_dev(div, "class", "avatar-placeholder svelte-15qbgh3");
-    			add_location(div, file$1, 458, 48, 17828);
+    			attr_dev(div, "class", "avatar-placeholder svelte-1t6p1va");
+    			add_location(div, file$1, 523, 48, 20502);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, div, anchor);
@@ -28516,33 +28550,33 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_else_block$1.name,
+    		id: create_else_block_2$1.name,
     		type: "else",
-    		source: "(458:44) {:else}",
+    		source: "(523:44) {:else}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (456:44) {#if profile.picture}
-    function create_if_block_4$1(ctx) {
+    // (521:44) {#if profile.picture}
+    function create_if_block_7$1(ctx) {
     	let img;
     	let img_src_value;
 
     	const block = {
     		c: function create() {
     			img = element("img");
-    			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[27].picture)) attr_dev(img, "src", img_src_value);
+    			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[31].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Avatar");
-    			attr_dev(img, "class", "avatar svelte-15qbgh3");
-    			add_location(img, file$1, 456, 48, 17670);
+    			attr_dev(img, "class", "avatar svelte-1t6p1va");
+    			add_location(img, file$1, 521, 48, 20344);
     		},
     		m: function mount(target, anchor) {
     			insert_dev(target, img, anchor);
     		},
     		p: function update(ctx, dirty) {
-    			if (dirty & /*replies*/ 4 && !src_url_equal(img.src, img_src_value = /*profile*/ ctx[27].picture)) {
+    			if (dirty[0] & /*replies*/ 4 && !src_url_equal(img.src, img_src_value = /*profile*/ ctx[31].picture)) {
     				attr_dev(img, "src", img_src_value);
     			}
     		},
@@ -28553,52 +28587,52 @@ For regular events (kind ${kind}), use:
 
     	dispatch_dev("SvelteRegisterBlock", {
     		block,
-    		id: create_if_block_4$1.name,
+    		id: create_if_block_7$1.name,
     		type: "if",
-    		source: "(456:44) {#if profile.picture}",
+    		source: "(521:44) {#if profile.picture}",
     		ctx
     	});
 
     	return block;
     }
 
-    // (449:20) {#each replies as reply (reply.id)}
-    function create_each_block(key_1, ctx) {
+    // (514:20) {#each replies as reply (reply.id)}
+    function create_each_block_1(key_1, ctx) {
     	let button;
     	let div1;
     	let div0;
     	let show_if;
     	let t0;
     	let span0;
-    	let t1_value = formatTime(/*reply*/ ctx[24].created_at) + "";
+    	let t1_value = formatTime(/*reply*/ ctx[32].created_at) + "";
     	let t1;
     	let t2;
     	let span1;
     	let t4;
     	let div2;
-    	let t5_value = /*reply*/ ctx[24].content + "";
+    	let t5_value = /*reply*/ ctx[32].content + "";
     	let t5;
     	let t6;
     	let mounted;
     	let dispose;
 
     	function select_block_type_9(ctx, dirty) {
-    		if (dirty & /*replies*/ 4) show_if = null;
-    		if (show_if == null) show_if = !!/*getUserProfile*/ ctx[10](/*reply*/ ctx[24].pubkey);
-    		if (show_if) return create_if_block_3$1;
-    		return create_else_block_1$1;
+    		if (dirty[0] & /*replies*/ 4) show_if = null;
+    		if (show_if == null) show_if = !!/*getUserProfile*/ ctx[11](/*reply*/ ctx[32].pubkey);
+    		if (show_if) return create_if_block_6$1;
+    		return create_else_block_3$1;
     	}
 
     	function select_block_ctx(ctx, type) {
-    		if (type === create_if_block_3$1) return get_if_ctx(ctx);
+    		if (type === create_if_block_6$1) return get_if_ctx_1(ctx);
     		return ctx;
     	}
 
-    	let current_block_type = select_block_type_9(ctx, -1);
+    	let current_block_type = select_block_type_9(ctx, [-1, -1]);
     	let if_block = current_block_type(select_block_ctx(ctx, current_block_type));
 
     	function click_handler_1() {
-    		return /*click_handler_1*/ ctx[14](/*reply*/ ctx[24]);
+    		return /*click_handler_1*/ ctx[16](/*reply*/ ctx[32]);
     	}
 
     	const block = {
@@ -28619,18 +28653,18 @@ For regular events (kind ${kind}), use:
     			div2 = element("div");
     			t5 = text(t5_value);
     			t6 = space();
-    			attr_dev(div0, "class", "event-author svelte-15qbgh3");
-    			add_location(div0, file$1, 451, 32, 17304);
-    			attr_dev(span0, "class", "event-time svelte-15qbgh3");
-    			add_location(span0, file$1, 466, 32, 18377);
-    			attr_dev(span1, "class", "thread-indicator svelte-15qbgh3");
-    			add_location(span1, file$1, 467, 32, 18472);
-    			attr_dev(div1, "class", "event-header svelte-15qbgh3");
-    			add_location(div1, file$1, 450, 28, 17245);
-    			attr_dev(div2, "class", "event-content svelte-15qbgh3");
-    			add_location(div2, file$1, 469, 28, 18576);
-    			attr_dev(button, "class", "reply-event clickable svelte-15qbgh3");
-    			add_location(button, file$1, 449, 24, 17137);
+    			attr_dev(div0, "class", "event-author svelte-1t6p1va");
+    			add_location(div0, file$1, 516, 32, 19978);
+    			attr_dev(span0, "class", "event-time svelte-1t6p1va");
+    			add_location(span0, file$1, 531, 32, 21051);
+    			attr_dev(span1, "class", "thread-indicator svelte-1t6p1va");
+    			add_location(span1, file$1, 532, 32, 21146);
+    			attr_dev(div1, "class", "event-header svelte-1t6p1va");
+    			add_location(div1, file$1, 515, 28, 19919);
+    			attr_dev(div2, "class", "event-content svelte-1t6p1va");
+    			add_location(div2, file$1, 534, 28, 21250);
+    			attr_dev(button, "class", "reply-event clickable svelte-1t6p1va");
+    			add_location(button, file$1, 514, 24, 19811);
     			this.first = button;
     		},
     		m: function mount(target, anchor) {
@@ -28668,8 +28702,384 @@ For regular events (kind ${kind}), use:
     				}
     			}
 
-    			if (dirty & /*replies*/ 4 && t1_value !== (t1_value = formatTime(/*reply*/ ctx[24].created_at) + "")) set_data_dev(t1, t1_value);
-    			if (dirty & /*replies*/ 4 && t5_value !== (t5_value = /*reply*/ ctx[24].content + "")) set_data_dev(t5, t5_value);
+    			if (dirty[0] & /*replies*/ 4 && t1_value !== (t1_value = formatTime(/*reply*/ ctx[32].created_at) + "")) set_data_dev(t1, t1_value);
+    			if (dirty[0] & /*replies*/ 4 && t5_value !== (t5_value = /*reply*/ ctx[32].content + "")) set_data_dev(t5, t5_value);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(button);
+    			if_block.d();
+    			mounted = false;
+    			dispose();
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_each_block_1.name,
+    		type: "each",
+    		source: "(514:20) {#each replies as reply (reply.id)}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (546:12) {#if laterReplies.length > 0}
+    function create_if_block_2$1(ctx) {
+    	let div;
+    	let h4;
+    	let t0;
+    	let t1_value = /*laterReplies*/ ctx[4].length + "";
+    	let t1;
+    	let t2;
+    	let t3;
+    	let each_blocks = [];
+    	let each_1_lookup = new Map_1();
+    	let each_value = /*laterReplies*/ ctx[4];
+    	validate_each_argument(each_value);
+    	const get_key = ctx => /*laterReply*/ ctx[28].id;
+    	validate_each_keys(ctx, each_value, get_each_context, get_key);
+
+    	for (let i = 0; i < each_value.length; i += 1) {
+    		let child_ctx = get_each_context(ctx, each_value, i);
+    		let key = get_key(child_ctx);
+    		each_1_lookup.set(key, each_blocks[i] = create_each_block(key, child_ctx));
+    	}
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			h4 = element("h4");
+    			t0 = text("Later replies (");
+    			t1 = text(t1_value);
+    			t2 = text(")");
+    			t3 = space();
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].c();
+    			}
+
+    			attr_dev(h4, "class", "svelte-1t6p1va");
+    			add_location(h4, file$1, 547, 20, 21707);
+    			attr_dev(div, "class", "later-replies-section svelte-1t6p1va");
+    			add_location(div, file$1, 546, 16, 21651);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    			append_dev(div, h4);
+    			append_dev(h4, t0);
+    			append_dev(h4, t1);
+    			append_dev(h4, t2);
+    			append_dev(div, t3);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				if (each_blocks[i]) {
+    					each_blocks[i].m(div, null);
+    				}
+    			}
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty[0] & /*laterReplies*/ 16 && t1_value !== (t1_value = /*laterReplies*/ ctx[4].length + "")) set_data_dev(t1, t1_value);
+
+    			if (dirty[0] & /*handleReplyClick, laterReplies, getUserProfile*/ 2320) {
+    				each_value = /*laterReplies*/ ctx[4];
+    				validate_each_argument(each_value);
+    				validate_each_keys(ctx, each_value, get_each_context, get_key);
+    				each_blocks = update_keyed_each(each_blocks, dirty, get_key, 1, ctx, each_value, each_1_lookup, div, destroy_block, create_each_block, null, get_each_context);
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(div);
+
+    			for (let i = 0; i < each_blocks.length; i += 1) {
+    				each_blocks[i].d();
+    			}
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_2$1.name,
+    		type: "if",
+    		source: "(546:12) {#if laterReplies.length > 0}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (563:36) {:else}
+    function create_else_block_1$1(ctx) {
+    	let span;
+    	let t0_value = /*laterReply*/ ctx[28].pubkey.slice(0, 8) + "";
+    	let t0;
+    	let t1;
+
+    	const block = {
+    		c: function create() {
+    			span = element("span");
+    			t0 = text(t0_value);
+    			t1 = text("...");
+    			attr_dev(span, "class", "pubkey-fallback-small svelte-1t6p1va");
+    			add_location(span, file$1, 563, 40, 22948);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, span, anchor);
+    			append_dev(span, t0);
+    			append_dev(span, t1);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty[0] & /*laterReplies*/ 16 && t0_value !== (t0_value = /*laterReply*/ ctx[28].pubkey.slice(0, 8) + "")) set_data_dev(t0, t0_value);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(span);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block_1$1.name,
+    		type: "else",
+    		source: "(563:36) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (553:36) {#if getUserProfile(laterReply.pubkey)}
+    function create_if_block_3$1(ctx) {
+    	let div;
+    	let t0;
+    	let span;
+    	let t1_value = (/*profile*/ ctx[31].name || /*profile*/ ctx[31].display_name || /*laterReply*/ ctx[28].pubkey.slice(0, 8) + '...') + "";
+    	let t1;
+
+    	function select_block_type_12(ctx, dirty) {
+    		if (/*profile*/ ctx[31].picture) return create_if_block_4$1;
+    		return create_else_block$1;
+    	}
+
+    	let current_block_type = select_block_type_12(ctx);
+    	let if_block = current_block_type(ctx);
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			if_block.c();
+    			t0 = space();
+    			span = element("span");
+    			t1 = text(t1_value);
+    			attr_dev(span, "class", "username-small svelte-1t6p1va");
+    			add_location(span, file$1, 560, 44, 22701);
+    			attr_dev(div, "class", "author-info svelte-1t6p1va");
+    			add_location(div, file$1, 554, 40, 22258);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    			if_block.m(div, null);
+    			append_dev(div, t0);
+    			append_dev(div, span);
+    			append_dev(span, t1);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (current_block_type === (current_block_type = select_block_type_12(ctx)) && if_block) {
+    				if_block.p(ctx, dirty);
+    			} else {
+    				if_block.d(1);
+    				if_block = current_block_type(ctx);
+
+    				if (if_block) {
+    					if_block.c();
+    					if_block.m(div, t0);
+    				}
+    			}
+
+    			if (dirty[0] & /*laterReplies*/ 16 && t1_value !== (t1_value = (/*profile*/ ctx[31].name || /*profile*/ ctx[31].display_name || /*laterReply*/ ctx[28].pubkey.slice(0, 8) + '...') + "")) set_data_dev(t1, t1_value);
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(div);
+    			if_block.d();
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_3$1.name,
+    		type: "if",
+    		source: "(553:36) {#if getUserProfile(laterReply.pubkey)}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (558:44) {:else}
+    function create_else_block$1(ctx) {
+    	let div;
+
+    	const block = {
+    		c: function create() {
+    			div = element("div");
+    			attr_dev(div, "class", "avatar-placeholder-small svelte-1t6p1va");
+    			add_location(div, file$1, 558, 48, 22562);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, div, anchor);
+    		},
+    		p: noop,
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(div);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_else_block$1.name,
+    		type: "else",
+    		source: "(558:44) {:else}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (556:44) {#if profile.picture}
+    function create_if_block_4$1(ctx) {
+    	let img;
+    	let img_src_value;
+
+    	const block = {
+    		c: function create() {
+    			img = element("img");
+    			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[31].picture)) attr_dev(img, "src", img_src_value);
+    			attr_dev(img, "alt", "Avatar");
+    			attr_dev(img, "class", "avatar-small svelte-1t6p1va");
+    			add_location(img, file$1, 556, 48, 22398);
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, img, anchor);
+    		},
+    		p: function update(ctx, dirty) {
+    			if (dirty[0] & /*laterReplies*/ 16 && !src_url_equal(img.src, img_src_value = /*profile*/ ctx[31].picture)) {
+    				attr_dev(img, "src", img_src_value);
+    			}
+    		},
+    		d: function destroy(detaching) {
+    			if (detaching) detach_dev(img);
+    		}
+    	};
+
+    	dispatch_dev("SvelteRegisterBlock", {
+    		block,
+    		id: create_if_block_4$1.name,
+    		type: "if",
+    		source: "(556:44) {#if profile.picture}",
+    		ctx
+    	});
+
+    	return block;
+    }
+
+    // (549:20) {#each laterReplies as laterReply (laterReply.id)}
+    function create_each_block(key_1, ctx) {
+    	let button;
+    	let div1;
+    	let div0;
+    	let show_if;
+    	let t0;
+    	let span;
+    	let t1_value = formatTime(/*laterReply*/ ctx[28].created_at) + "";
+    	let t1;
+    	let t2;
+    	let div2;
+    	let t3_value = /*laterReply*/ ctx[28].content + "";
+    	let t3;
+    	let t4;
+    	let mounted;
+    	let dispose;
+
+    	function select_block_type_11(ctx, dirty) {
+    		if (dirty[0] & /*laterReplies*/ 16) show_if = null;
+    		if (show_if == null) show_if = !!/*getUserProfile*/ ctx[11](/*laterReply*/ ctx[28].pubkey);
+    		if (show_if) return create_if_block_3$1;
+    		return create_else_block_1$1;
+    	}
+
+    	function select_block_ctx(ctx, type) {
+    		if (type === create_if_block_3$1) return get_if_ctx(ctx);
+    		return ctx;
+    	}
+
+    	let current_block_type = select_block_type_11(ctx, [-1, -1]);
+    	let if_block = current_block_type(select_block_ctx(ctx, current_block_type));
+
+    	function click_handler_2() {
+    		return /*click_handler_2*/ ctx[17](/*laterReply*/ ctx[28]);
+    	}
+
+    	const block = {
+    		key: key_1,
+    		first: null,
+    		c: function create() {
+    			button = element("button");
+    			div1 = element("div");
+    			div0 = element("div");
+    			if_block.c();
+    			t0 = space();
+    			span = element("span");
+    			t1 = text(t1_value);
+    			t2 = space();
+    			div2 = element("div");
+    			t3 = text(t3_value);
+    			t4 = space();
+    			attr_dev(div0, "class", "event-author svelte-1t6p1va");
+    			add_location(div0, file$1, 551, 32, 22022);
+    			attr_dev(span, "class", "event-time-small svelte-1t6p1va");
+    			add_location(span, file$1, 566, 32, 23139);
+    			attr_dev(div1, "class", "chain-event-header svelte-1t6p1va");
+    			add_location(div1, file$1, 550, 28, 21957);
+    			attr_dev(div2, "class", "chain-event-content svelte-1t6p1va");
+    			add_location(div2, file$1, 568, 28, 23276);
+    			attr_dev(button, "class", "later-reply-item svelte-1t6p1va");
+    			add_location(button, file$1, 549, 24, 21849);
+    			this.first = button;
+    		},
+    		m: function mount(target, anchor) {
+    			insert_dev(target, button, anchor);
+    			append_dev(button, div1);
+    			append_dev(div1, div0);
+    			if_block.m(div0, null);
+    			append_dev(div1, t0);
+    			append_dev(div1, span);
+    			append_dev(span, t1);
+    			append_dev(button, t2);
+    			append_dev(button, div2);
+    			append_dev(div2, t3);
+    			append_dev(button, t4);
+
+    			if (!mounted) {
+    				dispose = listen_dev(button, "click", click_handler_2, false, false, false, false);
+    				mounted = true;
+    			}
+    		},
+    		p: function update(new_ctx, dirty) {
+    			ctx = new_ctx;
+
+    			if (current_block_type === (current_block_type = select_block_type_11(ctx, dirty)) && if_block) {
+    				if_block.p(select_block_ctx(ctx, current_block_type), dirty);
+    			} else {
+    				if_block.d(1);
+    				if_block = current_block_type(select_block_ctx(ctx, current_block_type));
+
+    				if (if_block) {
+    					if_block.c();
+    					if_block.m(div0, null);
+    				}
+    			}
+
+    			if (dirty[0] & /*laterReplies*/ 16 && t1_value !== (t1_value = formatTime(/*laterReply*/ ctx[28].created_at) + "")) set_data_dev(t1, t1_value);
+    			if (dirty[0] & /*laterReplies*/ 16 && t3_value !== (t3_value = /*laterReply*/ ctx[28].content + "")) set_data_dev(t3, t3_value);
     		},
     		d: function destroy(detaching) {
     			if (detaching) detach_dev(button);
@@ -28683,7 +29093,7 @@ For regular events (kind ${kind}), use:
     		block,
     		id: create_each_block.name,
     		type: "each",
-    		source: "(449:20) {#each replies as reply (reply.id)}",
+    		source: "(549:20) {#each laterReplies as laterReply (laterReply.id)}",
     		ctx
     	});
 
@@ -28693,26 +29103,24 @@ For regular events (kind ${kind}), use:
     function create_fragment$1(ctx) {
     	let div2;
     	let div0;
-    	let button0;
-    	let t1;
     	let h3;
 
-    	let t2_value = (/*originalEvent*/ ctx[1] && /*originalEvent*/ ctx[1].tags?.some(func)
+    	let t0_value = (/*originalEvent*/ ctx[1] && /*originalEvent*/ ctx[1].tags?.some(func)
     	? 'Reply Thread'
     	: 'Thread') + "";
 
-    	let t2;
+    	let t0;
+    	let t1;
+    	let button;
     	let t3;
-    	let button1;
-    	let t5;
     	let div1;
     	let mounted;
     	let dispose;
 
     	function select_block_type(ctx, dirty) {
-    		if (/*isLoading*/ ctx[4] && !/*originalEvent*/ ctx[1]) return create_if_block$1;
+    		if (/*isLoading*/ ctx[5] && !/*originalEvent*/ ctx[1]) return create_if_block$1;
     		if (/*originalEvent*/ ctx[1]) return create_if_block_1$1;
-    		return create_else_block_10;
+    		return create_else_block_12;
     	}
 
     	let current_block_type = select_block_type(ctx);
@@ -28722,30 +29130,24 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div2 = element("div");
     			div0 = element("div");
-    			button0 = element("button");
-    			button0.textContent = "←";
-    			t1 = space();
     			h3 = element("h3");
-    			t2 = text(t2_value);
+    			t0 = text(t0_value);
+    			t1 = space();
+    			button = element("button");
+    			button.textContent = "✕";
     			t3 = space();
-    			button1 = element("button");
-    			button1.textContent = "✕";
-    			t5 = space();
     			div1 = element("div");
     			if_block.c();
-    			attr_dev(button0, "class", "back-btn svelte-15qbgh3");
-    			attr_dev(button0, "title", "Go back");
-    			add_location(button0, file$1, 342, 8, 10834);
-    			attr_dev(h3, "class", "svelte-15qbgh3");
-    			add_location(h3, file$1, 343, 8, 10913);
-    			attr_dev(button1, "class", "close-btn svelte-15qbgh3");
-    			add_location(button1, file$1, 344, 8, 11047);
-    			attr_dev(div0, "class", "thread-header svelte-15qbgh3");
-    			add_location(div0, file$1, 341, 4, 10798);
-    			attr_dev(div1, "class", "thread-content svelte-15qbgh3");
-    			add_location(div1, file$1, 347, 4, 11123);
-    			attr_dev(div2, "class", "reply-thread svelte-15qbgh3");
-    			add_location(div2, file$1, 340, 0, 10767);
+    			attr_dev(h3, "class", "svelte-1t6p1va");
+    			add_location(h3, file$1, 408, 8, 13587);
+    			attr_dev(button, "class", "close-btn svelte-1t6p1va");
+    			add_location(button, file$1, 409, 8, 13721);
+    			attr_dev(div0, "class", "thread-header svelte-1t6p1va");
+    			add_location(div0, file$1, 407, 4, 13551);
+    			attr_dev(div1, "class", "thread-content svelte-1t6p1va");
+    			add_location(div1, file$1, 412, 4, 13797);
+    			attr_dev(div2, "class", "reply-thread svelte-1t6p1va");
+    			add_location(div2, file$1, 406, 0, 13520);
     		},
     		l: function claim(nodes) {
     			throw new Error("options.hydrate only works if the component was compiled with the `hydratable: true` option");
@@ -28753,51 +29155,36 @@ For regular events (kind ${kind}), use:
     		m: function mount(target, anchor) {
     			insert_dev(target, div2, anchor);
     			append_dev(div2, div0);
-    			append_dev(div0, button0);
-    			append_dev(div0, t1);
     			append_dev(div0, h3);
-    			append_dev(h3, t2);
-    			append_dev(div0, t3);
-    			append_dev(div0, button1);
-    			append_dev(div2, t5);
+    			append_dev(h3, t0);
+    			append_dev(div0, t1);
+    			append_dev(div0, button);
+    			append_dev(div2, t3);
     			append_dev(div2, div1);
     			if_block.m(div1, null);
 
     			if (!mounted) {
-    				dispose = [
-    					listen_dev(
-    						button0,
-    						"click",
-    						function () {
-    							if (is_function(/*onClose*/ ctx[0])) /*onClose*/ ctx[0].apply(this, arguments);
-    						},
-    						false,
-    						false,
-    						false,
-    						false
-    					),
-    					listen_dev(
-    						button1,
-    						"click",
-    						function () {
-    							if (is_function(/*onClose*/ ctx[0])) /*onClose*/ ctx[0].apply(this, arguments);
-    						},
-    						false,
-    						false,
-    						false,
-    						false
-    					)
-    				];
+    				dispose = listen_dev(
+    					button,
+    					"click",
+    					function () {
+    						if (is_function(/*onClose*/ ctx[0])) /*onClose*/ ctx[0].apply(this, arguments);
+    					},
+    					false,
+    					false,
+    					false,
+    					false
+    				);
 
     				mounted = true;
     			}
     		},
-    		p: function update(new_ctx, [dirty]) {
+    		p: function update(new_ctx, dirty) {
     			ctx = new_ctx;
 
-    			if (dirty & /*originalEvent*/ 2 && t2_value !== (t2_value = (/*originalEvent*/ ctx[1] && /*originalEvent*/ ctx[1].tags?.some(func)
+    			if (dirty[0] & /*originalEvent*/ 2 && t0_value !== (t0_value = (/*originalEvent*/ ctx[1] && /*originalEvent*/ ctx[1].tags?.some(func)
     			? 'Reply Thread'
-    			: 'Thread') + "")) set_data_dev(t2, t2_value);
+    			: 'Thread') + "")) set_data_dev(t0, t0_value);
 
     			if (current_block_type === (current_block_type = select_block_type(ctx)) && if_block) {
     				if_block.p(ctx, dirty);
@@ -28817,7 +29204,7 @@ For regular events (kind ${kind}), use:
     			if (detaching) detach_dev(div2);
     			if_block.d();
     			mounted = false;
-    			run_all(dispose);
+    			dispose();
     		}
     	};
 
@@ -28893,19 +29280,21 @@ For regular events (kind ${kind}), use:
     	let replyChain = []; // Array of ancestor events in the reply chain
     	let showPreviousReplies = false; // Toggle for showing previous replies
     	let userProfiles = new Map(); // Cache for user profiles (pubkey -> profile)
+    	let laterReplies = []; // Events that reply to the same root but are not direct replies to the current event
+    	let rootEvent = null; // The root event of the thread
 
     	// Fetch the original event
     	async function fetchOriginalEvent() {
     		if (!eventId) return;
-    		$$invalidate(4, isLoading = true);
+    		$$invalidate(5, isLoading = true);
     		console.log('Fetching original event:', eventId);
 
     		try {
-    			$$invalidate(12, subscriptionId = nostrClient.subscribe({ ids: [eventId] }, event => {
+    			$$invalidate(13, subscriptionId = nostrClient.subscribe({ ids: [eventId] }, event => {
     				if (event && event.id === eventId) {
     					$$invalidate(1, originalEvent = event);
     					console.log('Found original event:', event);
-    					$$invalidate(4, isLoading = false);
+    					$$invalidate(5, isLoading = false);
     				}
     			}));
 
@@ -28914,14 +29303,14 @@ For regular events (kind ${kind}), use:
     				() => {
     					if (!originalEvent) {
     						console.log('Original event not found');
-    						$$invalidate(4, isLoading = false);
+    						$$invalidate(5, isLoading = false);
     					}
     				},
     				5000
     			);
     		} catch(error) {
     			console.error('Failed to fetch original event:', error);
-    			$$invalidate(4, isLoading = false);
+    			$$invalidate(5, isLoading = false);
     		}
     	}
 
@@ -28952,6 +29341,39 @@ For regular events (kind ${kind}), use:
     			);
     		} catch(error) {
     			console.error('Failed to fetch replies:', error);
+    		}
+    	}
+
+    	// Fetch later replies that reference the same root event
+    	async function fetchLaterReplies() {
+    		if (!rootEvent) return;
+    		console.log('Fetching later replies for root event:', rootEvent.id);
+
+    		try {
+    			const laterRepliesSubscriptionId = nostrClient.subscribe({ kinds: [1], '#e': [rootEvent.id] }, event => {
+    				if (event && event.kind === 1) {
+    					// Check if this is a reply to the root event
+    					const isReplyToRoot = event.tags.some(tag => tag[0] === 'e' && tag[1] === rootEvent.id && tag[3] === 'reply');
+
+    					// Exclude events that are already in the main replies or reply chain
+    					const isAlreadyIncluded = replies.find(r => r.id === event.id) || replyChain.find(r => r.id === event.id) || event.id === originalEvent.id;
+
+    					if (isReplyToRoot && !isAlreadyIncluded && !laterReplies.find(r => r.id === event.id)) {
+    						$$invalidate(4, laterReplies = [...laterReplies, event].sort((a, b) => (a.created_at || 0) - (b.created_at || 0)));
+    						console.log(`Found ${laterReplies.length} later replies`);
+    					}
+    				}
+    			});
+
+    			// Close subscription after collecting later replies
+    			setTimeout(
+    				() => {
+    					nostrClient.unsubscribe(laterRepliesSubscriptionId);
+    				},
+    				3000
+    			);
+    		} catch(error) {
+    			console.error('Failed to fetch later replies:', error);
     		}
     	}
 
@@ -29004,6 +29426,13 @@ For regular events (kind ${kind}), use:
     		}
 
     		$$invalidate(3, replyChain = chain);
+
+    		// Set the root event (the last event in the chain that is not a reply)
+    		if (chain.length > 0) {
+    			$$invalidate(14, rootEvent = chain[chain.length - 1]);
+    		} else if (originalEvent && !isReply(originalEvent)) {
+    			$$invalidate(14, rootEvent = originalEvent);
+    		}
     	}
 
     	// Fetch a single event by ID
@@ -29039,7 +29468,7 @@ For regular events (kind ${kind}), use:
 
     	// Toggle previous replies visibility
     	function togglePreviousReplies() {
-    		$$invalidate(5, showPreviousReplies = !showPreviousReplies);
+    		$$invalidate(6, showPreviousReplies = !showPreviousReplies);
     	}
 
     	// Handle keyboard events for accessibility
@@ -29114,6 +29543,12 @@ For regular events (kind ${kind}), use:
     			}
     		});
 
+    		laterReplies.forEach(laterReply => {
+    			if (laterReply.pubkey) {
+    				uniquePubkeys.add(laterReply.pubkey);
+    			}
+    		});
+
     		const fetchPromises = Array.from(uniquePubkeys).map(pubkey => {
     			if (!userProfiles.has(pubkey)) {
     				return fetchUserProfile(pubkey);
@@ -29146,9 +29581,10 @@ For regular events (kind ${kind}), use:
 
     	const click_handler = chainEvent => handleChainItemClick(chainEvent);
     	const click_handler_1 = reply => handleReplyClick(reply);
+    	const click_handler_2 = laterReply => handleReplyClick(laterReply);
 
     	$$self.$$set = $$props => {
-    		if ('eventId' in $$props) $$invalidate(11, eventId = $$props.eventId);
+    		if ('eventId' in $$props) $$invalidate(12, eventId = $$props.eventId);
     		if ('onClose' in $$props) $$invalidate(0, onClose = $$props.onClose);
     	};
 
@@ -29167,8 +29603,11 @@ For regular events (kind ${kind}), use:
     		replyChain,
     		showPreviousReplies,
     		userProfiles,
+    		laterReplies,
+    		rootEvent,
     		fetchOriginalEvent,
     		fetchReplies,
+    		fetchLaterReplies,
     		isReply,
     		getReplyToEventId,
     		handleOriginalEventClick,
@@ -29186,15 +29625,17 @@ For regular events (kind ${kind}), use:
     	});
 
     	$$self.$inject_state = $$props => {
-    		if ('eventId' in $$props) $$invalidate(11, eventId = $$props.eventId);
+    		if ('eventId' in $$props) $$invalidate(12, eventId = $$props.eventId);
     		if ('onClose' in $$props) $$invalidate(0, onClose = $$props.onClose);
     		if ('originalEvent' in $$props) $$invalidate(1, originalEvent = $$props.originalEvent);
     		if ('replies' in $$props) $$invalidate(2, replies = $$props.replies);
-    		if ('isLoading' in $$props) $$invalidate(4, isLoading = $$props.isLoading);
-    		if ('subscriptionId' in $$props) $$invalidate(12, subscriptionId = $$props.subscriptionId);
+    		if ('isLoading' in $$props) $$invalidate(5, isLoading = $$props.isLoading);
+    		if ('subscriptionId' in $$props) $$invalidate(13, subscriptionId = $$props.subscriptionId);
     		if ('replyChain' in $$props) $$invalidate(3, replyChain = $$props.replyChain);
-    		if ('showPreviousReplies' in $$props) $$invalidate(5, showPreviousReplies = $$props.showPreviousReplies);
+    		if ('showPreviousReplies' in $$props) $$invalidate(6, showPreviousReplies = $$props.showPreviousReplies);
     		if ('userProfiles' in $$props) userProfiles = $$props.userProfiles;
+    		if ('laterReplies' in $$props) $$invalidate(4, laterReplies = $$props.laterReplies);
+    		if ('rootEvent' in $$props) $$invalidate(14, rootEvent = $$props.rootEvent);
     	};
 
     	if ($$props && "$$inject" in $$props) {
@@ -29202,7 +29643,7 @@ For regular events (kind ${kind}), use:
     	}
 
     	$$self.$$.update = () => {
-    		if ($$self.$$.dirty & /*eventId, subscriptionId*/ 6144) {
+    		if ($$self.$$.dirty[0] & /*eventId, subscriptionId*/ 12288) {
     			// React to eventId changes
     			if (eventId) {
     				console.log('ReplyThread: eventId changed to:', eventId);
@@ -29212,12 +29653,12 @@ For regular events (kind ${kind}), use:
 
     				$$invalidate(2, replies = []);
     				$$invalidate(3, replyChain = []);
-    				$$invalidate(4, isLoading = false);
+    				$$invalidate(5, isLoading = false);
 
     				// Clean up previous subscription
     				if (subscriptionId) {
     					nostrClient.unsubscribe(subscriptionId);
-    					$$invalidate(12, subscriptionId = null);
+    					$$invalidate(13, subscriptionId = null);
     				}
 
     				// Fetch new thread
@@ -29227,14 +29668,27 @@ For regular events (kind ${kind}), use:
     			}
     		}
 
-    		if ($$self.$$.dirty & /*originalEvent*/ 2) {
+    		if ($$self.$$.dirty[0] & /*originalEvent, replies, replyChain, laterReplies*/ 30) {
+    			// Reactive statements
+    			if (originalEvent || replies.length > 0 || replyChain.length > 0 || laterReplies.length > 0) {
+    				fetchAllUserProfiles();
+    			}
+    		}
+
+    		if ($$self.$$.dirty[0] & /*rootEvent*/ 16384) {
+    			if (rootEvent) {
+    				fetchLaterReplies();
+    			}
+    		}
+
+    		if ($$self.$$.dirty[0] & /*originalEvent*/ 2) {
     			// React to originalEvent changes to fetch reply chain
     			if (originalEvent) {
     				fetchReplyChain();
     			}
     		}
 
-    		if ($$self.$$.dirty & /*originalEvent, replies, replyChain*/ 14) {
+    		if ($$self.$$.dirty[0] & /*originalEvent, replies, replyChain*/ 14) {
     			// React to data changes to fetch user profiles
     			if (originalEvent || replies.length > 0 || replyChain.length > 0) {
     				fetchAllUserProfiles();
@@ -29247,6 +29701,7 @@ For regular events (kind ${kind}), use:
     		originalEvent,
     		replies,
     		replyChain,
+    		laterReplies,
     		isLoading,
     		showPreviousReplies,
     		handleOriginalEventClick,
@@ -29256,15 +29711,17 @@ For regular events (kind ${kind}), use:
     		getUserProfile,
     		eventId,
     		subscriptionId,
+    		rootEvent,
     		click_handler,
-    		click_handler_1
+    		click_handler_1,
+    		click_handler_2
     	];
     }
 
     class ReplyThread extends SvelteComponentDev {
     	constructor(options) {
     		super(options);
-    		init(this, options, instance$1, create_fragment$1, safe_not_equal, { eventId: 11, onClose: 0 });
+    		init(this, options, instance$1, create_fragment$1, safe_not_equal, { eventId: 12, onClose: 0 }, null, [-1, -1]);
 
     		dispatch_dev("SvelteRegisterComponent", {
     			component: this,

@@ -559,9 +559,9 @@
     }
 
     .username {
-        font-family: inherit;
-        font-weight: 500;
-        color: var(--primary);
+        font-family: "Noto Sans", sans-serif;
+        font-weight: 900;
+        color: var(--text-color);
     }
 
     .pubkey-fallback {
