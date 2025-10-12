@@ -1,6 +1,7 @@
 <script>
     import { onMount, onDestroy, createEventDispatcher } from 'svelte';
     import { nostrClient } from './nostr.js';
+    import { getUserProfile, getCachedUserProfile, loadUserProfiles } from './profileManager.js';
 
     export let feedFilter = 'notes';
 
@@ -17,7 +18,7 @@
     let eventIds = new Set(); // For efficient deduplication
     let pendingEvents = []; // Batch events before sorting
     let sortTimeout = null;
-    let userProfiles = new Map(); // Cache for user profiles (pubkey -> profile)
+    // Remove local userProfiles cache - using global profileManager instead
 
     // Check if event timestamp is in the future
     function isFutureEvent(event) {
@@ -312,50 +313,7 @@
         return url; // Return original URL if not recognized media type
     }
 
-    // Fetch user profile (kind 0 metadata)
-    async function fetchUserProfile(pubkey) {
-        if (userProfiles.has(pubkey)) {
-            return userProfiles.get(pubkey);
-        }
-
-        return new Promise((resolve) => {
-            let found = false;
-            const subscriptionId = nostrClient.subscribe(
-                { kinds: [0], authors: [pubkey] },
-                (event) => {
-                    if (event && event.pubkey === pubkey) {
-                        try {
-                            const profile = JSON.parse(event.content);
-                            userProfiles.set(pubkey, profile);
-                            found = true;
-                            resolve(profile);
-                        } catch (error) {
-                            console.error('Failed to parse profile:', error);
-                            userProfiles.set(pubkey, null);
-                            found = true;
-                            resolve(null);
-                        }
-                    }
-                }
-            );
-            
-            // Timeout if no profile found
-            setTimeout(() => {
-                if (!found) {
-                    nostrClient.unsubscribe(subscriptionId);
-                    userProfiles.set(pubkey, null);
-                    resolve(null);
-                }
-            }, 3000);
-        });
-    }
-
-    // Get user profile for a pubkey
-    function getUserProfile(pubkey) {
-        return userProfiles.get(pubkey) || null;
-    }
-
-    // Fetch profiles for all unique pubkeys in events
+    // Fetch profiles for all unique pubkeys in events using global profile manager
     async function fetchAllUserProfiles() {
         const uniquePubkeys = new Set();
         events.forEach(event => {
@@ -364,14 +322,9 @@
             }
         });
 
-        const fetchPromises = Array.from(uniquePubkeys).map(pubkey => {
-            if (!userProfiles.has(pubkey)) {
-                return fetchUserProfile(pubkey);
-            }
-            return Promise.resolve();
-        });
-
-        await Promise.all(fetchPromises);
+        if (uniquePubkeys.size > 0) {
+            await loadUserProfiles(Array.from(uniquePubkeys));
+        }
     }
 
     // Handle reload event from parent
@@ -495,8 +448,8 @@
                     on:click={() => handleEventClick(event)}>
                 <div class="event-header">
                     <div class="event-author">
-                        {#if getUserProfile(event.pubkey)}
-                            {@const profile = getUserProfile(event.pubkey)}
+                        {#if getCachedUserProfile(event.pubkey)}
+                            {@const profile = getCachedUserProfile(event.pubkey)}
                             <div class="author-info">
                                 {#if profile.picture}
                                     <img src={profile.picture} alt="Avatar" class="avatar" />

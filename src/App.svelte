@@ -5,6 +5,7 @@
     import NostrFeed from './NostrFeed.svelte';
     import ReplyThread from './ReplyThread.svelte';
     import { getNDK, fetchUserProfile, initializeNostrClient } from './nostr.js';
+    import { getUserProfile } from './profileManager.js';
     
     let isDarkTheme = false;
     let isLogoHovered = false;
@@ -93,7 +94,7 @@
                 profileFetchAttempted = true;
                 try {
                     console.log('Fetching profile on initialization for user:', userPubkey);
-                    const profile = await fetchUserProfile(userPubkey);
+                    const profile = await getUserProfile(userPubkey);
                     userProfile = profile; // Trigger reactivity
                 } catch (error) {
                     console.error('Failed to fetch user profile:', error);
@@ -187,7 +188,7 @@
         
         // Fetch user profile
         try {
-            const profile = await fetchUserProfile(pubkey);
+            const profile = await getUserProfile(pubkey);
             userProfile = profile; // Trigger reactivity
         } catch (error) {
             console.error('Failed to fetch user profile after login:', error);
