@@ -760,6 +760,7 @@
         text-overflow: ellipsis;
         font-size: 0.9rem;
         opacity: 0.9;
+        padding-left:1em;
     }
 
     .avatar-small {
