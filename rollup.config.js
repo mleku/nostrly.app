@@ -37,6 +37,13 @@ export default {
 		name: 'app',
 		file: 'public/build/bundle.js'
 	},
+	onwarn(warning, warn) {
+		// Suppress eval warnings from tseep library
+		if (warning.code === 'EVAL' && warning.id && warning.id.includes('tseep')) {
+			return;
+		}
+		warn(warning);
+	},
 	plugins: [
 		svelte({
 			compilerOptions: {

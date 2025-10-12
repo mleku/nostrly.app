@@ -1,6 +1,9 @@
 <script>
     import { onMount, afterUpdate } from 'svelte';
     import LoginModal from './LoginModal.svelte';
+    import VerticalColumn from './VerticalColumn.svelte';
+    import NostrFeed from './NostrFeed.svelte';
+    import ReplyThread from './ReplyThread.svelte';
     import { getNDK, fetchUserProfile, initializeNostrClient } from './nostr.js';
     
     let isDarkTheme = false;
@@ -14,12 +17,44 @@
     let isExpanded = false;
     let profileFetchAttempted = false;
     let activeView = 'global'; // 'welcome' or 'global'
+    let selectedEventId = null; // Event ID for reply thread
+    let feedFilter = 'notes'; // 'notes', 'replies', 'reposts'
 
-    // Load theme preference from localStorage on component initialization
+    // Load UI state from localStorage on component initialization
     if (typeof localStorage !== 'undefined') {
         const savedTheme = localStorage.getItem('isDarkTheme');
         if (savedTheme !== null) {
             isDarkTheme = JSON.parse(savedTheme);
+        }
+        
+        // Load sidebar expansion state
+        const savedExpanded = localStorage.getItem('isExpanded');
+        if (savedExpanded !== null) {
+            isExpanded = JSON.parse(savedExpanded);
+        }
+        
+        // Load settings drawer state
+        const savedSettingsDrawer = localStorage.getItem('showSettingsDrawer');
+        if (savedSettingsDrawer !== null) {
+            showSettingsDrawer = JSON.parse(savedSettingsDrawer);
+        }
+        
+        // Load active view
+        const savedActiveView = localStorage.getItem('activeView');
+        if (savedActiveView) {
+            activeView = savedActiveView;
+        }
+        
+        // Load selected event ID (thread state)
+        const savedSelectedEventId = localStorage.getItem('selectedEventId');
+        if (savedSelectedEventId) {
+            selectedEventId = savedSelectedEventId;
+        }
+        
+        // Load feed filter
+        const savedFeedFilter = localStorage.getItem('feedFilter');
+        if (savedFeedFilter) {
+            feedFilter = savedFeedFilter;
         }
         
         // Check for existing authentication
@@ -175,6 +210,45 @@
         activeView = 'welcome';
     }
 
+    function handleEventSelect(eventId) {
+        console.log('Switching to thread:', eventId);
+        selectedEventId = eventId;
+    }
+
+    function closeReplyThread() {
+        selectedEventId = null;
+    }
+
+    function setFeedFilter(filter) {
+        feedFilter = filter;
+        console.log('Feed filter changed to:', filter);
+    }
+
+    // Reactive statements to save UI state to localStorage
+    $: if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('isExpanded', JSON.stringify(isExpanded));
+    }
+
+    $: if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('showSettingsDrawer', JSON.stringify(showSettingsDrawer));
+    }
+
+    $: if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('activeView', activeView);
+    }
+
+    $: if (typeof localStorage !== 'undefined') {
+        if (selectedEventId) {
+            localStorage.setItem('selectedEventId', selectedEventId);
+        } else {
+            localStorage.removeItem('selectedEventId');
+        }
+    }
+
+    $: if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('feedFilter', feedFilter);
+    }
+
 
 
     $: if (typeof document !== 'undefined') {
@@ -272,13 +346,17 @@
     <!-- Main Content -->
     <main class="main-content">
         {#if activeView === 'global'}
-            <div class="global-container">
-                <div class="content-box">
-                    <h2>Global Feed</h2>
-                    <p>Welcome to the global Nostr feed. This is where you'll see posts from all users.</p>
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                    <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+            <div class="global-container" class:split={selectedEventId}>
+                <div class="left-panel">
+                    <VerticalColumn showReloadButton={true} {feedFilter} on:filterChange={(e) => setFeedFilter(e.detail)}>
+                        <NostrFeed {feedFilter} on:eventSelect={(e) => handleEventSelect(e.detail)} />
+                    </VerticalColumn>
                 </div>
+                {#if selectedEventId}
+                    <div class="right-panel">
+                        <ReplyThread key={selectedEventId} eventId={selectedEventId} onClose={closeReplyThread} on:eventSelect={(e) => handleEventSelect(e.detail)} />
+                    </div>
+                {/if}
             </div>
         {:else}
             <p>Welcome to nostrly.app - A Nostr client application.</p>
@@ -777,7 +855,7 @@
     /* Main Content */
     .main-content {
         flex: 1;
-        padding: 2rem;
+        padding: 0;
         overflow-y: auto;
         overflow-x: hidden;
         background-color: var(--bg-color);
@@ -785,6 +863,10 @@
         margin-left: 3em;
         transition: margin-left 0.3s ease;
         width: calc(100vw - 3em);
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        bottom: 0;
     }
 
     .app-container.expanded .main-content {
@@ -802,38 +884,37 @@
     /* Global Container */
     .global-container {
         display: flex;
-        flex-direction: column;
-        height: 100%;
-        overflow-y: auto;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        padding: 0;
+        margin: 0;
+        gap: 0;
+        overflow: hidden;
     }
 
-    .content-box {
-        flex: 1;
-        padding: 2rem;
-        background-color: var(--bg-color);
-        border-radius: 8px;
-        margin: 1rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    .global-container.split {
+        justify-content: flex-start;
     }
 
-    .content-box h2 {
-        margin: 0 0 1rem 0;
-        color: var(--text-color);
-        font-size: 1.5rem;
-        font-weight: 600;
+    .left-panel {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 50%;
+        overflow: hidden;
     }
 
-    .content-box p {
-        margin: 0 0 1rem 0;
-        color: var(--text-color);
-        line-height: 1.6;
-        text-align: left;
-        font-size: 1rem;
+    .right-panel {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 50%;
+        overflow: hidden;
     }
 
-    .content-box p:last-child {
-        margin-bottom: 0;
-    }
 
 
     @media (max-width: 640px) {
@@ -935,12 +1016,14 @@
 
         .global-container {
             padding: 0;
-            margin: 0;
         }
 
-        .content-box {
-            margin: 0.5rem;
-            padding: 1rem;
+        .left-panel {
+            width: 100%;
+        }
+
+        .right-panel {
+            width: 100%;
         }
 
     }
