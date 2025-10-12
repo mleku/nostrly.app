@@ -19,6 +19,8 @@
     let activeView = 'global'; // 'welcome' or 'global'
     let selectedEventId = null; // Event ID for reply thread
     let feedFilter = 'notes'; // 'notes', 'replies', 'reposts'
+    let viewHistory = []; // Stack of view states for navigation history
+    let currentHistoryIndex = -1; // Current position in history
 
     // Load UI state from localStorage on component initialization
     if (typeof localStorage !== 'undefined') {
@@ -55,6 +57,18 @@
         const savedFeedFilter = localStorage.getItem('feedFilter');
         if (savedFeedFilter) {
             feedFilter = savedFeedFilter;
+        }
+        
+        // Load view history
+        const savedViewHistory = localStorage.getItem('viewHistory');
+        if (savedViewHistory) {
+            viewHistory = JSON.parse(savedViewHistory);
+        }
+        
+        // Load current history index
+        const savedHistoryIndex = localStorage.getItem('currentHistoryIndex');
+        if (savedHistoryIndex !== null) {
+            currentHistoryIndex = parseInt(savedHistoryIndex);
         }
         
         // Check for existing authentication
@@ -212,16 +226,94 @@
 
     function handleEventSelect(eventId) {
         console.log('Switching to thread:', eventId);
+        // Save current state before changing
+        saveCurrentStateToHistory();
         selectedEventId = eventId;
+        
+        // Update browser history
+        if (typeof history !== 'undefined') {
+            history.pushState({ historyIndex: currentHistoryIndex }, '', `#thread/${eventId}`);
+        }
     }
 
     function closeReplyThread() {
+        // Save current state before changing
+        saveCurrentStateToHistory();
         selectedEventId = null;
+        
+        // Update browser history
+        if (typeof history !== 'undefined') {
+            history.pushState({ historyIndex: currentHistoryIndex }, '', '#feed');
+        }
     }
 
     function setFeedFilter(filter) {
         feedFilter = filter;
         console.log('Feed filter changed to:', filter);
+    }
+
+    // History management functions
+    function saveCurrentStateToHistory() {
+        const currentState = {
+            activeView,
+            selectedEventId,
+            feedFilter,
+            timestamp: Date.now()
+        };
+        
+        // Remove any future history if we're not at the end
+        if (currentHistoryIndex < viewHistory.length - 1) {
+            viewHistory = viewHistory.slice(0, currentHistoryIndex + 1);
+        }
+        
+        // Add new state to history
+        viewHistory.push(currentState);
+        currentHistoryIndex = viewHistory.length - 1;
+        
+        // Limit history size to prevent memory issues
+        if (viewHistory.length > 50) {
+            viewHistory = viewHistory.slice(-50);
+            currentHistoryIndex = viewHistory.length - 1;
+        }
+        
+        console.log('Saved state to history:', currentState);
+    }
+
+    function navigateBack() {
+        if (currentHistoryIndex > 0) {
+            currentHistoryIndex--;
+            const previousState = viewHistory[currentHistoryIndex];
+            restoreStateFromHistory(previousState);
+            console.log('Navigated back to:', previousState);
+        }
+    }
+
+    function navigateForward() {
+        if (currentHistoryIndex < viewHistory.length - 1) {
+            currentHistoryIndex++;
+            const nextState = viewHistory[currentHistoryIndex];
+            restoreStateFromHistory(nextState);
+            console.log('Navigated forward to:', nextState);
+        }
+    }
+
+    function restoreStateFromHistory(state) {
+        activeView = state.activeView;
+        selectedEventId = state.selectedEventId;
+        feedFilter = state.feedFilter;
+    }
+
+    function handleBrowserBackForward(event) {
+        // This will be called by the popstate event listener
+        if (event.state && event.state.historyIndex !== undefined) {
+            const targetIndex = event.state.historyIndex;
+            if (targetIndex >= 0 && targetIndex < viewHistory.length) {
+                currentHistoryIndex = targetIndex;
+                const targetState = viewHistory[targetIndex];
+                restoreStateFromHistory(targetState);
+                console.log('Browser navigation to:', targetState);
+            }
+        }
     }
 
     // Reactive statements to save UI state to localStorage
@@ -245,6 +337,12 @@
         }
     }
 
+    // Save history state to localStorage
+    $: if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('viewHistory', JSON.stringify(viewHistory));
+        localStorage.setItem('currentHistoryIndex', currentHistoryIndex.toString());
+    }
+
     $: if (typeof localStorage !== 'undefined') {
         localStorage.setItem('feedFilter', feedFilter);
     }
@@ -263,6 +361,32 @@
     $: if (userProfile) {
         console.log('Profile updated:', userProfile);
     }
+
+    // Set up browser history listeners and initialize history
+    onMount(() => {
+        // Initialize history with current state if empty
+        if (viewHistory.length === 0) {
+            saveCurrentStateToHistory();
+        }
+        
+        // Set up popstate listener for browser back/forward buttons
+        const handlePopState = (event) => {
+            handleBrowserBackForward(event);
+        };
+        
+        window.addEventListener('popstate', handlePopState);
+        
+        // Set initial browser state
+        if (typeof history !== 'undefined') {
+            const currentUrl = selectedEventId ? `#thread/${selectedEventId}` : '#feed';
+            history.replaceState({ historyIndex: currentHistoryIndex }, '', currentUrl);
+        }
+        
+        // Cleanup function
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    });
 </script>
 
 <!-- Header -->

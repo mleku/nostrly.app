@@ -17,6 +17,7 @@
     let eventIds = new Set(); // For efficient deduplication
     let pendingEvents = []; // Batch events before sorting
     let sortTimeout = null;
+    let userProfiles = new Map(); // Cache for user profiles (pubkey -> profile)
 
     // Check if event timestamp is in the future
     function isFutureEvent(event) {
@@ -267,6 +268,68 @@
         }
     }
 
+    // Fetch user profile (kind 0 metadata)
+    async function fetchUserProfile(pubkey) {
+        if (userProfiles.has(pubkey)) {
+            return userProfiles.get(pubkey);
+        }
+
+        return new Promise((resolve) => {
+            let found = false;
+            const subscriptionId = nostrClient.subscribe(
+                { kinds: [0], authors: [pubkey] },
+                (event) => {
+                    if (event && event.pubkey === pubkey) {
+                        try {
+                            const profile = JSON.parse(event.content);
+                            userProfiles.set(pubkey, profile);
+                            found = true;
+                            resolve(profile);
+                        } catch (error) {
+                            console.error('Failed to parse profile:', error);
+                            userProfiles.set(pubkey, null);
+                            found = true;
+                            resolve(null);
+                        }
+                    }
+                }
+            );
+            
+            // Timeout if no profile found
+            setTimeout(() => {
+                if (!found) {
+                    nostrClient.unsubscribe(subscriptionId);
+                    userProfiles.set(pubkey, null);
+                    resolve(null);
+                }
+            }, 3000);
+        });
+    }
+
+    // Get user profile for a pubkey
+    function getUserProfile(pubkey) {
+        return userProfiles.get(pubkey) || null;
+    }
+
+    // Fetch profiles for all unique pubkeys in events
+    async function fetchAllUserProfiles() {
+        const uniquePubkeys = new Set();
+        events.forEach(event => {
+            if (event.pubkey) {
+                uniquePubkeys.add(event.pubkey);
+            }
+        });
+
+        const fetchPromises = Array.from(uniquePubkeys).map(pubkey => {
+            if (!userProfiles.has(pubkey)) {
+                return fetchUserProfile(pubkey);
+            }
+            return Promise.resolve();
+        });
+
+        await Promise.all(fetchPromises);
+    }
+
     // Handle reload event from parent
     async function handleReload() {
         console.log('Reload triggered');
@@ -311,6 +374,11 @@
         if (nostrClient.relays.size > 0) {
             loadEvents();
         }
+    }
+
+    // React to events changes to fetch user profiles
+    $: if (events.length > 0) {
+        fetchAllUserProfiles();
     }
 
     onMount(async () => {
@@ -371,7 +439,21 @@
                     class:clickable={true}
                     on:click={() => handleEventClick(event)}>
                 <div class="event-header">
-                    <span class="event-author">{event.pubkey.slice(0, 8)}...</span>
+                    <div class="event-author">
+                        {#if getUserProfile(event.pubkey)}
+                            {@const profile = getUserProfile(event.pubkey)}
+                            <div class="author-info">
+                                {#if profile.picture}
+                                    <img src={profile.picture} alt="Avatar" class="avatar" />
+                                {:else}
+                                    <div class="avatar-placeholder"></div>
+                                {/if}
+                                <span class="username">{profile.name || profile.display_name || event.pubkey.slice(0, 8) + '...'}</span>
+                            </div>
+                        {:else}
+                            <span class="pubkey-fallback">{event.pubkey.slice(0, 8)}...</span>
+                        {/if}
+                    </div>
                     <span class="event-time">{formatTime(event.created_at)}</span>
                     {#if isReply(event)}
                         <span class="reply-indicator">↩</span>
@@ -449,6 +531,40 @@
     }
 
     .event-author {
+        font-family: monospace;
+        color: var(--primary);
+    }
+
+    .author-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--border-color);
+    }
+
+    .avatar-placeholder {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        opacity: 0.3;
+        border: 1px solid var(--border-color);
+    }
+
+    .username {
+        font-family: inherit;
+        font-weight: 500;
+        color: var(--primary);
+    }
+
+    .pubkey-fallback {
         font-family: monospace;
         color: var(--primary);
     }

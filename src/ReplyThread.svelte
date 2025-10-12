@@ -13,6 +13,9 @@
     let subscriptionId = null;
     let replyChain = []; // Array of ancestor events in the reply chain
     let showPreviousReplies = false; // Toggle for showing previous replies
+    let userProfiles = new Map(); // Cache for user profiles (pubkey -> profile)
+    let laterReplies = []; // Events that reply to the same root but are not direct replies to the current event
+    let rootEvent = null; // The root event of the thread
 
     // Fetch the original event
     async function fetchOriginalEvent() {
@@ -84,6 +87,48 @@
         }
     }
 
+    // Fetch later replies that reference the same root event
+    async function fetchLaterReplies() {
+        if (!rootEvent) return;
+        
+        console.log('Fetching later replies for root event:', rootEvent.id);
+        
+        try {
+            const laterRepliesSubscriptionId = nostrClient.subscribe(
+                { 
+                    kinds: [1],
+                    '#e': [rootEvent.id]
+                },
+                (event) => {
+                    if (event && event.kind === 1) {
+                        // Check if this is a reply to the root event
+                        const isReplyToRoot = event.tags.some(tag => 
+                            tag[0] === 'e' && tag[1] === rootEvent.id && tag[3] === 'reply'
+                        );
+                        
+                        // Exclude events that are already in the main replies or reply chain
+                        const isAlreadyIncluded = replies.find(r => r.id === event.id) || 
+                                               replyChain.find(r => r.id === event.id) ||
+                                               event.id === originalEvent.id;
+                        
+                        if (isReplyToRoot && !isAlreadyIncluded && !laterReplies.find(r => r.id === event.id)) {
+                            laterReplies = [...laterReplies, event].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+                            console.log(`Found ${laterReplies.length} later replies`);
+                        }
+                    }
+                }
+            );
+            
+            // Close subscription after collecting later replies
+            setTimeout(() => {
+                nostrClient.unsubscribe(laterRepliesSubscriptionId);
+            }, 3000);
+            
+        } catch (error) {
+            console.error('Failed to fetch later replies:', error);
+        }
+    }
+
     // Check if event is a reply (has 'e' tag with 'reply' in 4th position)
     function isReply(event) {
         if (!event || !event.tags) return false;
@@ -148,6 +193,13 @@
         }
 
         replyChain = chain;
+        
+        // Set the root event (the last event in the chain that is not a reply)
+        if (chain.length > 0) {
+            rootEvent = chain[chain.length - 1];
+        } else if (originalEvent && !isReply(originalEvent)) {
+            rootEvent = originalEvent;
+        }
     }
 
     // Fetch a single event by ID
@@ -220,6 +272,94 @@
         }
     }
 
+    // Fetch user profile (kind 0 metadata)
+    async function fetchUserProfile(pubkey) {
+        if (userProfiles.has(pubkey)) {
+            return userProfiles.get(pubkey);
+        }
+
+        return new Promise((resolve) => {
+            let found = false;
+            const subscriptionId = nostrClient.subscribe(
+                { kinds: [0], authors: [pubkey] },
+                (event) => {
+                    if (event && event.pubkey === pubkey) {
+                        try {
+                            const profile = JSON.parse(event.content);
+                            userProfiles.set(pubkey, profile);
+                            found = true;
+                            resolve(profile);
+                        } catch (error) {
+                            console.error('Failed to parse profile:', error);
+                            userProfiles.set(pubkey, null);
+                            found = true;
+                            resolve(null);
+                        }
+                    }
+                }
+            );
+            
+            // Timeout if no profile found
+            setTimeout(() => {
+                if (!found) {
+                    nostrClient.unsubscribe(subscriptionId);
+                    userProfiles.set(pubkey, null);
+                    resolve(null);
+                }
+            }, 3000);
+        });
+    }
+
+    // Get user profile for a pubkey
+    function getUserProfile(pubkey) {
+        return userProfiles.get(pubkey) || null;
+    }
+
+    // Fetch profiles for all unique pubkeys in events
+    async function fetchAllUserProfiles() {
+        const uniquePubkeys = new Set();
+        
+        if (originalEvent && originalEvent.pubkey) {
+            uniquePubkeys.add(originalEvent.pubkey);
+        }
+        
+        replies.forEach(reply => {
+            if (reply.pubkey) {
+                uniquePubkeys.add(reply.pubkey);
+            }
+        });
+        
+        replyChain.forEach(chainEvent => {
+            if (chainEvent.pubkey) {
+                uniquePubkeys.add(chainEvent.pubkey);
+            }
+        });
+        
+        laterReplies.forEach(laterReply => {
+            if (laterReply.pubkey) {
+                uniquePubkeys.add(laterReply.pubkey);
+            }
+        });
+
+        const fetchPromises = Array.from(uniquePubkeys).map(pubkey => {
+            if (!userProfiles.has(pubkey)) {
+                return fetchUserProfile(pubkey);
+            }
+            return Promise.resolve();
+        });
+
+        await Promise.all(fetchPromises);
+    }
+
+    // Reactive statements
+    $: if (originalEvent || replies.length > 0 || replyChain.length > 0 || laterReplies.length > 0) {
+        fetchAllUserProfiles();
+    }
+
+    $: if (rootEvent) {
+        fetchLaterReplies();
+    }
+
     onMount(() => {
         if (eventId) {
             fetchOriginalEvent();
@@ -252,6 +392,11 @@
         fetchReplyChain();
     }
 
+    // React to data changes to fetch user profiles
+    $: if (originalEvent || replies.length > 0 || replyChain.length > 0) {
+        fetchAllUserProfiles();
+    }
+
     onDestroy(() => {
         if (subscriptionId) {
             nostrClient.unsubscribe(subscriptionId);
@@ -281,7 +426,27 @@
                         <div class="previous-replies-list">
                             {#each replyChain as chainEvent (chainEvent.id)}
                                 <button class="previous-reply-item" on:click={() => handleChainItemClick(chainEvent)}>
-                                    {truncateContent(chainEvent.content)}
+                                    <div class="chain-event-header">
+                                        <div class="event-author">
+                                            {#if getUserProfile(chainEvent.pubkey)}
+                                                {@const profile = getUserProfile(chainEvent.pubkey)}
+                                                <div class="author-info">
+                                                    {#if profile.picture}
+                                                        <img src={profile.picture} alt="Avatar" class="avatar-small" />
+                                                    {:else}
+                                                        <div class="avatar-placeholder-small"></div>
+                                                    {/if}
+                                                    <span class="username-small">{profile.name || profile.display_name || chainEvent.pubkey.slice(0, 8) + '...'}</span>
+                                                </div>
+                                            {:else}
+                                                <span class="pubkey-fallback-small">{chainEvent.pubkey.slice(0, 8)}...</span>
+                                            {/if}
+                                        </div>
+                                        <span class="event-time-small">{formatTime(chainEvent.created_at)}</span>
+                                    </div>
+                                    <div class="chain-event-content">
+                                        {truncateContent(chainEvent.content)}
+                                    </div>
                                 </button>
                             {/each}
                         </div>
@@ -293,7 +458,21 @@
             {#if isReply(originalEvent)}
                 <button class="original-event clickable" on:click={handleOriginalEventClick}>
                     <div class="event-header">
-                        <span class="event-author">{originalEvent.pubkey.slice(0, 8)}...</span>
+                        <div class="event-author">
+                            {#if getUserProfile(originalEvent.pubkey)}
+                                {@const profile = getUserProfile(originalEvent.pubkey)}
+                                <div class="author-info">
+                                    {#if profile.picture}
+                                        <img src={profile.picture} alt="Avatar" class="avatar" />
+                                    {:else}
+                                        <div class="avatar-placeholder"></div>
+                                    {/if}
+                                    <span class="username">{profile.name || profile.display_name || originalEvent.pubkey.slice(0, 8) + '...'}</span>
+                                </div>
+                            {:else}
+                                <span class="pubkey-fallback">{originalEvent.pubkey.slice(0, 8)}...</span>
+                            {/if}
+                        </div>
                         <span class="event-time">{formatTime(originalEvent.created_at)}</span>
                         <span class="reply-indicator">↩</span>
                     </div>
@@ -304,7 +483,21 @@
             {:else}
                 <div class="original-event">
                     <div class="event-header">
-                        <span class="event-author">{originalEvent.pubkey.slice(0, 8)}...</span>
+                        <div class="event-author">
+                            {#if getUserProfile(originalEvent.pubkey)}
+                                {@const profile = getUserProfile(originalEvent.pubkey)}
+                                <div class="author-info">
+                                    {#if profile.picture}
+                                        <img src={profile.picture} alt="Avatar" class="avatar" />
+                                    {:else}
+                                        <div class="avatar-placeholder"></div>
+                                    {/if}
+                                    <span class="username">{profile.name || profile.display_name || originalEvent.pubkey.slice(0, 8) + '...'}</span>
+                                </div>
+                            {:else}
+                                <span class="pubkey-fallback">{originalEvent.pubkey.slice(0, 8)}...</span>
+                            {/if}
+                        </div>
                         <span class="event-time">{formatTime(originalEvent.created_at)}</span>
                         <span class="root-indicator">root</span>
                     </div>
@@ -321,7 +514,21 @@
                     {#each replies as reply (reply.id)}
                         <button class="reply-event clickable" on:click={() => handleReplyClick(reply)}>
                             <div class="event-header">
-                                <span class="event-author">{reply.pubkey.slice(0, 8)}...</span>
+                                <div class="event-author">
+                                    {#if getUserProfile(reply.pubkey)}
+                                        {@const profile = getUserProfile(reply.pubkey)}
+                                        <div class="author-info">
+                                            {#if profile.picture}
+                                                <img src={profile.picture} alt="Avatar" class="avatar" />
+                                            {:else}
+                                                <div class="avatar-placeholder"></div>
+                                            {/if}
+                                            <span class="username">{profile.name || profile.display_name || reply.pubkey.slice(0, 8) + '...'}</span>
+                                        </div>
+                                    {:else}
+                                        <span class="pubkey-fallback">{reply.pubkey.slice(0, 8)}...</span>
+                                    {/if}
+                                </div>
                                 <span class="event-time">{formatTime(reply.created_at)}</span>
                                 <span class="thread-indicator">💬</span>
                             </div>
@@ -333,6 +540,38 @@
                 </div>
             {:else}
                 <div class="no-replies">No replies yet</div>
+            {/if}
+            
+            <!-- Later Replies -->
+            {#if laterReplies.length > 0}
+                <div class="later-replies-section">
+                    <h4>Later replies ({laterReplies.length})</h4>
+                    {#each laterReplies as laterReply (laterReply.id)}
+                        <button class="later-reply-item" on:click={() => handleReplyClick(laterReply)}>
+                            <div class="chain-event-header">
+                                <div class="event-author">
+                                    {#if getUserProfile(laterReply.pubkey)}
+                                        {@const profile = getUserProfile(laterReply.pubkey)}
+                                        <div class="author-info">
+                                            {#if profile.picture}
+                                                <img src={profile.picture} alt="Avatar" class="avatar-small" />
+                                            {:else}
+                                                <div class="avatar-placeholder-small"></div>
+                                            {/if}
+                                            <span class="username-small">{profile.name || profile.display_name || laterReply.pubkey.slice(0, 8) + '...'}</span>
+                                        </div>
+                                    {:else}
+                                        <span class="pubkey-fallback-small">{laterReply.pubkey.slice(0, 8)}...</span>
+                                    {/if}
+                                </div>
+                                <span class="event-time-small">{formatTime(laterReply.created_at)}</span>
+                            </div>
+                            <div class="chain-event-content">
+                                {laterReply.content}
+                            </div>
+                        </button>
+                    {/each}
+                </div>
             {/if}
         {:else}
             <div class="error">Event not found</div>
@@ -346,7 +585,6 @@
         flex-direction: column;
         height: 100vh;
         background-color: var(--bg-color);
-        border-left: 1px solid var(--border-color);
         width: 32em;
         max-width: 32em;
         min-width: 0;
@@ -359,7 +597,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 0;
-        border-bottom: 1px solid var(--border-color);
+        /* border-bottom: 1px solid var(--border-color); */
         background-color: var(--header-bg);
         height: 2em;
     }
@@ -476,6 +714,45 @@
         color: var(--primary);
     }
 
+    .author-info {
+        font-family: "Noto Sans";
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background-color: var(--header-bg);
+        padding: 0.25rem 0.5rem;
+        border:none;
+    }
+
+    .avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--border-color);
+    }
+
+    .avatar-placeholder {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        opacity: 0.3;
+        border: 1px solid var(--border-color);
+    }
+
+    .username {
+        font-family: "Noto Sans", sans-serif;
+        font-weight: 900;
+        color: var(--text-color);
+    }
+
+    .pubkey-fallback {
+        font-family: monospace;
+        color: var(--primary);
+    }
+
     .event-time {
         color: var(--text-color);
     }
@@ -544,10 +821,60 @@
         color: var(--text-color);
         opacity: 0.8;
         transition: opacity 0.2s;
+        border-bottom: 1px solid var(--border-color);
+        width: 100%;
+    }
+
+    .chain-event-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.25rem;
+        font-size: 0.8rem;
+    }
+
+    .chain-event-content {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        border-bottom: 1px solid var(--border-color);
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
+
+    .avatar-small {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--border-color);
+    }
+
+    .avatar-placeholder-small {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        opacity: 0.3;
+        border: 1px solid var(--border-color);
+    }
+
+    .username-small {
+        font-family: "Noto Sans", sans-serif;
+        font-weight: 900;
+        color: var(--text-color);
+        font-size: 0.8rem;
+    }
+
+    .pubkey-fallback-small {
+        font-family: monospace;
+        color: var(--primary);
+        font-size: 0.8rem;
+    }
+
+    .event-time-small {
+        color: var(--text-color);
+        font-size: 0.75rem;
+        opacity: 0.7;
     }
 
     .previous-reply-item:hover {
@@ -570,7 +897,44 @@
         word-wrap: break-word;
         white-space: pre-wrap;
         color: var(--text-color);
-        padding:0.5em;
+        padding-left:1em;
+    }
+
+    .later-replies-section {
+        margin-top: 1rem;
+        border-top: 1px solid var(--border-color);
+        padding-top: 1rem;
+    }
+
+    .later-replies-section h4 {
+        margin: 0 0 0.5rem 0;
+        color: var(--text-color);
+        font-size: 0.9rem;
+        font-weight: 500;
+        opacity: 0.8;
+    }
+
+    .later-reply-item {
+        background: none;
+        border: none;
+        padding: 0.75rem 0;
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+        font-size: 0.9rem;
+        color: var(--text-color);
+        opacity: 0.8;
+        transition: opacity 0.2s;
+        border-bottom: 1px solid var(--border-color);
+        width: 100%;
+    }
+
+    .later-reply-item:hover {
+        opacity: 1;
+    }
+
+    .later-reply-item:last-child {
+        border-bottom: none;
     }
 
     /* Custom scrollbar styling */
