@@ -23,6 +23,7 @@
     let viewHistory = []; // Stack of view states for navigation history
     let currentHistoryIndex = -1; // Current position in history
     let sidebarPosition = 'left'; // 'left' or 'right'
+    let newEventsCount = 0; // Count of new events available
 
     // Load UI state from localStorage on component initialization
     if (typeof localStorage !== 'undefined') {
@@ -275,6 +276,17 @@
         console.log('Feed filter changed to:', filter);
     }
 
+    function handleNewEventsAvailable(event) {
+        newEventsCount = event.detail.count;
+    }
+
+    function handleLoadNewEvents() {
+        // Dispatch event to NostrFeed to load new events
+        const event = new CustomEvent('loadNewEvents');
+        document.dispatchEvent(event);
+        newEventsCount = 0; // Reset counter
+    }
+
     // History management functions
     function saveCurrentStateToHistory() {
         const currentState = {
@@ -496,8 +508,8 @@
             <div class="global-container" class:split={selectedEventId} class:sidebar-right={sidebarPosition === 'right'}>
                 {#if sidebarPosition === 'left'}
                     <div class="left-panel">
-                        <VerticalColumn showReloadButton={true} {feedFilter} on:filterChange={(e) => setFeedFilter(e.detail)}>
-                            <NostrFeed {feedFilter} on:eventSelect={(e) => handleEventSelect(e.detail)} />
+                        <VerticalColumn showReloadButton={true} {feedFilter} {newEventsCount} on:filterChange={(e) => setFeedFilter(e.detail)} on:loadNewEvents={handleLoadNewEvents}>
+                            <NostrFeed {feedFilter} on:eventSelect={(e) => handleEventSelect(e.detail)} on:newEventsAvailable={handleNewEventsAvailable} />
                         </VerticalColumn>
                     </div>
                     {#if selectedEventId}
@@ -512,8 +524,8 @@
                         </div>
                     {/if}
                     <div class="right-panel">
-                        <VerticalColumn showReloadButton={true} {feedFilter} on:filterChange={(e) => setFeedFilter(e.detail)}>
-                            <NostrFeed {feedFilter} on:eventSelect={(e) => handleEventSelect(e.detail)} />
+                        <VerticalColumn showReloadButton={true} {feedFilter} {newEventsCount} on:filterChange={(e) => setFeedFilter(e.detail)} on:loadNewEvents={handleLoadNewEvents}>
+                            <NostrFeed {feedFilter} on:eventSelect={(e) => handleEventSelect(e.detail)} on:newEventsAvailable={handleNewEventsAvailable} />
                         </VerticalColumn>
                     </div>
                 {/if}

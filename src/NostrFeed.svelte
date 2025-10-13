@@ -19,6 +19,9 @@
     let eventIds = new Set(); // For efficient deduplication
     let pendingEvents = []; // Batch events before sorting
     let sortTimeout = null;
+    let autoUpdateEnabled = true; // Controls whether new events auto-update the feed
+    let newEventsCount = 0; // Count of new events received while auto-update is disabled
+    let queuedNewEvents = []; // Store new events received while auto-update is disabled
     // Remove local userProfiles cache - using global profileManager instead
 
     // Check if event timestamp is in the future
@@ -43,17 +46,28 @@
             return false;
         }
         
-        // Add to pending events
-        pendingEvents.push(event);
+        // Track the event
         eventIds.add(event.id);
         
-        // Schedule sorting (debounced)
-        if (sortTimeout) {
-            clearTimeout(sortTimeout);
+        // If auto-update is enabled, add to pending events for immediate processing
+        if (autoUpdateEnabled) {
+            pendingEvents.push(event);
+            
+            // Schedule sorting (debounced)
+            if (sortTimeout) {
+                clearTimeout(sortTimeout);
+            }
+            sortTimeout = setTimeout(() => {
+                processPendingEvents();
+            }, 100); // 100ms debounce
+        } else {
+            // If auto-update is disabled, queue the event for later processing
+            queuedNewEvents.push(event);
+            newEventsCount++;
+            console.log(`New event received while auto-update disabled. Count: ${newEventsCount}`);
+            // Dispatch event to parent to show "load new events" button
+            dispatch('newEventsAvailable', { count: newEventsCount });
         }
-        sortTimeout = setTimeout(() => {
-            processPendingEvents();
-        }, 100); // 100ms debounce
         
         return true;
     }
@@ -105,6 +119,7 @@
         events = [];
         eventIds.clear();
         pendingEvents = [];
+        queuedNewEvents = []; // Clear queued events
         if (sortTimeout) {
             clearTimeout(sortTimeout);
             sortTimeout = null;
@@ -142,7 +157,8 @@
                 if (!hasLoadedOnce) {
                     hasLoadedOnce = true;
                     isLoading = false;
-                    console.log('Initial load completed');
+                    autoUpdateEnabled = false; // Disable auto-updates after initial load
+                    console.log('Initial load completed, auto-updates disabled');
                 }
             }, 5000); // Reduced timeout for faster initial load completion
             
@@ -471,6 +487,9 @@
             eventIds.clear();
             pendingEvents = [];
             oldestEventTime = null;
+            autoUpdateEnabled = true; // Re-enable auto-updates for reload
+            newEventsCount = 0; // Reset new events counter
+            queuedNewEvents = []; // Clear queued events
             
             if (subscriptionId) {
                 nostrClient.unsubscribe(subscriptionId);
@@ -486,6 +505,35 @@
         } else {
             console.error('Nostr client not ready for reload');
         }
+    }
+
+    // Handle loading new events when auto-update is disabled
+    function handleLoadNewEvents() {
+        console.log(`Loading ${newEventsCount} new events from queue`);
+        
+        if (queuedNewEvents.length > 0) {
+            // Add queued events to the pending events for processing
+            pendingEvents.push(...queuedNewEvents);
+            queuedNewEvents = []; // Clear the queue
+            
+            // Process the pending events immediately
+            processPendingEvents();
+            
+            // Scroll to top to show new events
+            if (feedContainer) {
+                feedContainer.scrollTop = 0;
+            }
+        }
+        
+        // Reset counter
+        newEventsCount = 0;
+        
+        // Temporarily enable auto-updates for a brief period to catch any new events
+        autoUpdateEnabled = true;
+        setTimeout(() => {
+            autoUpdateEnabled = false; // Disable auto-updates again
+            console.log('Auto-updates disabled again after loading new events');
+        }, 2000); // Give a longer window for new events to be processed
     }
 
     // React to filter changes
@@ -514,6 +562,19 @@
         }
     }
 
+    // Reactive statement to reload when filtered events are empty
+    $: if (hasLoadedOnce && !isLoading) {
+        const filteredEvents = filterEvents(events);
+        if (filteredEvents.length === 0 && events.length > 0) {
+            console.log('Filtered events are empty, triggering reload...');
+            // Reset loaded state to allow reloading
+            hasLoadedOnce = false;
+            if (nostrClient.relays.size > 0) {
+                loadEvents();
+            }
+        }
+    }
+
     onMount(async () => {
         // Only load if we haven't loaded once before
         if (!hasLoadedOnce) {
@@ -537,6 +598,9 @@
         
         // Listen for reload events
         document.addEventListener('reload', handleReload);
+        
+        // Listen for load new events events
+        document.addEventListener('loadNewEvents', handleLoadNewEvents);
     });
 
     onDestroy(() => {
@@ -547,6 +611,7 @@
             clearTimeout(sortTimeout);
         }
         document.removeEventListener('reload', handleReload);
+        document.removeEventListener('loadNewEvents', handleLoadNewEvents);
     });
 </script>
 

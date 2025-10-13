@@ -4,6 +4,7 @@
     export let width = '32em';
     export let showReloadButton = false;
     export let feedFilter = 'notes';
+    export let newEventsCount = 0;
     
     const dispatch = createEventDispatcher();
     
@@ -15,6 +16,10 @@
     
     function handleFilterChange(filter) {
         dispatch('filterChange', filter);
+    }
+    
+    function handleLoadNewEvents() {
+        dispatch('loadNewEvents');
     }
 </script>
 
@@ -37,9 +42,16 @@
                 Reposts
             </button>
         </div>
-        {#if showReloadButton}
-            <button class="reload-btn" on:click={handleReload} title="Reload feed">↺</button>
-        {/if}
+        <div class="action-buttons">
+            {#if newEventsCount > 0}
+                <button class="load-new-btn" on:click={handleLoadNewEvents} title="Load {newEventsCount} new events">
+                    Load {newEventsCount} new
+                </button>
+            {/if}
+            {#if showReloadButton}
+                <button class="reload-btn" on:click={handleReload} title="Reload feed">↺</button>
+            {/if}
+        </div>
     </div>
     <div class="column-content">
         <slot />
@@ -112,6 +124,29 @@
 
     .reload-btn:hover {
         background-color: var(--button-hover-bg);
+    }
+
+    .action-buttons {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .load-new-btn {
+        background: var(--primary);
+        border: none;
+        padding: 0.25rem 0.5rem;
+        margin: 0;
+        cursor: pointer;
+        color: white;
+        font-size: 0.8rem;
+        font-weight: 500;
+        border-radius: 0.25rem;
+        transition: background-color 0.2s;
+    }
+
+    .load-new-btn:hover {
+        background-color: var(--primary-hover, #2563eb);
     }
 
     .column-content {
