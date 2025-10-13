@@ -131,8 +131,8 @@
             <div class="event-meta">
                 <div class="event-author">
                     {profile?.name || profile?.display_name || event.pubkey.substring(0, 8) + '...'}
+                    <span class="event-time">{formatTimestamp(event.created_at)}</span>
                 </div>
-                <div class="event-time">{formatTimestamp(event.created_at)}</div>
             </div>
         </div>
         <div class="event-content">
@@ -204,6 +204,7 @@
         font-size: 0.75rem;
         color: var(--text-color-secondary, var(--text-color));
         opacity: 0.7;
+        margin-left: 0.5rem;
     }
     
     .event-content {

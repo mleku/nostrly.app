@@ -686,12 +686,13 @@
                                         <div class="avatar-placeholder"></div>
                                     {/if}
                                     <span class="username">{profile.name || profile.display_name || event.pubkey.slice(0, 8) + '...'}</span>
+                                    <span class="event-time">{formatTime(event.created_at)}</span>
                                 </div>
                             {:else}
                                 <span class="pubkey-fallback">{event.pubkey.slice(0, 8)}...</span>
+                                <span class="event-time">{formatTime(event.created_at)}</span>
                             {/if}
                         </div>
-                        <span class="event-time">{formatTime(event.created_at)}</span>
                         {#if isReply(event)}
                             <span class="reply-indicator">↩</span>
                         {:else}
@@ -820,6 +821,9 @@
 
     .event-time {
         color: var(--text-color);
+        font-size: 0.8rem;
+        opacity: 0.6;
+        margin-left: 0.5rem;
     }
 
     .reply-indicator {

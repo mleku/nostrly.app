@@ -11,6 +11,7 @@
 
     let originalEvent = null;
     let replies = [];
+    let nestedReplies = new Map(); // Map of reply ID to array of nested replies
     let isLoading = false;
     let subscriptionId = null;
     let replyChain = []; // Array of ancestor events in the reply chain
@@ -64,6 +65,8 @@
                         
                         if (isReplyToEvent && !replies.find(r => r.id === event.id)) {
                             replies = [...replies, event].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+                            // Fetch nested replies for this reply
+                            fetchNestedReplies(event.id);
                         }
                     }
                 }
@@ -76,6 +79,45 @@
             
         } catch (error) {
             // Failed to fetch replies
+        }
+    }
+
+    // Fetch nested replies to a specific reply
+    async function fetchNestedReplies(replyId) {
+        if (!replyId) return;
+        
+        try {
+            const nestedSubscriptionId = nostrClient.subscribe(
+                { 
+                    kinds: [1],
+                    '#e': [replyId]
+                },
+                (event) => {
+                    if (event && event.kind === 1) {
+                        // Check if this is a reply to the specific reply
+                        const isReplyToReply = event.tags.some(tag => 
+                            tag[0] === 'e' && tag[1] === replyId && tag[3] === 'reply'
+                        );
+                        
+                        if (isReplyToReply) {
+                            const currentNested = nestedReplies.get(replyId) || [];
+                            if (!currentNested.find(r => r.id === event.id)) {
+                                const updatedNested = [...currentNested, event].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+                                nestedReplies.set(replyId, updatedNested);
+                                nestedReplies = nestedReplies; // Trigger reactivity
+                            }
+                        }
+                    }
+                }
+            );
+            
+            // Close subscription after collecting nested replies
+            setTimeout(() => {
+                nostrClient.unsubscribe(nestedSubscriptionId);
+            }, 2000);
+            
+        } catch (error) {
+            // Failed to fetch nested replies
         }
     }
 
@@ -520,12 +562,13 @@
                                         <div class="avatar-placeholder"></div>
                                     {/if}
                                     <span class="username">{profile.name || profile.display_name || originalEvent.pubkey.slice(0, 8) + '...'}</span>
+                                    <span class="event-time">{formatTime(originalEvent.created_at)}</span>
                                 </div>
                             {:else}
                                 <span class="pubkey-fallback">{originalEvent.pubkey.slice(0, 8)}...</span>
+                                <span class="event-time">{formatTime(originalEvent.created_at)}</span>
                             {/if}
                         </div>
-                        <span class="event-time">{formatTime(originalEvent.created_at)}</span>
                         <span class="reply-indicator">↩</span>
                     </div>
                     <div class="event-content">
@@ -551,12 +594,13 @@
                                         <div class="avatar-placeholder"></div>
                                     {/if}
                                     <span class="username">{profile.name || profile.display_name || originalEvent.pubkey.slice(0, 8) + '...'}</span>
+                                    <span class="event-time">{formatTime(originalEvent.created_at)}</span>
                                 </div>
                             {:else}
                                 <span class="pubkey-fallback">{originalEvent.pubkey.slice(0, 8)}...</span>
+                                <span class="event-time">{formatTime(originalEvent.created_at)}</span>
                             {/if}
                         </div>
-                        <span class="event-time">{formatTime(originalEvent.created_at)}</span>
                         <span class="root-indicator">root</span>
                     </div>
                     <div class="event-content">
@@ -575,38 +619,59 @@
             {#if replies.length > 0}
                 <div class="replies-section">
                     <h4>Replies ({replies.length})</h4>
-                    {#each replies as reply (reply.id)}
-                        <button class="reply-event clickable" on:click={() => handleReplyClick(reply)}>
-                            <div class="event-header">
-                                <div class="event-author">
-                                    {#if getCachedUserProfile(reply.pubkey)}
-                                        {@const profile = getCachedUserProfile(reply.pubkey)}
-                                        <div class="author-info">
-                                            {#if profile.picture}
-                                                <img src={profile.picture} alt="Avatar" class="avatar" />
-                                            {:else}
-                                                <div class="avatar-placeholder"></div>
-                                            {/if}
-                                            <span class="username">{profile.name || profile.display_name || reply.pubkey.slice(0, 8) + '...'}</span>
-                                        </div>
-                                    {:else}
-                                        <span class="pubkey-fallback">{reply.pubkey.slice(0, 8)}...</span>
-                                    {/if}
+                    <div class="replies-list">
+                        {#each replies as reply (reply.id)}
+                            <button class="reply-item" on:click={() => handleReplyClick(reply)}>
+                                <div class="reply-header">
+                                    <div class="event-author">
+                                        {#if getCachedUserProfile(reply.pubkey)}
+                                            {@const profile = getCachedUserProfile(reply.pubkey)}
+                                            <div class="author-info">
+                                                {#if profile.picture}
+                                                    <img src={profile.picture} alt="Avatar" class="avatar-small" />
+                                                {:else}
+                                                    <div class="avatar-placeholder-small"></div>
+                                                {/if}
+                                                <span class="username-small">{profile.name || profile.display_name || reply.pubkey.slice(0, 8) + '...'}</span>
+                                                <span class="event-time-small">{formatTime(reply.created_at)}</span>
+                                            </div>
+                                        {:else}
+                                            <span class="pubkey-fallback-small">{reply.pubkey.slice(0, 8)}...</span>
+                                            <span class="event-time-small">{formatTime(reply.created_at)}</span>
+                                        {/if}
+                                    </div>
                                 </div>
-                                <span class="event-time">{formatTime(reply.created_at)}</span>
-                                <span class="thread-indicator">💬</span>
-                            </div>
-                            <div class="event-content">
-                                {#each splitContentForNostrLinks(reply.content) as segment}
-                                    {#if segment.type === 'html'}
-                                        {@html segment.content}
-                                    {:else if segment.type === 'nostr'}
-                                        <NostrProfileLink url={segment.url} />
-                                    {/if}
-                                {/each}
-                            </div>
-                        </button>
-                    {/each}
+                                <div class="reply-content">
+                                    {#each splitContentForNostrLinks(reply.content) as segment}
+                                        {#if segment.type === 'html'}
+                                            {@html segment.content}
+                                        {:else if segment.type === 'nostr'}
+                                            <NostrProfileLink url={segment.url} />
+                                        {/if}
+                                    {/each}
+                                </div>
+                                
+                                <!-- Nested Replies Preview -->
+                                {#if nestedReplies.get(reply.id) && nestedReplies.get(reply.id).length > 0}
+                                    <div class="nested-replies-preview">
+                                        {#each nestedReplies.get(reply.id) as nestedReply (nestedReply.id)}
+                                            <button class="nested-reply-preview" on:click={() => handleReplyClick(nestedReply)}>
+                                                <div class="nested-reply-content">
+                                                    {#if getCachedUserProfile(nestedReply.pubkey)}
+                                                        {@const profile = getCachedUserProfile(nestedReply.pubkey)}
+                                                        <span class="nested-username">{profile.name || profile.display_name || nestedReply.pubkey.slice(0, 8) + '...'}</span>
+                                                    {:else}
+                                                        <span class="nested-username">{nestedReply.pubkey.slice(0, 8)}...</span>
+                                                    {/if}
+                                                    <span class="nested-content">{nestedReply.content.length > 100 ? nestedReply.content.slice(0, 100) + '...' : nestedReply.content}</span>
+                                                </div>
+                                            </button>
+                                        {/each}
+                                    </div>
+                                {/if}
+                            </button>
+                        {/each}
+                    </div>
                 </div>
             {:else}
                 <div class="no-replies">No replies yet</div>
@@ -638,7 +703,7 @@
         padding: 0;
         /* border-bottom: 1px solid var(--border-color); */
         background-color: var(--header-bg);
-        height: 2em;
+        height: 3em;
     }
 
     .thread-header h3 {
@@ -713,31 +778,6 @@
         font-weight: 600;
     }
 
-    .reply-event {
-        border-bottom: 1px solid var(--border-color);
-        padding: 0.5em;
-    }
-
-    .reply-event:last-child {
-        border-bottom: none;
-    }
-
-    .reply-event.clickable {
-        cursor: pointer;
-        transition: background-color 0.2s;
-        border: none;
-        width: 100%;
-        text-align: left;
-        font-family: inherit;
-        font-size: inherit;
-        background: none;
-        padding: 1rem 0;
-    }
-
-    .reply-event.clickable:hover {
-        background-color: var(--button-hover-bg);
-        opacity: 0.8;
-    }
 
     .event-header {
         display: flex;
@@ -793,6 +833,9 @@
 
     .event-time {
         color: var(--text-color);
+        font-size: 0.8rem;
+        opacity: 0.6;
+        margin-left: 0.5rem;
     }
 
     .reply-indicator {
@@ -907,11 +950,124 @@
         border-bottom: none;
     }
 
-    .thread-indicator {
+    .replies-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin-top: 0.5rem;
+    }
+
+    .reply-item {
+        background: none;
+        border: none;
+        padding: 0.5rem 0;
+        cursor: pointer;
+        text-align: left;
+        width: 100%;
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.2s;
+    }
+
+    .reply-item:hover {
+        opacity: 1;
+        background-color: var(--button-hover-bg);
+    }
+
+    .reply-item:last-child {
+        border-bottom: none;
+    }
+
+    .reply-header {
+        margin-bottom: 0.25rem;
+    }
+
+    .avatar-small {
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+    }
+
+    .avatar-placeholder-small {
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        background-color: var(--border-color);
+        margin-right: 0.5rem;
+    }
+
+    .username-small {
+        font-weight: 600;
         color: var(--text-color);
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+    }
+
+    .event-time-small {
+        color: var(--text-color);
+        font-size: 0.75rem;
+        opacity: 0.7;
         margin-left: 0.5rem;
     }
+
+    .pubkey-fallback-small {
+        font-family: monospace;
+        font-size: 0.8rem;
+        color: var(--text-color-secondary);
+        opacity: 0.7;
+    }
+
+    .reply-content {
+        font-size: 0.9rem;
+        line-height: 1.4;
+        color: var(--text-color);
+        word-wrap: break-word;
+        white-space: pre-wrap;
+    }
+
+    .nested-replies-preview {
+        margin-top: 0.5rem;
+        padding-left: 1rem;
+        border-left: 2px solid var(--border-color);
+    }
+
+    .nested-reply-preview {
+        background: none;
+        border: none;
+        padding: 0.25rem 0;
+        cursor: pointer;
+        text-align: left;
+        width: 100%;
+        margin-bottom: 0.25rem;
+        transition: background-color 0.2s;
+    }
+
+    .nested-reply-preview:hover {
+        background-color: var(--button-hover-bg);
+        opacity: 0.8;
+    }
+
+    .nested-reply-content {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        color: var(--text-color);
+        opacity: 0.8;
+    }
+
+    .nested-username {
+        font-weight: 600;
+        color: var(--text-color);
+        min-width: fit-content;
+    }
+
+    .nested-content {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
 
     .event-content {
         line-height: 1.5;
@@ -961,3 +1117,4 @@
         }
     }
 </style>
+

@@ -81,7 +81,7 @@
         display: flex;
         justify-content: space-between;
         align-items: sta;
-        border-bottom: 1px solid var(--primary);
+        height:3em;
     }
 
     .filter-buttons {

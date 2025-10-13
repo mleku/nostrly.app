@@ -1150,6 +1150,7 @@
         position: fixed;
         top: 0;
         bottom: 0;
+        right: 0;
         width: 100%;
         max-width: 500px;
         background-color: var(--bg-color);
@@ -1161,6 +1162,7 @@
 
     .thread-drawer.sidebar-right {
         left: 0;
+        right: auto;
         box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
         animation: slideInLeft 0.3s ease-out;
     }
