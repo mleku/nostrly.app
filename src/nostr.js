@@ -9,34 +9,28 @@ class NostrClient {
     }
 
     async connect() {
-        console.log('Starting connection to', DEFAULT_RELAYS.length, 'relays...');
-        
         const connectionPromises = DEFAULT_RELAYS.map(relayUrl => {
             return new Promise((resolve) => {
                 try {
-                    console.log(`Attempting to connect to ${relayUrl}`);
                     const ws = new WebSocket(relayUrl);
                     
                     ws.onopen = () => {
-                        console.log(`✓ Successfully connected to ${relayUrl}`);
                         resolve(true);
                     };
                     
                     ws.onerror = (error) => {
-                        console.error(`✗ Error connecting to ${relayUrl}:`, error);
                         resolve(false);
                     };
                     
                     ws.onclose = (event) => {
-                        console.warn(`Connection closed to ${relayUrl}:`, event.code, event.reason);
+                        // Connection closed
                     };
                     
                     ws.onmessage = (event) => {
-                        console.log(`Message from ${relayUrl}:`, event.data);
                         try {
                             this.handleMessage(relayUrl, JSON.parse(event.data));
                         } catch (error) {
-                            console.error(`Failed to parse message from ${relayUrl}:`, error, event.data);
+                            // Failed to parse message
                         }
                     };
                     
@@ -45,13 +39,11 @@ class NostrClient {
                     // Timeout after 5 seconds
                     setTimeout(() => {
                         if (ws.readyState !== WebSocket.OPEN) {
-                            console.warn(`Connection timeout for ${relayUrl}`);
                             resolve(false);
                         }
                     }, 5000);
                     
                 } catch (error) {
-                    console.error(`Failed to create WebSocket for ${relayUrl}:`, error);
                     resolve(false);
                 }
             });
@@ -59,62 +51,45 @@ class NostrClient {
         
         const results = await Promise.all(connectionPromises);
         const successfulConnections = results.filter(Boolean).length;
-        console.log(`Connected to ${successfulConnections}/${DEFAULT_RELAYS.length} relays`);
         
         // Wait a bit more for connections to stabilize
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     handleMessage(relayUrl, message) {
-        console.log(`Processing message from ${relayUrl}:`, message);
         const [type, subscriptionId, event, ...rest] = message;
         
-        console.log(`Message type: ${type}, subscriptionId: ${subscriptionId}`);
-        
         if (type === 'EVENT') {
-            console.log(`Received EVENT for subscription ${subscriptionId}:`, event);
             if (this.subscriptions.has(subscriptionId)) {
-                console.log(`Found callback for subscription ${subscriptionId}, executing...`);
                 const callback = this.subscriptions.get(subscriptionId);
                 callback(event);
-            } else {
-                console.warn(`No callback found for subscription ${subscriptionId}`);
             }
         } else if (type === 'EOSE') {
-            console.log(`End of stored events for subscription ${subscriptionId} from ${relayUrl}`);
+            // End of stored events
         } else if (type === 'NOTICE') {
-            console.warn(`Notice from ${relayUrl}:`, subscriptionId);
-        } else {
-            console.log(`Unknown message type ${type} from ${relayUrl}:`, message);
+            // Notice received
         }
     }
 
     subscribe(filters, callback) {
         const subscriptionId = Math.random().toString(36).substring(7);
-        console.log(`Creating subscription ${subscriptionId} with filters:`, filters);
         
         this.subscriptions.set(subscriptionId, callback);
         
         const subscription = ['REQ', subscriptionId, filters];
-        console.log(`Subscription message:`, JSON.stringify(subscription));
         
         let sentCount = 0;
         for (const [relayUrl, ws] of this.relays) {
-            console.log(`Checking relay ${relayUrl}, readyState: ${ws.readyState} (${ws.readyState === WebSocket.OPEN ? 'OPEN' : 'NOT OPEN'})`);
             if (ws.readyState === WebSocket.OPEN) {
                 try {
                     ws.send(JSON.stringify(subscription));
-                    console.log(`✓ Sent subscription to ${relayUrl}`);
                     sentCount++;
                 } catch (error) {
-                    console.error(`✗ Failed to send subscription to ${relayUrl}:`, error);
+                    // Failed to send subscription
                 }
-            } else {
-                console.warn(`✗ Cannot send to ${relayUrl}, connection not ready`);
             }
         }
         
-        console.log(`Subscription ${subscriptionId} sent to ${sentCount}/${this.relays.size} relays`);
         return subscriptionId;
     }
 
@@ -182,7 +157,6 @@ async function getLatestProfileEvent(pubkey) {
             req.onerror = () => reject(req.error);
         });
     } catch (e) {
-        console.warn('IDB getLatestProfileEvent failed', e);
         return null;
     }
 }
@@ -197,7 +171,7 @@ async function putEvent(event) {
             tx.objectStore(STORE_EVENTS).put(event);
         });
     } catch (e) {
-        console.warn('IDB putEvent failed', e);
+        // IDB putEvent failed
     }
 }
 
@@ -220,8 +194,6 @@ function parseProfileFromEvent(event) {
 // Fetch user profile metadata (kind 0)
 export async function fetchUserProfile(pubkey) {
     return new Promise(async (resolve, reject) => {
-        console.log(`Starting profile fetch for pubkey: ${pubkey}`);
-
         let resolved = false;
         let newestEvent = null;
         let debounceTimer = null;
@@ -240,19 +212,17 @@ export async function fetchUserProfile(pubkey) {
         try {
             const cachedEvent = await getLatestProfileEvent(pubkey);
             if (cachedEvent) {
-                console.log('Using cached profile event');
                 const profile = parseProfileFromEvent(cachedEvent);
                 resolved = true; // resolve immediately with cache
                 resolve(profile);
             }
         } catch (e) {
-            console.warn('Failed to load cached profile', e);
+            // Failed to load cached profile
         }
 
         // 2) Set overall timeout
         overallTimer = setTimeout(() => {
             if (!newestEvent) {
-                console.log('Profile fetch timeout reached');
                 if (!resolved) reject(new Error('Profile fetch timeout'));
             } else if (!resolved) {
                 resolve(parseProfileFromEvent(newestEvent));
@@ -262,7 +232,6 @@ export async function fetchUserProfile(pubkey) {
 
         // 3) Wait a bit to ensure connections are ready and then subscribe without limit
         setTimeout(() => {
-            console.log('Starting subscription after connection delay...');
             subscriptionId = nostrClient.subscribe(
                 {
                     kinds: [0],
@@ -271,7 +240,6 @@ export async function fetchUserProfile(pubkey) {
                 (event) => {
                     // Collect all kind 0 events and pick the newest by created_at
                     if (!event || event.kind !== 0) return;
-                    console.log('Profile event received:', event);
 
                     if (!newestEvent || (event.created_at || 0) > (newestEvent.created_at || 0)) {
                         newestEvent = event;
@@ -293,7 +261,7 @@ export async function fetchUserProfile(pubkey) {
                                         }));
                                     }
                                 } catch (e) {
-                                    console.warn('Failed to dispatch profile-updated event', e);
+                                    // Failed to dispatch profile-updated event
                                 }
 
                                 if (!resolved) {
@@ -337,10 +305,6 @@ export function getNDK() {
 
 // Create extension signer
 export function createExtensionSigner() {
-    console.log('Checking for Nostr extension...');
-    console.log('window.nostr:', window.nostr);
-    console.log('window.nostr type:', typeof window.nostr);
-    
     if (!window.nostr) {
         throw new Error('No Nostr extension found. Please install a NIP-07 compatible extension like nos2x or Alby.');
     }
@@ -354,14 +318,10 @@ export function createExtensionSigner() {
         throw new Error('Nostr extension does not support signEvent method. Please update your extension.');
     }
     
-    console.log('Nostr extension found and validated, creating signer...');
-    
     return {
         async getPublicKey() {
             try {
-                console.log('Getting public key from extension...');
                 const pubkey = await window.nostr.getPublicKey();
-                console.log('Got public key:', pubkey);
                 
                 if (!pubkey || typeof pubkey !== 'string') {
                     throw new Error('Invalid public key received from extension');
@@ -369,21 +329,16 @@ export function createExtensionSigner() {
                 
                 return pubkey;
             } catch (error) {
-                console.error('Error getting public key:', error);
                 throw new Error(`Failed to get public key: ${error.message}`);
             }
         },
         async signEvent(event) {
             try {
-                console.log('Signing event with extension...');
-                console.log('Event to sign:', event);
-                
                 if (!event || typeof event !== 'object') {
                     throw new Error('Invalid event object');
                 }
                 
                 const signedEvent = await window.nostr.signEvent(event);
-                console.log('Event signed:', signedEvent);
                 
                 if (!signedEvent || !signedEvent.sig) {
                     throw new Error('Invalid signed event received from extension');
@@ -391,7 +346,6 @@ export function createExtensionSigner() {
                 
                 return signedEvent;
             } catch (error) {
-                console.error('Error signing event:', error);
                 throw new Error(`Failed to sign event: ${error.message}`);
             }
         }
@@ -400,10 +354,6 @@ export function createExtensionSigner() {
 
 // Test extension availability
 export function testExtension() {
-    console.log('Testing Nostr extension availability...');
-    console.log('window.nostr:', window.nostr);
-    console.log('typeof window.nostr:', typeof window.nostr);
-    
     if (!window.nostr) {
         return {
             available: false,
@@ -421,8 +371,6 @@ export function testExtension() {
         }
     };
     
-    console.log('Extension methods available:', methods);
-    
     return {
         available: true,
         methods
@@ -432,8 +380,6 @@ export function testExtension() {
 // Simple NIP-07 login without NDK dependency
 export async function loginWithNIP07() {
     try {
-        console.log('Starting NIP-07 login...');
-        
         // Check if extension is available
         if (!window.nostr) {
             throw new Error('No Nostr extension found. Please install a NIP-07 compatible extension like nos2x or Alby.');
@@ -444,9 +390,7 @@ export async function loginWithNIP07() {
             throw new Error('Nostr extension does not support getPublicKey method. Please update your extension.');
         }
         
-        console.log('Extension detected, getting public key...');
         const pubkey = await window.nostr.getPublicKey();
-        console.log('Public key obtained:', pubkey);
         
         if (!pubkey || typeof pubkey !== 'string') {
             throw new Error('Invalid public key received from extension');
@@ -465,14 +409,12 @@ export async function loginWithNIP07() {
             }
         };
         
-        console.log('NIP-07 login successful');
         return {
             pubkey,
             profile: null, // Will be fetched separately
             signer
         };
     } catch (error) {
-        console.error('NIP-07 login failed:', error);
         throw error;
     }
 }
@@ -480,40 +422,30 @@ export async function loginWithNIP07() {
 // Login with extension using NDK
 export async function loginWithExtension() {
     try {
-        console.log('Starting extension login...');
         
         // First check if extension is available
         if (!window.nostr) {
             throw new Error('No Nostr extension found. Please install a NIP-07 compatible extension like nos2x or Alby.');
         }
         
-        console.log('Extension detected, creating signer...');
         const signer = createExtensionSigner();
-        console.log('Signer created:', signer);
         
         // Get the user's public key first
-        console.log('Getting public key...');
         const pubkey = await signer.getPublicKey();
-        console.log('Public key obtained:', pubkey);
         
         // Initialize NDK with the signer
-        console.log('Initializing NDK...');
         const ndk = await initializeNDK();
-        console.log('NDK initialized:', ndk);
         
         // Set the signer on NDK
-        console.log('Setting signer on NDK...');
         ndk.signer = signer;
         
         // Get user profile
-        console.log('Fetching user profile...');
         const user = ndk.getUser({ pubkey });
         
         try {
             await user.fetchProfile();
-            console.log('User profile fetched:', user.profile);
         } catch (profileError) {
-            console.warn('Failed to fetch profile, continuing with basic info:', profileError);
+            // Failed to fetch profile, continuing with basic info
             // Continue even if profile fetch fails
         }
         
@@ -524,10 +456,8 @@ export async function loginWithExtension() {
             signer
         };
         
-        console.log('Extension login successful:', result);
         return result;
     } catch (error) {
-        console.error('Extension login failed:', error);
         
         // Provide more specific error messages
         if (error.message.includes('No Nostr extension')) {
@@ -545,7 +475,6 @@ export async function loginWithExtension() {
 // Fetch a specific event by ID
 export async function fetchEvent(eventId) {
     return new Promise(async (resolve, reject) => {
-        console.log(`Fetching event: ${eventId}`);
 
         let resolved = false;
         let foundEvent = null;
@@ -565,18 +494,16 @@ export async function fetchEvent(eventId) {
         try {
             const cachedEvent = await getEvent(eventId);
             if (cachedEvent) {
-                console.log('Using cached event');
                 resolved = true;
                 resolve(cachedEvent);
             }
         } catch (e) {
-            console.warn('Failed to load cached event', e);
+            // Failed to load cached event
         }
 
         // 2) Set overall timeout
         overallTimer = setTimeout(() => {
             if (!foundEvent) {
-                console.log('Event fetch timeout reached');
                 if (!resolved) reject(new Error('Event fetch timeout'));
             } else if (!resolved) {
                 resolve(foundEvent);
@@ -586,14 +513,12 @@ export async function fetchEvent(eventId) {
 
         // 3) Subscribe for the event
         setTimeout(() => {
-            console.log('Starting event subscription...');
             subscriptionId = nostrClient.subscribe(
                 {
                     ids: [eventId]
                 },
                 (event) => {
                     if (!event || event.id !== eventId) return;
-                    console.log('Event received:', event);
 
                     foundEvent = event;
 
@@ -609,7 +534,7 @@ export async function fetchEvent(eventId) {
                                 }
                             }
                         } catch (e) {
-                            console.warn('Failed to cache event', e);
+                            // Failed to cache event
                         }
                         cleanup();
                     }, 1000);

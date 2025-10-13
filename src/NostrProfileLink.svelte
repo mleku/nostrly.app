@@ -58,7 +58,7 @@
                 }
             }
         } catch (err) {
-            console.error('Failed to decode nostr identifier:', err);
+            // Failed to decode nostr identifier
         }
         return null;
     }
@@ -131,7 +131,6 @@
             profile = await getUserProfile(pubkey);
             loading = false;
         } catch (err) {
-            console.error('Failed to fetch profile for nostr link:', err);
             error = true;
             loading = false;
         }

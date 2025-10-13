@@ -21,40 +21,31 @@
     }
     
     function testExtensionHandler() {
-        console.log('Testing extension...');
         extensionTestResult = testExtension();
-        console.log('Extension test result:', extensionTestResult);
     }
     
     async function loginWithExtensionHandler() {
-        console.log('LoginModal: Starting extension login handler...');
         isLoading = true;
         errorMessage = '';
         successMessage = '';
         
         try {
-            console.log('LoginModal: Trying simple NIP-07 login first...');
             let result;
             
             try {
                 // Try simple NIP-07 login first
                 result = await loginWithNIP07();
-                console.log('LoginModal: NIP-07 login successful:', result);
             } catch (nip07Error) {
-                console.warn('LoginModal: NIP-07 login failed, trying NDK method:', nip07Error);
                 // Fallback to NDK method
                 result = await loginWithExtension();
-                console.log('LoginModal: NDK extension login result:', result);
             }
             
             if (result.pubkey) {
-                console.log('LoginModal: Login successful, storing auth info...');
                 // Store authentication info
                 localStorage.setItem('nostr_auth_method', 'extension');
                 localStorage.setItem('nostr_pubkey', result.pubkey);
                 
                 successMessage = 'Successfully logged in with extension!';
-                console.log('LoginModal: Dispatching login event...');
                 dispatch('login', {
                     method: 'extension',
                     pubkey: result.pubkey,
@@ -67,11 +58,9 @@
                     closeModal();
                 }, 1000);
             } else {
-                console.error('LoginModal: No pubkey in result');
                 errorMessage = 'Login failed: No public key received';
             }
         } catch (error) {
-            console.error('LoginModal: Extension login error:', error);
             errorMessage = error.message;
         } finally {
             isLoading = false;

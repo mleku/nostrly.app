@@ -101,16 +101,14 @@
             if (isLoggedIn && userPubkey) {
                 profileFetchAttempted = true;
                 try {
-                    console.log('Fetching profile on initialization for user:', userPubkey);
                     const profile = await getUserProfile(userPubkey);
                     userProfile = profile; // Trigger reactivity
                 } catch (error) {
-                    console.error('Failed to fetch user profile:', error);
                     profileFetchAttempted = false; // Allow retry on error
                 }
             }
         } catch (error) {
-            console.error('Failed to initialize NDK:', error);
+            // Failed to initialize NDK
         }
     }
 
@@ -119,11 +117,9 @@
         if (isLoggedIn && userPubkey && ndk && !profileFetchAttempted && (!userProfile || !userProfile.picture || !userProfile.name)) {
             profileFetchAttempted = true;
             try {
-                console.log('Auto-fetching profile for user:', userPubkey);
                 const profile = await fetchUserProfile(userPubkey);
                 userProfile = profile; // Trigger reactivity
             } catch (error) {
-                console.error('Failed to auto-fetch user profile:', error);
                 profileFetchAttempted = false; // Allow retry on error
             }
         }
@@ -175,7 +171,6 @@
 
     async function handleLogin(event) {
         // Handle login event from modal
-        console.log('Login event:', event.detail);
         const { method, pubkey, signer } = event.detail;
         
         isLoggedIn = true;
@@ -199,7 +194,7 @@
             const profile = await getUserProfile(pubkey);
             userProfile = profile; // Trigger reactivity
         } catch (error) {
-            console.error('Failed to fetch user profile after login:', error);
+            // Failed to fetch user profile after login
         }
         
         closeLoginModal();
@@ -249,7 +244,6 @@
     }
 
     function handleEventSelect(eventId) {
-        console.log('Switching to thread:', eventId);
         // Save current state before changing
         saveCurrentStateToHistory();
         selectedEventId = eventId;
@@ -273,7 +267,6 @@
 
     function setFeedFilter(filter) {
         feedFilter = filter;
-        console.log('Feed filter changed to:', filter);
     }
 
     function handleNewEventsAvailable(event) {
@@ -310,8 +303,6 @@
             viewHistory = viewHistory.slice(-50);
             currentHistoryIndex = viewHistory.length - 1;
         }
-        
-        console.log('Saved state to history:', currentState);
     }
 
     function navigateBack() {
@@ -319,7 +310,6 @@
             currentHistoryIndex--;
             const previousState = viewHistory[currentHistoryIndex];
             restoreStateFromHistory(previousState);
-            console.log('Navigated back to:', previousState);
         }
     }
 
@@ -328,7 +318,6 @@
             currentHistoryIndex++;
             const nextState = viewHistory[currentHistoryIndex];
             restoreStateFromHistory(nextState);
-            console.log('Navigated forward to:', nextState);
         }
     }
 
@@ -346,7 +335,6 @@
                 currentHistoryIndex = targetIndex;
                 const targetState = viewHistory[targetIndex];
                 restoreStateFromHistory(targetState);
-                console.log('Browser navigation to:', targetState);
             }
         }
     }
@@ -394,7 +382,7 @@
 
     // Reactive statement to trigger updates when profile changes
     $: if (userProfile) {
-        console.log('Profile updated:', userProfile);
+        // Profile updated
     }
 
     // Set up browser history listeners and initialize history
@@ -513,13 +501,13 @@
                         </VerticalColumn>
                     </div>
                     {#if selectedEventId}
-                        <div class="right-panel">
+                        <div class="right-panel desktop-only">
                             <ReplyThread key={selectedEventId} eventId={selectedEventId} onClose={closeReplyThread} on:eventSelect={(e) => handleEventSelect(e.detail)} />
                         </div>
                     {/if}
                 {:else}
                     {#if selectedEventId}
-                        <div class="left-panel">
+                        <div class="left-panel desktop-only">
                             <ReplyThread key={selectedEventId} eventId={selectedEventId} onClose={closeReplyThread} on:eventSelect={(e) => handleEventSelect(e.detail)} />
                         </div>
                     {/if}
@@ -530,6 +518,15 @@
                     </div>
                 {/if}
             </div>
+            
+            <!-- Mobile/Tablet Drawer -->
+            {#if selectedEventId}
+                <div class="thread-drawer-overlay" class:sidebar-right={sidebarPosition === 'right'} on:click={closeReplyThread} on:keydown={(e) => e.key === 'Escape' && closeReplyThread()} role="button" tabindex="0">
+                    <div class="thread-drawer" class:sidebar-right={sidebarPosition === 'right'} on:click|stopPropagation on:keydown|stopPropagation>
+                        <ReplyThread key={selectedEventId} eventId={selectedEventId} onClose={closeReplyThread} on:eventSelect={(e) => handleEventSelect(e.detail)} />
+                    </div>
+                </div>
+            {/if}
         {:else}
             <p>Welcome to nostrly.app - A Nostr client application.</p>
         {/if}
@@ -942,7 +939,6 @@
 
     .tab-container.active {
         background-color: var(--bg-color);
-        border-radius: 8px 0 0 8px;
         margin-right: -1px;
         padding: 0.5em 0.5em 0.5em 0;
     }
@@ -1093,7 +1089,7 @@
     /* Global Container */
     .global-container {
         display: flex;
-        justify-content: center;
+        justify-content: flex-start;
         align-items: center;
         height: 100vh;
         padding: 0;
@@ -1102,8 +1098,16 @@
         overflow: hidden;
     }
 
+    .global-container.sidebar-right {
+        justify-content: flex-end;
+    }
+
     .global-container.split {
         justify-content: flex-start;
+    }
+
+    .global-container.split.sidebar-right {
+        justify-content: flex-end;
     }
 
     .left-panel {
@@ -1111,7 +1115,6 @@
         justify-content: center;
         align-items: center;
         height: 100vh;
-        width: 50%;
         overflow: hidden;
     }
 
@@ -1120,11 +1123,86 @@
         justify-content: center;
         align-items: center;
         height: 100vh;
-        width: 50%;
         overflow: hidden;
     }
 
+    /* Desktop-only panels - hidden on mobile/tablet */
+    .desktop-only {
+        display: flex;
+    }
 
+    /* Thread Drawer Overlay */
+    .thread-drawer-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        display: none;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+
+    /* Thread Drawer */
+    .thread-drawer {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        max-width: 500px;
+        background-color: var(--bg-color);
+        box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+        z-index: 1001;
+        overflow-y: auto;
+        animation: slideInRight 0.3s ease-out;
+    }
+
+    .thread-drawer.sidebar-right {
+        left: 0;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        animation: slideInLeft 0.3s ease-out;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideInRight {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
+    }
+
+    @keyframes slideInLeft {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(0); }
+    }
+
+    /* Mobile/Tablet styles - show drawer instead of panels */
+    @media (max-width: 1023px) {
+        .desktop-only {
+            display: none;
+        }
+
+        .thread-drawer-overlay {
+            display: block;
+        }
+
+        .global-container.split {
+            justify-content: flex-start;
+        }
+
+        .global-container.split.sidebar-right {
+            justify-content: flex-end;
+        }
+
+        .left-panel, .right-panel {
+            width: 100%;
+        }
+    }
 
     @media (max-width: 640px) {
         .main-header {

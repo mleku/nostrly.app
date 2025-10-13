@@ -21,7 +21,6 @@
         if (!eventId) return;
         
         isLoading = true;
-        console.log('Fetching original event:', eventId);
         
         try {
             subscriptionId = nostrClient.subscribe(
@@ -29,7 +28,6 @@
                 (event) => {
                     if (event && event.id === eventId) {
                         originalEvent = event;
-                        console.log('Found original event:', event);
                         isLoading = false;
                     }
                 }
@@ -38,13 +36,11 @@
             // Timeout if no event found
             setTimeout(() => {
                 if (!originalEvent) {
-                    console.log('Original event not found');
                     isLoading = false;
                 }
             }, 5000);
             
         } catch (error) {
-            console.error('Failed to fetch original event:', error);
             isLoading = false;
         }
     }
@@ -52,8 +48,6 @@
     // Fetch replies to the event
     async function fetchReplies() {
         if (!eventId) return;
-        
-        console.log('Fetching replies for event:', eventId);
         
         try {
             const repliesSubscriptionId = nostrClient.subscribe(
@@ -70,7 +64,6 @@
                         
                         if (isReplyToEvent && !replies.find(r => r.id === event.id)) {
                             replies = [...replies, event].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
-                            console.log(`Found ${replies.length} replies`);
                         }
                     }
                 }
@@ -82,15 +75,13 @@
             }, 3000);
             
         } catch (error) {
-            console.error('Failed to fetch replies:', error);
+            // Failed to fetch replies
         }
     }
 
     // Fetch later replies that reference the same root event
     async function fetchLaterReplies() {
         if (!rootEvent) return;
-        
-        console.log('Fetching later replies for root event:', rootEvent.id);
         
         try {
             const laterRepliesSubscriptionId = nostrClient.subscribe(
@@ -112,7 +103,6 @@
                         
                         if (isReplyToRoot && !isAlreadyIncluded && !laterReplies.find(r => r.id === event.id)) {
                             laterReplies = [...laterReplies, event].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
-                            console.log(`Found ${laterReplies.length} later replies`);
                         }
                     }
                 }
@@ -124,7 +114,7 @@
             }, 3000);
             
         } catch (error) {
-            console.error('Failed to fetch later replies:', error);
+            // Failed to fetch later replies
         }
     }
 
@@ -150,7 +140,6 @@
         if (originalEvent && isReply(originalEvent)) {
             const replyToId = getReplyToEventId(originalEvent);
             if (replyToId) {
-                console.log('Opening parent thread for event:', replyToId);
                 dispatch('eventSelect', replyToId);
             }
         }
@@ -158,7 +147,6 @@
 
     // Handle reply click - always clickable
     function handleReplyClick(reply) {
-        console.log('Opening thread for reply:', reply.id);
         dispatch('eventSelect', reply.id);
     }
 
@@ -186,7 +174,6 @@
                     break;
                 }
             } catch (error) {
-                console.error('Failed to fetch parent event:', error);
                 break;
             }
         }
@@ -220,7 +207,6 @@
 
     // Handle chain item click
     function handleChainItemClick(event) {
-        console.log('Opening thread for chain item:', event.id);
         dispatch('eventSelect', event.id);
     }
 
@@ -435,7 +421,6 @@
 
     // React to eventId changes
     $: if (eventId) {
-        console.log('ReplyThread: eventId changed to:', eventId);
         // Reset state for new thread
         originalEvent = null;
         replies = [];

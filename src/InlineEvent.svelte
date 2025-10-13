@@ -92,7 +92,6 @@
             }
             loading = false;
         } catch (err) {
-            console.error('Failed to fetch event:', err);
             error = true;
             loading = false;
         }

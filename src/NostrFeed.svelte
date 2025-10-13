@@ -37,7 +37,6 @@
         
         // Skip events with future timestamps
         if (isFutureEvent(event)) {
-            console.log('Skipping future event:', event.id, 'timestamp:', event.created_at);
             return false;
         }
         
@@ -64,7 +63,6 @@
             // If auto-update is disabled, queue the event for later processing
             queuedNewEvents.push(event);
             newEventsCount++;
-            console.log(`New event received while auto-update disabled. Count: ${newEventsCount}`);
             // Dispatch event to parent to show "load new events" button
             dispatch('newEventsAvailable', { count: newEventsCount });
         }
@@ -84,7 +82,6 @@
         const now = Math.floor(Date.now() / 1000);
         events = events.filter(event => {
             if (isFutureEvent(event)) {
-                console.log('Removing future event from display:', event.id, 'timestamp:', event.created_at);
                 eventIds.delete(event.id); // Remove from tracking set too
                 return false;
             }
@@ -128,9 +125,6 @@
         hasMore = true;
 
         try {
-            console.log('Loading initial events...');
-            console.log('Nostr client relays:', nostrClient.relays.size);
-            
             // Wait a bit for connections to be ready
             await new Promise(resolve => setTimeout(resolve, 1000));
             
@@ -145,9 +139,8 @@
             subscriptionId = nostrClient.subscribe(
                 { kinds: kinds, limit: 50 }, // Dynamic kinds based on filter
                 (event) => {
-                    console.log('Received event:', event);
                     if (addEvent(event)) {
-                        console.log(`Loaded ${events.length} events`);
+                        // Event added successfully
                     }
                 }
             );
@@ -158,12 +151,11 @@
                     hasLoadedOnce = true;
                     isLoading = false;
                     autoUpdateEnabled = false; // Disable auto-updates after initial load
-                    console.log('Initial load completed, auto-updates disabled');
                 }
             }, 5000); // Reduced timeout for faster initial load completion
             
         } catch (error) {
-            console.error('Failed to load events:', error);
+            // Failed to load events
         } finally {
             // Don't set isLoading to false immediately, let the timeout handle it
         }
@@ -174,7 +166,6 @@
         if (loadingMore || !hasMore || !oldestEventTime || !hasLoadedOnce) return;
         
         loadingMore = true;
-        console.log('Loading more events...');
         
         let eventsLoaded = 0;
         
@@ -196,7 +187,6 @@
                 (event) => {
                     if (addEvent(event)) {
                         eventsLoaded++;
-                        console.log(`Total events: ${events.length}`);
                     }
                 }
             );
@@ -209,12 +199,10 @@
                 // If no events were loaded, we've reached the end
                 if (eventsLoaded === 0) {
                     hasMore = false;
-                    console.log('No more events to load');
                 }
             }, 3000);
             
         } catch (error) {
-            console.error('Failed to load more events:', error);
             loadingMore = false;
         }
     }
@@ -233,7 +221,6 @@
         const eventsFromEnd = loadedEvents - visibleEvents - Math.floor(scrollTop / eventHeight);
         
         if (eventsFromEnd <= 3 && hasMore && !loadingMore && hasLoadedOnce) {
-            console.log('Scroll triggered load more - within 3 events of end');
             loadMoreEvents();
         }
     }
@@ -282,7 +269,7 @@
                 return originalEvent;
             }
         } catch (error) {
-            console.error('Failed to parse reposted event:', error);
+            // Failed to parse reposted event
         }
         return null;
     }
@@ -292,12 +279,10 @@
         if (isReply(event)) {
             const replyToId = getReplyToEventId(event);
             if (replyToId) {
-                console.log('Opening reply thread for event:', replyToId);
                 dispatch('eventSelect', replyToId);
             }
         } else {
             // For non-reply events, open a thread view with this event as the root
-            console.log('Opening thread view for event:', event.id);
             dispatch('eventSelect', event.id);
         }
     }
@@ -470,7 +455,6 @@
 
     // Handle reload event from parent
     async function handleReload() {
-        console.log('Reload triggered');
         // Wait for Nostr client to be ready
         let attempts = 0;
         while (nostrClient.relays.size === 0 && attempts < 5) {
@@ -503,14 +487,12 @@
             
             loadEvents();
         } else {
-            console.error('Nostr client not ready for reload');
+            // Nostr client not ready for reload
         }
     }
 
     // Handle loading new events when auto-update is disabled
     function handleLoadNewEvents() {
-        console.log(`Loading ${newEventsCount} new events from queue`);
-        
         if (queuedNewEvents.length > 0) {
             // Add queued events to the pending events for processing
             pendingEvents.push(...queuedNewEvents);
@@ -532,13 +514,11 @@
         autoUpdateEnabled = true;
         setTimeout(() => {
             autoUpdateEnabled = false; // Disable auto-updates again
-            console.log('Auto-updates disabled again after loading new events');
         }, 2000); // Give a longer window for new events to be processed
     }
 
     // React to filter changes
     $: if (feedFilter) {
-        console.log('Feed filter changed to:', feedFilter);
         // Reset loaded state to allow reloading with new filter
         hasLoadedOnce = false;
         if (nostrClient.relays.size > 0) {
@@ -557,7 +537,6 @@
         const minEventsForFilter = feedFilter === 'replies' ? 20 : 10; // Replies need more events due to filtering
         
         if (filteredEvents.length < minEventsForFilter) {
-            console.log(`Filtered events (${filteredEvents.length}) below minimum (${minEventsForFilter}), loading more...`);
             loadMoreEvents();
         }
     }
@@ -566,7 +545,6 @@
     $: if (hasLoadedOnce && !isLoading) {
         const filteredEvents = filterEvents(events);
         if (filteredEvents.length === 0 && events.length > 0) {
-            console.log('Filtered events are empty, triggering reload...');
             // Reset loaded state to allow reloading
             hasLoadedOnce = false;
             if (nostrClient.relays.size > 0) {
@@ -581,19 +559,17 @@
             // Wait for Nostr client to be initialized
             let attempts = 0;
             while (nostrClient.relays.size === 0 && attempts < 10) {
-                console.log('Waiting for Nostr client initialization...', attempts);
                 await new Promise(resolve => setTimeout(resolve, 500));
                 attempts++;
             }
             
             if (nostrClient.relays.size > 0) {
-                console.log('Nostr client ready, loading events...');
                 loadEvents();
             } else {
-                console.error('Nostr client not initialized after waiting');
+                // Nostr client not initialized after waiting
             }
         } else {
-            console.log('Feed already loaded once, skipping initial load');
+            // Feed already loaded once, skipping initial load
         }
         
         // Listen for reload events

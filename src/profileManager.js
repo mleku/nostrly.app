@@ -18,7 +18,6 @@ class ProfileManager {
     // Handle profile updates from nostr.js
     handleProfileUpdate(event) {
         const { pubkey, profile, event: profileEvent } = event.detail;
-        console.log('Profile updated:', pubkey, profile);
         
         // Update cache with new profile
         this.profiles.set(pubkey, {
@@ -71,8 +70,6 @@ class ProfileManager {
 
     // Load profile from nostr.js
     async loadProfile(pubkey) {
-        console.log('Loading profile for:', pubkey);
-        
         // Mark as loading
         this.profiles.set(pubkey, {
             profile: null,
@@ -92,8 +89,6 @@ class ProfileManager {
 
             return profile;
         } catch (error) {
-            console.error('Failed to load profile for:', pubkey, error);
-            
             // Cache null result to avoid repeated failures
             this.profiles.set(pubkey, {
                 profile: null,
@@ -120,8 +115,6 @@ class ProfileManager {
             
             return false;
         });
-
-        console.log(`Loading ${needsLoading.length} profiles (${uniquePubkeys.length} total)`);
 
         // Process in batches to avoid overwhelming relays
         for (let i = 0; i < needsLoading.length; i += this.batchSize) {
