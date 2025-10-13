@@ -30160,7 +30160,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "Event not found";
-    			attr_dev(div, "class", "error svelte-1xj9k6k");
+    			attr_dev(div, "class", "error svelte-pehmp1");
     			add_location(div, file$1, 680, 12, 29429);
     		},
     		m: function mount(target, anchor) {
@@ -30356,7 +30356,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "Loading thread...";
-    			attr_dev(div, "class", "loading svelte-1xj9k6k");
+    			attr_dev(div, "class", "loading svelte-pehmp1");
     			add_location(div, file$1, 508, 12, 18398);
     		},
     		m: function mount(target, anchor) {
@@ -30419,11 +30419,11 @@ For regular events (kind ${kind}), use:
     				each_blocks[i].c();
     			}
 
-    			attr_dev(h4, "class", "svelte-1xj9k6k");
+    			attr_dev(h4, "class", "svelte-pehmp1");
     			add_location(h4, file$1, 513, 20, 18637);
-    			attr_dev(div0, "class", "previous-replies-list svelte-1xj9k6k");
+    			attr_dev(div0, "class", "previous-replies-list svelte-pehmp1");
     			add_location(div0, file$1, 514, 20, 18705);
-    			attr_dev(div1, "class", "previous-replies-section svelte-1xj9k6k");
+    			attr_dev(div1, "class", "previous-replies-section svelte-pehmp1");
     			add_location(div1, file$1, 512, 16, 18578);
     		},
     		m: function mount(target, anchor) {
@@ -30503,7 +30503,7 @@ For regular events (kind ${kind}), use:
     			span = element("span");
     			t0 = text(t0_value);
     			t1 = text("...");
-    			attr_dev(span, "class", "pubkey-fallback-small svelte-1xj9k6k");
+    			attr_dev(span, "class", "pubkey-fallback-small svelte-pehmp1");
     			add_location(span, file$1, 530, 44, 20016);
     		},
     		m: function mount(target, anchor) {
@@ -30553,9 +30553,9 @@ For regular events (kind ${kind}), use:
     			t0 = space();
     			span = element("span");
     			t1 = text(t1_value);
-    			attr_dev(span, "class", "username-small svelte-1xj9k6k");
+    			attr_dev(span, "class", "username-small svelte-pehmp1");
     			add_location(span, file$1, 527, 48, 19757);
-    			attr_dev(div, "class", "author-info svelte-1xj9k6k");
+    			attr_dev(div, "class", "author-info svelte-pehmp1");
     			add_location(div, file$1, 521, 44, 19290);
     		},
     		m: function mount(target, anchor) {
@@ -30604,7 +30604,7 @@ For regular events (kind ${kind}), use:
     	const block = {
     		c: function create() {
     			div = element("div");
-    			attr_dev(div, "class", "avatar-placeholder-small svelte-1xj9k6k");
+    			attr_dev(div, "class", "avatar-placeholder-small svelte-pehmp1");
     			add_location(div, file$1, 525, 52, 19610);
     		},
     		m: function mount(target, anchor) {
@@ -30637,7 +30637,7 @@ For regular events (kind ${kind}), use:
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[29].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Avatar");
-    			attr_dev(img, "class", "avatar-small svelte-1xj9k6k");
+    			attr_dev(img, "class", "avatar-small svelte-pehmp1");
     			add_location(img, file$1, 523, 52, 19438);
     		},
     		m: function mount(target, anchor) {
@@ -30913,15 +30913,15 @@ For regular events (kind ${kind}), use:
     			}
 
     			t3 = space();
-    			attr_dev(div0, "class", "event-author svelte-1xj9k6k");
+    			attr_dev(div0, "class", "event-author svelte-pehmp1");
     			add_location(div0, file$1, 518, 36, 19030);
-    			attr_dev(span, "class", "event-time-small svelte-1xj9k6k");
+    			attr_dev(span, "class", "event-time-small svelte-pehmp1");
     			add_location(span, file$1, 533, 36, 20219);
-    			attr_dev(div1, "class", "chain-event-header svelte-1xj9k6k");
+    			attr_dev(div1, "class", "chain-event-header svelte-pehmp1");
     			add_location(div1, file$1, 517, 32, 18961);
-    			attr_dev(div2, "class", "chain-event-content svelte-1xj9k6k");
+    			attr_dev(div2, "class", "chain-event-content svelte-pehmp1");
     			add_location(div2, file$1, 535, 32, 20364);
-    			attr_dev(button, "class", "previous-reply-item svelte-1xj9k6k");
+    			attr_dev(button, "class", "previous-reply-item svelte-pehmp1");
     			add_location(button, file$1, 516, 28, 18842);
     			this.first = button;
     		},
@@ -31087,15 +31087,15 @@ For regular events (kind ${kind}), use:
     				each_blocks[i].c();
     			}
 
-    			attr_dev(div0, "class", "event-author svelte-1xj9k6k");
+    			attr_dev(div0, "class", "event-author svelte-pehmp1");
     			add_location(div0, file$1, 586, 24, 23246);
-    			attr_dev(span, "class", "root-indicator svelte-1xj9k6k");
+    			attr_dev(span, "class", "root-indicator svelte-pehmp1");
     			add_location(span, file$1, 603, 24, 24453);
-    			attr_dev(div1, "class", "event-header svelte-1xj9k6k");
+    			attr_dev(div1, "class", "event-header svelte-pehmp1");
     			add_location(div1, file$1, 585, 20, 23195);
-    			attr_dev(div2, "class", "event-content svelte-1xj9k6k");
+    			attr_dev(div2, "class", "event-content svelte-pehmp1");
     			add_location(div2, file$1, 605, 20, 24541);
-    			attr_dev(div3, "class", "original-event svelte-1xj9k6k");
+    			attr_dev(div3, "class", "original-event svelte-pehmp1");
     			add_location(div3, file$1, 584, 16, 23146);
     		},
     		m: function mount(target, anchor) {
@@ -31249,15 +31249,15 @@ For regular events (kind ${kind}), use:
     				each_blocks[i].c();
     			}
 
-    			attr_dev(div0, "class", "event-author svelte-1xj9k6k");
+    			attr_dev(div0, "class", "event-author svelte-pehmp1");
     			add_location(div0, file$1, 554, 24, 21329);
-    			attr_dev(span, "class", "reply-indicator svelte-1xj9k6k");
+    			attr_dev(span, "class", "reply-indicator svelte-pehmp1");
     			add_location(span, file$1, 571, 24, 22536);
-    			attr_dev(div1, "class", "event-header svelte-1xj9k6k");
+    			attr_dev(div1, "class", "event-header svelte-pehmp1");
     			add_location(div1, file$1, 553, 20, 21278);
-    			attr_dev(div2, "class", "event-content svelte-1xj9k6k");
+    			attr_dev(div2, "class", "event-content svelte-pehmp1");
     			add_location(div2, file$1, 573, 20, 22622);
-    			attr_dev(button, "class", "original-event clickable svelte-1xj9k6k");
+    			attr_dev(button, "class", "original-event clickable svelte-pehmp1");
     			add_location(button, file$1, 552, 16, 21180);
     		},
     		m: function mount(target, anchor) {
@@ -31381,9 +31381,9 @@ For regular events (kind ${kind}), use:
     			t2 = space();
     			span1 = element("span");
     			t3 = text(t3_value);
-    			attr_dev(span0, "class", "pubkey-fallback svelte-1xj9k6k");
+    			attr_dev(span0, "class", "pubkey-fallback svelte-pehmp1");
     			add_location(span0, file$1, 599, 32, 24186);
-    			attr_dev(span1, "class", "event-time svelte-1xj9k6k");
+    			attr_dev(span1, "class", "event-time svelte-pehmp1");
     			add_location(span1, file$1, 600, 32, 24293);
     		},
     		m: function mount(target, anchor) {
@@ -31446,11 +31446,11 @@ For regular events (kind ${kind}), use:
     			t2 = space();
     			span1 = element("span");
     			t3 = text(t3_value);
-    			attr_dev(span0, "class", "username svelte-1xj9k6k");
+    			attr_dev(span0, "class", "username svelte-pehmp1");
     			add_location(span0, file$1, 595, 36, 23859);
-    			attr_dev(span1, "class", "event-time svelte-1xj9k6k");
+    			attr_dev(span1, "class", "event-time svelte-pehmp1");
     			add_location(span1, file$1, 596, 36, 24008);
-    			attr_dev(div, "class", "author-info svelte-1xj9k6k");
+    			attr_dev(div, "class", "author-info svelte-pehmp1");
     			add_location(div, file$1, 589, 32, 23476);
     		},
     		m: function mount(target, anchor) {
@@ -31503,7 +31503,7 @@ For regular events (kind ${kind}), use:
     	const block = {
     		c: function create() {
     			div = element("div");
-    			attr_dev(div, "class", "avatar-placeholder svelte-1xj9k6k");
+    			attr_dev(div, "class", "avatar-placeholder svelte-pehmp1");
     			add_location(div, file$1, 593, 40, 23742);
     		},
     		m: function mount(target, anchor) {
@@ -31536,7 +31536,7 @@ For regular events (kind ${kind}), use:
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[29].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Avatar");
-    			attr_dev(img, "class", "avatar svelte-1xj9k6k");
+    			attr_dev(img, "class", "avatar svelte-pehmp1");
     			add_location(img, file$1, 591, 40, 23600);
     		},
     		m: function mount(target, anchor) {
@@ -31765,9 +31765,9 @@ For regular events (kind ${kind}), use:
     			t2 = space();
     			span1 = element("span");
     			t3 = text(t3_value);
-    			attr_dev(span0, "class", "pubkey-fallback svelte-1xj9k6k");
+    			attr_dev(span0, "class", "pubkey-fallback svelte-pehmp1");
     			add_location(span0, file$1, 567, 32, 22269);
-    			attr_dev(span1, "class", "event-time svelte-1xj9k6k");
+    			attr_dev(span1, "class", "event-time svelte-pehmp1");
     			add_location(span1, file$1, 568, 32, 22376);
     		},
     		m: function mount(target, anchor) {
@@ -31830,11 +31830,11 @@ For regular events (kind ${kind}), use:
     			t2 = space();
     			span1 = element("span");
     			t3 = text(t3_value);
-    			attr_dev(span0, "class", "username svelte-1xj9k6k");
+    			attr_dev(span0, "class", "username svelte-pehmp1");
     			add_location(span0, file$1, 563, 36, 21942);
-    			attr_dev(span1, "class", "event-time svelte-1xj9k6k");
+    			attr_dev(span1, "class", "event-time svelte-pehmp1");
     			add_location(span1, file$1, 564, 36, 22091);
-    			attr_dev(div, "class", "author-info svelte-1xj9k6k");
+    			attr_dev(div, "class", "author-info svelte-pehmp1");
     			add_location(div, file$1, 557, 32, 21559);
     		},
     		m: function mount(target, anchor) {
@@ -31887,7 +31887,7 @@ For regular events (kind ${kind}), use:
     	const block = {
     		c: function create() {
     			div = element("div");
-    			attr_dev(div, "class", "avatar-placeholder svelte-1xj9k6k");
+    			attr_dev(div, "class", "avatar-placeholder svelte-pehmp1");
     			add_location(div, file$1, 561, 40, 21825);
     		},
     		m: function mount(target, anchor) {
@@ -31920,7 +31920,7 @@ For regular events (kind ${kind}), use:
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[29].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Avatar");
-    			attr_dev(img, "class", "avatar svelte-1xj9k6k");
+    			attr_dev(img, "class", "avatar svelte-pehmp1");
     			add_location(img, file$1, 559, 40, 21683);
     		},
     		m: function mount(target, anchor) {
@@ -32138,7 +32138,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			div = element("div");
     			div.textContent = "No replies yet";
-    			attr_dev(div, "class", "no-replies svelte-1xj9k6k");
+    			attr_dev(div, "class", "no-replies svelte-pehmp1");
     			add_location(div, file$1, 676, 16, 29325);
     		},
     		m: function mount(target, anchor) {
@@ -32201,11 +32201,11 @@ For regular events (kind ${kind}), use:
     				each_blocks[i].c();
     			}
 
-    			attr_dev(h4, "class", "svelte-1xj9k6k");
+    			attr_dev(h4, "class", "svelte-pehmp1");
     			add_location(h4, file$1, 620, 20, 25189);
-    			attr_dev(div0, "class", "replies-list svelte-1xj9k6k");
+    			attr_dev(div0, "class", "replies-list svelte-pehmp1");
     			add_location(div0, file$1, 621, 20, 25245);
-    			attr_dev(div1, "class", "replies-section svelte-1xj9k6k");
+    			attr_dev(div1, "class", "replies-section svelte-pehmp1");
     			add_location(div1, file$1, 619, 16, 25139);
     		},
     		m: function mount(target, anchor) {
@@ -32292,9 +32292,9 @@ For regular events (kind ${kind}), use:
     			t2 = space();
     			span1 = element("span");
     			t3 = text(t3_value);
-    			attr_dev(span0, "class", "pubkey-fallback-small svelte-1xj9k6k");
+    			attr_dev(span0, "class", "pubkey-fallback-small svelte-pehmp1");
     			add_location(span0, file$1, 638, 44, 26612);
-    			attr_dev(span1, "class", "event-time-small svelte-1xj9k6k");
+    			attr_dev(span1, "class", "event-time-small svelte-pehmp1");
     			add_location(span1, file$1, 639, 44, 26729);
     		},
     		m: function mount(target, anchor) {
@@ -32357,11 +32357,11 @@ For regular events (kind ${kind}), use:
     			t2 = space();
     			span1 = element("span");
     			t3 = text(t3_value);
-    			attr_dev(span0, "class", "username-small svelte-1xj9k6k");
+    			attr_dev(span0, "class", "username-small svelte-pehmp1");
     			add_location(span0, file$1, 634, 48, 26241);
-    			attr_dev(span1, "class", "event-time-small svelte-1xj9k6k");
+    			attr_dev(span1, "class", "event-time-small svelte-pehmp1");
     			add_location(span1, file$1, 635, 48, 26400);
-    			attr_dev(div, "class", "author-info svelte-1xj9k6k");
+    			attr_dev(div, "class", "author-info svelte-pehmp1");
     			add_location(div, file$1, 628, 44, 25774);
     		},
     		m: function mount(target, anchor) {
@@ -32414,7 +32414,7 @@ For regular events (kind ${kind}), use:
     	const block = {
     		c: function create() {
     			div = element("div");
-    			attr_dev(div, "class", "avatar-placeholder-small svelte-1xj9k6k");
+    			attr_dev(div, "class", "avatar-placeholder-small svelte-pehmp1");
     			add_location(div, file$1, 632, 52, 26094);
     		},
     		m: function mount(target, anchor) {
@@ -32447,7 +32447,7 @@ For regular events (kind ${kind}), use:
     			img = element("img");
     			if (!src_url_equal(img.src, img_src_value = /*profile*/ ctx[29].picture)) attr_dev(img, "src", img_src_value);
     			attr_dev(img, "alt", "Avatar");
-    			attr_dev(img, "class", "avatar-small svelte-1xj9k6k");
+    			attr_dev(img, "class", "avatar-small svelte-pehmp1");
     			add_location(img, file$1, 630, 52, 25922);
     		},
     		m: function mount(target, anchor) {
@@ -32681,7 +32681,7 @@ For regular events (kind ${kind}), use:
     				each_blocks[i].c();
     			}
 
-    			attr_dev(div, "class", "nested-replies-preview svelte-1xj9k6k");
+    			attr_dev(div, "class", "nested-replies-preview svelte-pehmp1");
     			add_location(div, file$1, 655, 36, 27749);
     		},
     		m: function mount(target, anchor) {
@@ -32733,7 +32733,7 @@ For regular events (kind ${kind}), use:
     			span = element("span");
     			t0 = text(t0_value);
     			t1 = text("...");
-    			attr_dev(span, "class", "nested-username svelte-1xj9k6k");
+    			attr_dev(span, "class", "nested-username svelte-pehmp1");
     			add_location(span, file$1, 663, 56, 28611);
     		},
     		m: function mount(target, anchor) {
@@ -32770,7 +32770,7 @@ For regular events (kind ${kind}), use:
     		c: function create() {
     			span = element("span");
     			t = text(t_value);
-    			attr_dev(span, "class", "nested-username svelte-1xj9k6k");
+    			attr_dev(span, "class", "nested-username svelte-pehmp1");
     			add_location(span, file$1, 661, 56, 28377);
     		},
     		m: function mount(target, anchor) {
@@ -32843,11 +32843,11 @@ For regular events (kind ${kind}), use:
     			span = element("span");
     			t1 = text(t1_value);
     			t2 = space();
-    			attr_dev(span, "class", "nested-content svelte-1xj9k6k");
+    			attr_dev(span, "class", "nested-content svelte-pehmp1");
     			add_location(span, file$1, 665, 52, 28794);
-    			attr_dev(div, "class", "nested-reply-content svelte-1xj9k6k");
+    			attr_dev(div, "class", "nested-reply-content svelte-pehmp1");
     			add_location(div, file$1, 658, 48, 28071);
-    			attr_dev(button, "class", "nested-reply-preview svelte-1xj9k6k");
+    			attr_dev(button, "class", "nested-reply-preview svelte-pehmp1");
     			add_location(button, file$1, 657, 44, 27938);
     			this.first = button;
     		},
@@ -32968,13 +32968,13 @@ For regular events (kind ${kind}), use:
     			t1 = space();
     			if (if_block1) if_block1.c();
     			t2 = space();
-    			attr_dev(div0, "class", "event-author svelte-1xj9k6k");
+    			attr_dev(div0, "class", "event-author svelte-pehmp1");
     			add_location(div0, file$1, 625, 36, 25524);
-    			attr_dev(div1, "class", "reply-header svelte-1xj9k6k");
+    			attr_dev(div1, "class", "reply-header svelte-pehmp1");
     			add_location(div1, file$1, 624, 32, 25461);
-    			attr_dev(div2, "class", "reply-content svelte-1xj9k6k");
+    			attr_dev(div2, "class", "reply-content svelte-pehmp1");
     			add_location(div2, file$1, 643, 32, 26958);
-    			attr_dev(button, "class", "reply-item svelte-1xj9k6k");
+    			attr_dev(button, "class", "reply-item svelte-pehmp1");
     			add_location(button, file$1, 623, 28, 25360);
     			this.first = button;
     		},
@@ -33142,15 +33142,15 @@ For regular events (kind ${kind}), use:
     			t3 = space();
     			div1 = element("div");
     			if_block.c();
-    			attr_dev(h3, "class", "svelte-1xj9k6k");
+    			attr_dev(h3, "class", "svelte-pehmp1");
     			add_location(h3, file$1, 502, 8, 18105);
-    			attr_dev(button, "class", "close-btn svelte-1xj9k6k");
+    			attr_dev(button, "class", "close-btn svelte-pehmp1");
     			add_location(button, file$1, 503, 8, 18239);
-    			attr_dev(div0, "class", "thread-header svelte-1xj9k6k");
+    			attr_dev(div0, "class", "thread-header svelte-pehmp1");
     			add_location(div0, file$1, 501, 4, 18069);
-    			attr_dev(div1, "class", "thread-content svelte-1xj9k6k");
+    			attr_dev(div1, "class", "thread-content svelte-pehmp1");
     			add_location(div1, file$1, 506, 4, 18315);
-    			attr_dev(div2, "class", "reply-thread svelte-1xj9k6k");
+    			attr_dev(div2, "class", "reply-thread svelte-pehmp1");
     			add_location(div2, file$1, 500, 0, 18038);
     		},
     		l: function claim(nodes) {

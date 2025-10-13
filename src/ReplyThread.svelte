@@ -745,11 +745,9 @@
     }
 
     .original-event {
-        background-color: var(--button-hover-bg);
-        border-radius: 8px;
-        padding: 1rem;
+        background-color: transparent;
         margin-bottom: 1rem;
-        border-left: 3px solid var(--primary);
+        font-size:1em;
     }
 
     .original-event.clickable {
@@ -801,6 +799,7 @@
         gap: 0.5rem;
         padding: 0.25rem 0.5rem;
         border:none;
+        font-size:1.5em;
     }
 
     .avatar {
@@ -1070,7 +1069,6 @@
 
 
     .event-content {
-        line-height: 1.5;
         word-wrap: break-word;
         white-space: pre-wrap;
         color: var(--text-color);
