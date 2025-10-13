@@ -13,8 +13,12 @@
     let replies = [];
     let nestedReplies = new Map(); // Map of reply ID to array of nested replies
     let isLoading = false;
+    let isLoadingMore = false;
     let subscriptionId = null;
     let replyChain = []; // Array of ancestor events in the reply chain
+    let repliesContainer = null;
+    let oldestReplyTime = null;
+    let hasMoreReplies = true;
     // Remove local userProfiles cache - using global profileManager instead
 
     // Fetch the original event
@@ -54,7 +58,8 @@
             const repliesSubscriptionId = nostrClient.subscribe(
                 { 
                     kinds: [1],
-                    '#e': [eventId]
+                    '#e': [eventId],
+                    limit: 20
                 },
                 (event) => {
                     if (event && event.kind === 1) {
@@ -65,6 +70,10 @@
                         
                         if (isReplyToEvent && !replies.find(r => r.id === event.id)) {
                             replies = [...replies, event].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+                            // Update oldest reply time
+                            if (!oldestReplyTime || event.created_at < oldestReplyTime) {
+                                oldestReplyTime = event.created_at;
+                            }
                             // Fetch nested replies for this reply
                             fetchNestedReplies(event.id);
                         }
@@ -79,6 +88,55 @@
             
         } catch (error) {
             // Failed to fetch replies
+        }
+    }
+
+    // Load more replies for infinite scroll
+    async function loadMoreReplies() {
+        if (!eventId || isLoadingMore || !hasMoreReplies || !oldestReplyTime) return;
+        
+        isLoadingMore = true;
+        
+        try {
+            const moreRepliesSubscriptionId = nostrClient.subscribe(
+                { 
+                    kinds: [1],
+                    '#e': [eventId],
+                    until: oldestReplyTime - 1, // Get replies older than the oldest we have
+                    limit: 20
+                },
+                (event) => {
+                    if (event && event.kind === 1) {
+                        // Check if this is a reply to our event
+                        const isReplyToEvent = event.tags.some(tag => 
+                            tag[0] === 'e' && tag[1] === eventId && tag[3] === 'reply'
+                        );
+                        
+                        if (isReplyToEvent && !replies.find(r => r.id === event.id)) {
+                            replies = [...replies, event].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+                            // Update oldest reply time
+                            if (event.created_at < oldestReplyTime) {
+                                oldestReplyTime = event.created_at;
+                            }
+                            // Fetch nested replies for this reply
+                            fetchNestedReplies(event.id);
+                        }
+                    }
+                }
+            );
+            
+            // Close subscription after collecting more replies
+            setTimeout(() => {
+                nostrClient.unsubscribe(moreRepliesSubscriptionId);
+                isLoadingMore = false;
+                // If we got fewer than 20 replies, we've likely reached the end
+                if (replies.length < 20) {
+                    hasMoreReplies = false;
+                }
+            }, 3000);
+            
+        } catch (error) {
+            isLoadingMore = false;
         }
     }
 
@@ -190,6 +248,19 @@
     // Handle reply click - always clickable
     function handleReplyClick(reply) {
         dispatch('eventSelect', reply.id);
+    }
+
+    // Handle scroll for infinite loading
+    function handleScroll(event) {
+        const container = event.target;
+        const scrollTop = container.scrollTop;
+        const scrollHeight = container.scrollHeight;
+        const clientHeight = container.clientHeight;
+        
+        // Load more when scrolled to bottom (with 100px threshold)
+        if (scrollHeight - scrollTop - clientHeight < 100 && hasMoreReplies && !isLoadingMore) {
+            loadMoreReplies();
+        }
     }
 
     // Fetch reply chain (ancestors)
@@ -619,7 +690,7 @@
             {#if replies.length > 0}
                 <div class="replies-section">
                     <h4>Replies ({replies.length})</h4>
-                    <div class="replies-list">
+                    <div class="replies-list" bind:this={repliesContainer} on:scroll={handleScroll}>
                         {#each replies as reply (reply.id)}
                             <button class="reply-item" on:click={() => handleReplyClick(reply)}>
                                 <div class="reply-header">
@@ -671,6 +742,21 @@
                                 {/if}
                             </button>
                         {/each}
+                        
+                        <!-- Loading indicator -->
+                        {#if isLoadingMore}
+                            <div class="loading-more">
+                                <div class="loading-spinner"></div>
+                                <span>Loading more replies...</span>
+                            </div>
+                        {/if}
+                        
+                        <!-- End of replies indicator -->
+                        {#if !hasMoreReplies && replies.length > 0}
+                            <div class="end-of-replies">
+                                <span>No more replies</span>
+                            </div>
+                        {/if}
                     </div>
                 </div>
             {:else}
@@ -954,6 +1040,9 @@
         flex-direction: column;
         gap: 0;
         margin-top: 0.5rem;
+        max-height: 60vh;
+        overflow-y: auto;
+        padding-right: 0.5rem;
     }
 
     .reply-item {
@@ -1065,6 +1154,42 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .loading-more {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        gap: 0.5rem;
+        color: var(--text-color);
+        opacity: 0.7;
+        font-size: 0.9rem;
+    }
+
+    .loading-spinner {
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid var(--border-color);
+        border-top: 2px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .end-of-replies {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        color: var(--text-color);
+        opacity: 0.5;
+        font-size: 0.8rem;
+        font-style: italic;
     }
 
 

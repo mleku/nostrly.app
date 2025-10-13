@@ -4,7 +4,7 @@
     import { getUserProfile, getCachedUserProfile, loadUserProfiles } from './profileManager.js';
     import NostrProfileLink from './NostrProfileLink.svelte';
 
-    export let feedFilter = 'notes';
+    export let feedFilter = 'replies';
 
     const dispatch = createEventDispatcher();
 
@@ -128,13 +128,8 @@
             // Wait a bit for connections to be ready
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Determine which kinds to fetch based on feed filter
-            let kinds = [1]; // Default to text notes
-            if (feedFilter === 'reposts') {
-                kinds = [6]; // Fetch repost events
-            } else if (feedFilter === 'all') {
-                kinds = [1, 6]; // Fetch both text notes and reposts
-            }
+            // Only fetch text notes (kind 1) for replies
+            let kinds = [1];
             
             subscriptionId = nostrClient.subscribe(
                 { kinds: kinds, limit: 50 }, // Dynamic kinds based on filter
@@ -170,13 +165,8 @@
         let eventsLoaded = 0;
         
         try {
-            // Determine which kinds to fetch based on feed filter
-            let kinds = [1]; // Default to text notes
-            if (feedFilter === 'reposts') {
-                kinds = [6]; // Fetch repost events
-            } else if (feedFilter === 'all') {
-                kinds = [1, 6]; // Fetch both text notes and reposts
-            }
+            // Only fetch text notes (kind 1) for replies
+            let kinds = [1];
             
             const moreSubscriptionId = nostrClient.subscribe(
                 { 
@@ -235,15 +225,8 @@
 
     // Filter events based on current feed filter
     function filterEvents(events) {
-        if (feedFilter === 'replies') {
-            return events.filter(event => isReply(event));
-        } else if (feedFilter === 'notes') {
-            return events.filter(event => !isReply(event));
-        } else if (feedFilter === 'reposts') {
-            // For now, reposts are not implemented, show all events
-            return events;
-        }
-        return events;
+        // Only show replies
+        return events.filter(event => isReply(event));
     }
 
     // Get the replied-to event ID
@@ -596,15 +579,7 @@
         <div class="loading">Loading feed...</div>
     {:else if filterEvents(events).length === 0}
         <div class="empty-feed">
-            {#if feedFilter === 'replies'}
-                No replies found
-            {:else if feedFilter === 'notes'}
-                No notes found
-            {:else if feedFilter === 'reposts'}
-                No reposts found
-            {:else}
-                No events found
-            {/if}
+            No replies found
         </div>
     {:else}
         {#each filterEvents(events) as event (event.id)}
@@ -840,7 +815,6 @@
     }
 
     .event-content {
-        line-height: 1.5;
         word-wrap: break-word;
         white-space: pre-wrap;
         color: var(--text-color);

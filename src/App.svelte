@@ -19,7 +19,7 @@
     let profileFetchAttempted = false;
     let activeView = 'global'; // 'welcome' or 'global'
     let selectedEventId = null; // Event ID for reply thread
-    let feedFilter = 'notes'; // 'notes', 'replies', 'reposts'
+    let feedFilter = 'replies'; // 'replies'
     let viewHistory = []; // Stack of view states for navigation history
     let currentHistoryIndex = -1; // Current position in history
     let sidebarPosition = 'left'; // 'left' or 'right'
@@ -435,7 +435,7 @@
         <div class="middle-section">
             <!-- Global Button -->
             <div class="user-info">
-                <div class="tab-container" class:active={activeView === 'global'}>
+                    <div class="tab-container" class:active={activeView === 'global'} class:expanded={isExpanded}>
                     {#if activeView === 'global' && !isExpanded}
                         <div class="vertical-label">Global</div>
                     {/if}
@@ -449,7 +449,7 @@
             <!-- User Button -->
             {#if isLoggedIn}
                 <div class="user-info">
-                    <div class="tab-container" class:active={activeView === 'welcome'}>
+                    <div class="tab-container" class:active={activeView === 'welcome'} class:expanded={isExpanded}>
                         {#if activeView === 'welcome' && !isExpanded}
                             <div class="vertical-label">User</div>
                         {/if}
@@ -467,7 +467,7 @@
                 </div>
             {:else}
                 <div class="user-info">
-                    <div class="tab-container" class:active={activeView === 'welcome'}>
+                    <div class="tab-container" class:active={activeView === 'welcome'} class:expanded={isExpanded}>
                         {#if activeView === 'welcome' && !isExpanded}
                             <div class="vertical-label">Login</div>
                         {/if}
@@ -935,12 +935,16 @@
         align-items: center;
         width: 100%;
         position: relative;
+        padding: 0;
+        margin: 0;
+    }
+
+    .tab-container:not(.expanded) {
+        padding-top: 1em;
     }
 
     .tab-container.active {
         background-color: var(--bg-color);
-        margin-right: -1px;
-        padding: 0.5em 0.5em 0.5em 0;
     }
 
     .vertical-label {

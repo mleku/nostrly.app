@@ -3,7 +3,7 @@
     
     export let width = '32em';
     export let showReloadButton = false;
-    export let feedFilter = 'notes';
+    export let feedFilter = 'replies';
     export let newEventsCount = 0;
     
     const dispatch = createEventDispatcher();
@@ -27,19 +27,9 @@
     <div class="column-header">
         <div class="filter-buttons">
             <button class="filter-btn" 
-                    class:active={feedFilter === 'notes'} 
-                    on:click={() => handleFilterChange('notes')}>
-                Notes
-            </button>
-            <button class="filter-btn" 
                     class:active={feedFilter === 'replies'} 
                     on:click={() => handleFilterChange('replies')}>
                 Replies
-            </button>
-            <button class="filter-btn" 
-                    class:active={feedFilter === 'reposts'} 
-                    on:click={() => handleFilterChange('reposts')}>
-                Reposts
             </button>
         </div>
         <div class="action-buttons">
