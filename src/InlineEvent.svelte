@@ -13,7 +13,7 @@
     
     // Extract URLs from text content
     function extractUrls(text) {
-        const urlRegex = /(https?:\/\/[^\s]+|nostr:(?:nprofile|npub)1[a-z0-9]+)/g;
+        const urlRegex = /(https?:\/\/[^\s]+|nostr:(?:nprofile|npub|note)1[a-z0-9]+)/g;
         return text.match(urlRegex) || [];
     }
     

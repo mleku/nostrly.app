@@ -3,6 +3,7 @@
     import { nostrClient } from './nostr.js';
     import { getCachedUserProfile, loadUserProfiles } from './profileManager.js';
     import NostrProfileLink from './NostrProfileLink.svelte';
+    import InlineNote from './InlineNote.svelte';
 
     export let eventId = '';
     export let onClose = () => {};
@@ -13,12 +14,8 @@
     let replies = [];
     let nestedReplies = new Map(); // Map of reply ID to array of nested replies
     let isLoading = false;
-    let isLoadingMore = false;
     let subscriptionId = null;
     let replyChain = []; // Array of ancestor events in the reply chain
-    let repliesContainer = null;
-    let oldestReplyTime = null;
-    let hasMoreReplies = true;
     // Remove local userProfiles cache - using global profileManager instead
 
     // Fetch the original event
@@ -70,10 +67,6 @@
                         
                         if (isReplyToEvent && !replies.find(r => r.id === event.id)) {
                             replies = [...replies, event].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
-                            // Update oldest reply time
-                            if (!oldestReplyTime || event.created_at < oldestReplyTime) {
-                                oldestReplyTime = event.created_at;
-                            }
                             // Fetch nested replies for this reply
                             fetchNestedReplies(event.id);
                         }
@@ -91,54 +84,6 @@
         }
     }
 
-    // Load more replies for infinite scroll
-    async function loadMoreReplies() {
-        if (!eventId || isLoadingMore || !hasMoreReplies || !oldestReplyTime) return;
-        
-        isLoadingMore = true;
-        
-        try {
-            const moreRepliesSubscriptionId = nostrClient.subscribe(
-                { 
-                    kinds: [1],
-                    '#e': [eventId],
-                    until: oldestReplyTime - 1, // Get replies older than the oldest we have
-                    limit: 20
-                },
-                (event) => {
-                    if (event && event.kind === 1) {
-                        // Check if this is a reply to our event
-                        const isReplyToEvent = event.tags.some(tag => 
-                            tag[0] === 'e' && tag[1] === eventId && tag[3] === 'reply'
-                        );
-                        
-                        if (isReplyToEvent && !replies.find(r => r.id === event.id)) {
-                            replies = [...replies, event].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
-                            // Update oldest reply time
-                            if (event.created_at < oldestReplyTime) {
-                                oldestReplyTime = event.created_at;
-                            }
-                            // Fetch nested replies for this reply
-                            fetchNestedReplies(event.id);
-                        }
-                    }
-                }
-            );
-            
-            // Close subscription after collecting more replies
-            setTimeout(() => {
-                nostrClient.unsubscribe(moreRepliesSubscriptionId);
-                isLoadingMore = false;
-                // If we got fewer than 20 replies, we've likely reached the end
-                if (replies.length < 20) {
-                    hasMoreReplies = false;
-                }
-            }, 3000);
-            
-        } catch (error) {
-            isLoadingMore = false;
-        }
-    }
 
     // Fetch nested replies to a specific reply
     async function fetchNestedReplies(replyId) {
@@ -250,18 +195,54 @@
         dispatch('eventSelect', reply.id);
     }
 
-    // Handle scroll for infinite loading
-    function handleScroll(event) {
-        const container = event.target;
-        const scrollTop = container.scrollTop;
-        const scrollHeight = container.scrollHeight;
-        const clientHeight = container.clientHeight;
+    // Handle reload button click
+    function handleReload() {
+        if (!eventId) return;
         
-        // Load more when scrolled to bottom (with 100px threshold)
-        if (scrollHeight - scrollTop - clientHeight < 100 && hasMoreReplies && !isLoadingMore) {
-            loadMoreReplies();
+        // Reset state
+        originalEvent = null;
+        replies = [];
+        replyChain = [];
+        nestedReplies.clear();
+        isLoading = false;
+        
+        // Clean up previous subscription
+        if (subscriptionId) {
+            nostrClient.unsubscribe(subscriptionId);
+            subscriptionId = null;
         }
+        
+        // Fetch fresh data
+        fetchOriginalEvent();
+        fetchReplies();
     }
+
+    // Extract first line of content, truncating at image URLs
+    function getFirstLineContent(content) {
+        if (!content) return '';
+        
+        // Split by newlines and get first line
+        const firstLine = content.split('\n')[0];
+        
+        // Remove image URLs (http/https URLs ending with image extensions)
+        const imageRegex = /\s*https?:\/\/[^\s]*(?:\.(?:jpg|jpeg|png|gif|webp|svg))(?:\s|$)/gi;
+        let cleanContent = firstLine.replace(imageRegex, '');
+        
+        // Remove nostr: URLs
+        const nostrRegex = /\s*nostr:[^\s]+\s*/gi;
+        cleanContent = cleanContent.replace(nostrRegex, '');
+        
+        // Trim whitespace
+        cleanContent = cleanContent.trim();
+        
+        // Truncate if too long
+        if (cleanContent.length > 80) {
+            cleanContent = cleanContent.substring(0, 80) + '...';
+        }
+        
+        return cleanContent;
+    }
+
 
     // Fetch reply chain (ancestors)
     async function fetchReplyChain() {
@@ -372,7 +353,12 @@
 
     // Check if URL is a nostr link
     function isNostrUrl(url) {
-        return url.startsWith('nostr:nprofile') || url.startsWith('nostr:npub') || url.startsWith('nostr:nevent');
+        return url.startsWith('nostr:nprofile') || url.startsWith('nostr:npub') || url.startsWith('nostr:nevent') || url.startsWith('nostr:note');
+    }
+
+    // Check if URL is a nostr note link
+    function isNostrNoteUrl(url) {
+        return url.startsWith('nostr:note');
     }
 
     // Extract pubkey from nostr URL
@@ -394,7 +380,7 @@
     // Extract URLs from text content
     function extractUrls(text) {
         // Match nostr: links surrounded by whitespace or at start/end of text
-        const urlRegex = /(https?:\/\/[^\s]+|nostr:(?:nprofile|npub|nevent)1[a-z0-9]+)/g;
+        const urlRegex = /(https?:\/\/[^\s]+|nostr:(?:nprofile|npub|nevent|note)1[a-z0-9]+)/g;
         return text.match(urlRegex) || [];
     }
 
@@ -480,7 +466,11 @@
                 }
                 
                 // Add the nostr link as a component
-                segments.push({ type: 'nostr', url: url });
+                if (isNostrNoteUrl(url)) {
+                    segments.push({ type: 'note', url: url });
+                } else {
+                    segments.push({ type: 'nostr', url: url });
+                }
                 
                 // Update remaining content
                 remainingContent = remainingContent.substring(urlIndex + url.length);
@@ -572,7 +562,10 @@
 <div class="reply-thread">
     <div class="thread-header">
         <h3>{originalEvent && originalEvent.tags?.some(tag => tag[0] === 'e' && tag[3] === 'reply') ? 'Reply Thread' : 'Thread'}</h3>
-        <button class="close-btn" on:click={onClose}>✕</button>
+        <div class="header-buttons">
+            <button class="reload-btn" on:click={handleReload} title="Reload thread">↺</button>
+            <button class="close-btn" on:click={onClose}>✕</button>
+        </div>
     </div>
     
     <div class="thread-content">
@@ -586,32 +579,14 @@
                     <div class="previous-replies-list">
                         {#each replyChain as chainEvent (chainEvent.id)}
                             <button class="previous-reply-item" on:click={() => handleChainItemClick(chainEvent)}>
-                                <div class="chain-event-header">
-                                    <div class="event-author">
-                                        {#if getCachedUserProfile(chainEvent.pubkey)}
-                                            {@const profile = getCachedUserProfile(chainEvent.pubkey)}
-                                            <div class="author-info">
-                                                {#if profile.picture}
-                                                    <img src={profile.picture} alt="Avatar" class="avatar-small" />
-                                                {:else}
-                                                    <div class="avatar-placeholder-small"></div>
-                                                {/if}
-                                                <span class="username-small">{profile.name || profile.display_name || chainEvent.pubkey.slice(0, 8) + '...'}</span>
-                                            </div>
-                                        {:else}
-                                            <span class="pubkey-fallback-small">{chainEvent.pubkey.slice(0, 8)}...</span>
-                                        {/if}
-                                    </div>
-                                    <span class="event-time-small">{formatTime(chainEvent.created_at)}</span>
-                                </div>
                                 <div class="chain-event-content">
-                                    {#each splitContentForNostrLinks(chainEvent.content) as segment}
-                                        {#if segment.type === 'html'}
-                                            {@html segment.content}
-                                        {:else if segment.type === 'nostr'}
-                                            <NostrProfileLink url={segment.url} />
-                                        {/if}
-                                    {/each}
+                                    {#if getCachedUserProfile(chainEvent.pubkey)}
+                                        {@const profile = getCachedUserProfile(chainEvent.pubkey)}
+                                        <span class="username-small">{profile.name || profile.display_name || chainEvent.pubkey.slice(0, 8) + '...'}</span>
+                                    {:else}
+                                        <span class="username-small">{chainEvent.pubkey.slice(0, 8)}...</span>
+                                    {/if}
+                                    <span class="content-preview">{getFirstLineContent(chainEvent.content)}</span>
                                 </div>
                             </button>
                         {/each}
@@ -648,6 +623,8 @@
                                 {@html segment.content}
                             {:else if segment.type === 'nostr'}
                                 <NostrProfileLink url={segment.url} />
+                            {:else if segment.type === 'note'}
+                                <InlineNote url={segment.url} on:eventSelect={(e) => dispatch('eventSelect', e.detail)} />
                             {/if}
                         {/each}
                     </div>
@@ -680,6 +657,8 @@
                                 {@html segment.content}
                             {:else if segment.type === 'nostr'}
                                 <NostrProfileLink url={segment.url} />
+                            {:else if segment.type === 'note'}
+                                <InlineNote url={segment.url} on:eventSelect={(e) => dispatch('eventSelect', e.detail)} />
                             {/if}
                         {/each}
                     </div>
@@ -690,7 +669,7 @@
             {#if replies.length > 0}
                 <div class="replies-section">
                     <h4>Replies ({replies.length})</h4>
-                    <div class="replies-list" bind:this={repliesContainer} on:scroll={handleScroll}>
+                    <div class="replies-list">
                         {#each replies as reply (reply.id)}
                             <button class="reply-item" on:click={() => handleReplyClick(reply)}>
                                 <div class="reply-header">
@@ -718,6 +697,8 @@
                                             {@html segment.content}
                                         {:else if segment.type === 'nostr'}
                                             <NostrProfileLink url={segment.url} />
+                                        {:else if segment.type === 'note'}
+                                            <InlineNote url={segment.url} on:eventSelect={(e) => dispatch('eventSelect', e.detail)} />
                                         {/if}
                                     {/each}
                                 </div>
@@ -743,20 +724,6 @@
                             </button>
                         {/each}
                         
-                        <!-- Loading indicator -->
-                        {#if isLoadingMore}
-                            <div class="loading-more">
-                                <div class="loading-spinner"></div>
-                                <span>Loading more replies...</span>
-                            </div>
-                        {/if}
-                        
-                        <!-- End of replies indicator -->
-                        {#if !hasMoreReplies && replies.length > 0}
-                            <div class="end-of-replies">
-                                <span>No more replies</span>
-                            </div>
-                        {/if}
                     </div>
                 </div>
             {:else}
@@ -800,6 +767,33 @@
         padding-left:1em;
     }
 
+    .header-buttons {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-right: 1rem;
+    }
+
+    .reload-btn {
+        background: none;
+        border: none;
+        padding: 0.5rem;
+        cursor: pointer;
+        color: var(--text-color);
+        font-size: 1rem;
+        border-radius: 0.25rem;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+    }
+
+    .reload-btn:hover {
+        background-color: var(--button-hover-bg);
+    }
+
     .close-btn {
         background: none;
         border: none;
@@ -820,7 +814,7 @@
     .thread-content {
         flex: 1;
         overflow-y: auto;
-        padding: 1rem 1.5rem;
+        padding: 1em;
     }
 
     .loading, .error, .no-replies {
@@ -858,8 +852,8 @@
     .replies-section h4 {
         margin: 0 0 1rem 0;
         color: var(--text-color);
-        font-size: 1rem;
-        font-weight: 600;
+        font-size: 1em;
+        font-weight: 900;
     }
 
 
@@ -945,7 +939,7 @@
     .previous-replies-section h4 {
         margin: 0 0 0.5rem 0;
         color: var(--text-color);
-        font-size: 0.9rem;
+        font-size: 1.2em;
         font-weight: 500;
         opacity: 0.8;
     }
@@ -961,33 +955,33 @@
     .previous-reply-item {
         background: none;
         border: none;
-        padding: 0.5rem 0;
+        padding: 0.25rem 0;
         cursor: pointer;
         text-align: left;
         font-family: inherit;
-        font-size: 0.9rem;
+        font-size: 0.66em;
         color: var(--text-color);
         opacity: 0.8;
         transition: opacity 0.2s;
-        border-bottom: 1px solid var(--border-color);
         width: 100%;
     }
 
-    .chain-event-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.25rem;
-        font-size: 0.8rem;
-    }
 
     .chain-event-content {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        opacity: 0.9;
+    }
+
+    .content-preview {
+        color: var(--text-color);
+        opacity: 0.7;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        font-size: 0.9rem;
-        opacity: 0.9;
-        padding-left:1em;
+        flex: 1;
     }
 
     .avatar-small {
@@ -1040,9 +1034,6 @@
         flex-direction: column;
         gap: 0;
         margin-top: 0.5rem;
-        max-height: 60vh;
-        overflow-y: auto;
-        padding-right: 0.5rem;
     }
 
     .reply-item {
@@ -1156,41 +1147,6 @@
         white-space: nowrap;
     }
 
-    .loading-more {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-        gap: 0.5rem;
-        color: var(--text-color);
-        opacity: 0.7;
-        font-size: 0.9rem;
-    }
-
-    .loading-spinner {
-        width: 1rem;
-        height: 1rem;
-        border: 2px solid var(--border-color);
-        border-top: 2px solid var(--primary);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    .end-of-replies {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-        color: var(--text-color);
-        opacity: 0.5;
-        font-size: 0.8rem;
-        font-style: italic;
-    }
 
 
     .event-content {
@@ -1202,17 +1158,17 @@
 
     /* Custom scrollbar styling */
     .thread-content::-webkit-scrollbar {
-        width: 8px;
+        width: 1em;
     }
 
     .thread-content::-webkit-scrollbar-track {
         background: var(--button-hover-bg);
-        border-radius: 4px;
+        border-radius:  0.5em;
     }
 
     .thread-content::-webkit-scrollbar-thumb {
         background: var(--border-color);
-        border-radius: 4px;
+        border-radius: 0.5em;
     }
 
     .thread-content::-webkit-scrollbar-thumb:hover {
@@ -1221,7 +1177,7 @@
 
     /* Firefox scrollbar styling */
     .thread-content {
-        scrollbar-width: thin;
+        scrollbar-width: wide;
         scrollbar-color: var(--border-color) var(--button-hover-bg);
     }
 

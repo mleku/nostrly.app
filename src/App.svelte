@@ -56,7 +56,7 @@
             sidebarPosition = savedSidebarPosition;
         }
         
-        // Load selected event ID (thread state)
+        // Load selected event ID from localStorage initially
         const savedSelectedEventId = localStorage.getItem('selectedEventId');
         if (savedSelectedEventId) {
             selectedEventId = savedSelectedEventId;
@@ -96,6 +96,19 @@
         try {
             await initializeNostrClient();
             ndk = getNDK();
+            
+            // Parse URL for thread ID after Nostr client is ready
+            if (typeof window !== 'undefined' && window.location.hash) {
+                const hash = window.location.hash;
+                const threadMatch = hash.match(/^#thread\/([a-f0-9]{64})$/);
+                if (threadMatch) {
+                    const urlThreadId = threadMatch[1];
+                    if (urlThreadId !== selectedEventId) {
+                        selectedEventId = urlThreadId;
+                        activeView = 'global';
+                    }
+                }
+            }
             
             // If user is logged in, fetch their profile
             if (isLoggedIn && userPubkey) {
@@ -394,15 +407,44 @@
         
         // Set up popstate listener for browser back/forward buttons
         const handlePopState = (event) => {
-            handleBrowserBackForward(event);
+            // Handle browser back/forward navigation
+            if (event.state && event.state.historyIndex !== undefined) {
+                handleBrowserBackForward(event);
+            } else {
+                // Handle direct URL changes (e.g., user typed in address bar)
+                parseUrlForThread();
+            }
         };
+
+        function parseUrlForThread() {
+            if (typeof window !== 'undefined' && window.location.hash) {
+                const hash = window.location.hash;
+                const threadMatch = hash.match(/^#thread\/([a-f0-9]{64})$/);
+                if (threadMatch) {
+                    const threadId = threadMatch[1];
+                    if (threadId !== selectedEventId) {
+                        selectedEventId = threadId;
+                        activeView = 'global';
+                    }
+                } else if (hash === '#feed' || hash === '') {
+                    if (selectedEventId !== null) {
+                        selectedEventId = null;
+                    }
+                }
+            }
+        }
         
         window.addEventListener('popstate', handlePopState);
         
-        // Set initial browser state
+        // Set initial browser state (only if URL doesn't already match)
         if (typeof history !== 'undefined') {
             const currentUrl = selectedEventId ? `#thread/${selectedEventId}` : '#feed';
-            history.replaceState({ historyIndex: currentHistoryIndex }, '', currentUrl);
+            const currentHash = window.location.hash;
+            
+            // Only update URL if it doesn't match current state
+            if (currentHash !== currentUrl) {
+                history.replaceState({ historyIndex: currentHistoryIndex }, '', currentUrl);
+            }
         }
         
         // Cleanup function
@@ -1120,6 +1162,7 @@
         align-items: center;
         height: 100vh;
         overflow: hidden;
+        padding: 1em;
     }
 
     .right-panel {
@@ -1128,6 +1171,7 @@
         align-items: center;
         height: 100vh;
         overflow: hidden;
+        padding: 1em;
     }
 
     /* Desktop-only panels - hidden on mobile/tablet */

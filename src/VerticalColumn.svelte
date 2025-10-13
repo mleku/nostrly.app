@@ -72,6 +72,7 @@
         justify-content: space-between;
         align-items: sta;
         height:3em;
+        background-color: var(--header-bg);
     }
 
     .filter-buttons {

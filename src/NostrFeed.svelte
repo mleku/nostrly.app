@@ -3,6 +3,7 @@
     import { nostrClient } from './nostr.js';
     import { getUserProfile, getCachedUserProfile, loadUserProfiles } from './profileManager.js';
     import NostrProfileLink from './NostrProfileLink.svelte';
+    import InlineNote from './InlineNote.svelte';
 
     export let feedFilter = 'replies';
 
@@ -299,7 +300,12 @@
 
     // Check if URL is a nostr link
     function isNostrUrl(url) {
-        return url.startsWith('nostr:nprofile') || url.startsWith('nostr:npub') || url.startsWith('nostr:nevent');
+        return url.startsWith('nostr:nprofile') || url.startsWith('nostr:npub') || url.startsWith('nostr:nevent') || url.startsWith('nostr:note');
+    }
+
+    // Check if URL is a nostr note link
+    function isNostrNoteUrl(url) {
+        return url.startsWith('nostr:note');
     }
 
     // Extract pubkey from nostr URL
@@ -321,7 +327,7 @@
     // Extract URLs from text content
     function extractUrls(text) {
         // Match nostr: links surrounded by whitespace or at start/end of text
-        const urlRegex = /(https?:\/\/[^\s]+|nostr:(?:nprofile|npub|nevent)1[a-z0-9]+)/g;
+        const urlRegex = /(https?:\/\/[^\s]+|nostr:(?:nprofile|npub|nevent|note)1[a-z0-9]+)/g;
         return text.match(urlRegex) || [];
     }
 
@@ -407,7 +413,11 @@
                 }
                 
                 // Add the nostr link as a component
-                segments.push({ type: 'nostr', url: url });
+                if (isNostrNoteUrl(url)) {
+                    segments.push({ type: 'note', url: url });
+                } else {
+                    segments.push({ type: 'nostr', url: url });
+                }
                 
                 // Update remaining content
                 remainingContent = remainingContent.substring(urlIndex + url.length);
@@ -634,6 +644,8 @@
                                         {@html segment.content}
                                     {:else if segment.type === 'nostr'}
                                         <NostrProfileLink url={segment.url} />
+                                    {:else if segment.type === 'note'}
+                                        <InlineNote url={segment.url} on:eventSelect={(e) => dispatch('eventSelect', e.detail)} />
                                     {/if}
                                 {/each}
                             </div>
@@ -680,6 +692,8 @@
                                 {@html segment.content}
                             {:else if segment.type === 'nostr'}
                                 <NostrProfileLink url={segment.url} />
+                            {:else if segment.type === 'note'}
+                                <InlineNote url={segment.url} on:eventSelect={(e) => dispatch('eventSelect', e.detail)} />
                             {/if}
                         {/each}
                     </div>
@@ -698,6 +712,7 @@
         height: 100%;
         overflow-y: auto;
         padding: 0;
+        padding-right: 1em;
     }
 
     .loading, .empty-feed, .loading-more {
@@ -708,13 +723,12 @@
     }
 
     .event-card {
-        border-bottom: 1px solid var(--border-color);
-        padding: 1rem;
+        border:none;
+        padding: 0;
+        padding-bottom: 0.5em;
+        padding-top: 0.5em;
         transition: background-color 0.2s;
         background: none;
-        border-left: none;
-        border-right: none;
-        border-top: none;
         width: 100%;
         text-align: left;
         font-family: inherit;
